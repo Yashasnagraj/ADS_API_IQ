@@ -1,0 +1,100 @@
+# ========================================
+# Sensitive Files - NEVER COMMIT THESE
+# ========================================
+
+# OAuth credentials and tokens
+client_secret*.json
+oauth_client.json
+*.pickle
+refresh_token.txt
+token.json
+
+# Google Ads configuration (contains API keys)
+google-ads.yaml
+!google-ads.yaml.template
+
+# Environment variables
+.env
+.env.local
+!.env.example
+api/.env
+!api/.env.example
+
+# ========================================
+# Python
+# ========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# ========================================
+# IDEs and Editors
+# ========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# ========================================
+# OS Files
+# ========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ========================================
+# Logs and Testing
+# ========================================
+*.log
+logs/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# ========================================
+# Temporary and backup files
+# ========================================
+*.tmp
+*.bak
+*.backup
+*.old
+ab
+
+# ========================================
+# Database (comment out if you want to share sample data)
+# ========================================
+# *.db
+# *.sqlite
+# *.sqlite3
