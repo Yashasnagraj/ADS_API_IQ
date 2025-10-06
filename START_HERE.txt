@@ -1,0 +1,83 @@
+================================================================================
+                    MARKETINGIQ DASHBOARD - QUICK START GUIDE
+================================================================================
+
+BACKEND & FRONTEND HAVE BEEN STARTED!
+
+--------------------------------------------------------------------------------
+ACCESS YOUR DASHBOARD:
+--------------------------------------------------------------------------------
+
+Main Dashboard:     http://localhost:5000
+Analytics Page:     http://localhost:5000/
+
+--------------------------------------------------------------------------------
+API ENDPOINTS (All support customer filtering with ?customer_id=XXX):
+--------------------------------------------------------------------------------
+
+Customer Management:
+  GET /api/customers                     - List all customers
+
+Real-Time Metrics:
+  GET /api/realtime/metrics              - Live metrics (last 24 hours)
+
+Advanced KPIs:
+  GET /api/kpi/roas                      - Return on Ad Spend
+  GET /api/kpi/clv                       - Customer Lifetime Value
+  GET /api/kpi/cac                       - Customer Acquisition Cost
+  GET /api/kpi/quality-score             - Quality Score Impact
+  GET /api/kpi/attribution               - Attribution Analysis
+  GET /api/kpi/anomalies                 - Anomaly Detection
+  GET /api/kpi/trends                    - Trend Analysis
+
+Descriptive Analytics:
+  GET /api/descriptive/kpis              - Current KPIs
+  GET /api/descriptive/performance-trends - Historical trends
+  GET /api/descriptive/channel-distribution - Channel performance
+
+Diagnostic Analytics:
+  GET /api/diagnostic/insights           - Performance insights
+  GET /api/diagnostic/correlation-matrix - Metric correlations
+
+Predictive Analytics:
+  GET /api/predictive/forecasts          - Revenue forecasts
+  GET /api/predictive/alerts             - Predictive alerts
+
+Prescriptive Analytics:
+  GET /api/prescriptive/recommendations  - Action recommendations
+  GET /api/prescriptive/action-timeline  - Implementation timeline
+
+--------------------------------------------------------------------------------
+HOW TO STOP THE SERVER:
+--------------------------------------------------------------------------------
+
+Press Ctrl+C in the terminal where the server is running
+
+--------------------------------------------------------------------------------
+HOW TO RESTART:
+--------------------------------------------------------------------------------
+
+Option 1: Double-click start_dashboard.bat
+Option 2: Run in PowerShell: .\start_dashboard.ps1
+Option 3: Run directly: python enhanced_dashboard_app.py
+
+--------------------------------------------------------------------------------
+TEST THE SYSTEM:
+--------------------------------------------------------------------------------
+
+Run tests:
+  python test_kpi_algorithms.py        - Test all KPI calculations
+  python test_customer_filter.py       - Test customer filtering
+
+--------------------------------------------------------------------------------
+KEY FEATURES:
+--------------------------------------------------------------------------------
+
+✓ Customer Filtering - All dashboards can be filtered by customer
+✓ Real-time Metrics - Computed from actual database (no hardcoded values)
+✓ Advanced KPIs - ROAS, CLV, CAC with industry benchmarks
+✓ Anomaly Detection - Statistical outlier detection
+✓ Trend Analysis - 90-day trends with 7-day forecasting
+✓ Smart Recommendations - AI-driven optimization suggestions
+
+================================================================================

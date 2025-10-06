@@ -98,3 +98,28 @@ ab
 # *.db
 # *.sqlite
 # *.sqlite3
+
+# ========================================
+# Security Files - CRITICAL
+# ========================================
+.key
+secrets/
+*.encrypted
+config.encrypted
+*.pem
+*.crt
+*.pfx
+
+# ========================================
+# Backups
+# ========================================
+backups/
+*.bak.gz
+
+# ========================================
+# Docker volumes
+# ========================================
+sqlserver_data/
+prometheus_data/
+grafana_data/
+docker-compose.override.yml

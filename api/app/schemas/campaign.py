@@ -29,6 +29,8 @@ class CampaignMetrics(BaseModel):
     avg_cpc: float = 0
 
 class CampaignSummary(CampaignBase):
+    quality_score: Optional[float] = None
+    competition: Optional[str] = "UNKNOWN"
     metrics: CampaignMetrics
 
     class Config:

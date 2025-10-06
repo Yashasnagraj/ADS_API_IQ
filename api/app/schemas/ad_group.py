@@ -29,6 +29,8 @@ class AdGroupDetail(AdGroupBase):
     target_roas: Optional[float] = None
     ad_rotation_mode: Optional[str] = None
     created_at: Optional[datetime] = None
+    quality_score: Optional[float] = None
+    competition: Optional[str] = "UNKNOWN"
     metrics: AdGroupMetrics
 
     class Config:

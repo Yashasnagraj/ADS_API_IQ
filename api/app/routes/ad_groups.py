@@ -7,11 +7,106 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.db.database import get_db
 from app.db.models import AdGroup, CampaignKeyword, Keyword
-from app.schemas.ad_group import AdGroupDetail, AdGroupMetrics
+from app.schemas.ad_group import AdGroupDetail, AdGroupMetrics, AdGroupListResponse
 from app.schemas.keyword import KeywordListResponse, KeywordSummary, KeywordMetrics
 from app.core.config import settings
 
 router = APIRouter(prefix="/adgroups", tags=["ad_groups"])
+
+@router.get("", response_model=AdGroupListResponse)
+def list_ad_groups(
+    customer_id: Optional[int] = Query(None, description="Filter by customer ID"),
+    campaign_id: Optional[int] = Query(None, description="Filter by campaign ID"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    limit: int = Query(default=settings.PAGINATION_DEFAULT_LIMIT, ge=1, le=settings.PAGINATION_MAX_LIMIT),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db)
+):
+    """
+    List all ad groups with optional filters
+    """
+    query = db.query(AdGroup)
+
+    # Apply filters
+    if customer_id:
+        query = query.filter(AdGroup.customer_id == customer_id)
+    if campaign_id:
+        query = query.filter(AdGroup.campaign_id == campaign_id)
+    if status:
+        query = query.filter(AdGroup.status == status)
+
+    total = query.count()
+    ad_groups = query.offset(offset).limit(limit).all()
+
+    ad_group_details = []
+    for ad_group in ad_groups:
+        metrics = get_ad_group_metrics(ad_group.ad_group_id, db)
+
+        # Calculate quality score dynamically
+        ctr_score = min(metrics.ctr * 100, 10) * 0.4
+
+        cpc_score = 5.0
+        if metrics.avg_cpc > 0:
+            if metrics.avg_cpc < 0.5:
+                cpc_score = 9.0
+            elif metrics.avg_cpc < 1.0:
+                cpc_score = 7.0
+            elif metrics.avg_cpc < 2.0:
+                cpc_score = 5.0
+            else:
+                cpc_score = 3.0
+        cpc_score = cpc_score * 0.2
+
+        conv_rate = metrics.conversions / metrics.clicks if metrics.clicks > 0 else 0
+        conv_score = min(conv_rate * 50, 10) * 0.2
+
+        perf_score = 5.0
+        if metrics.ctr > 0.05 and conv_rate > 0.02:
+            perf_score = 8.0
+        elif metrics.ctr > 0.03 and conv_rate > 0.01:
+            perf_score = 6.5
+        elif metrics.ctr < 0.01:
+            perf_score = 3.0
+        perf_score = perf_score * 0.2
+
+        quality_score = min(max(ctr_score + cpc_score + conv_score + perf_score, 1), 10)
+
+        # Calculate competition
+        competition = "UNKNOWN"
+        if metrics.avg_cpc > 0 and metrics.impressions > 0:
+            if metrics.avg_cpc > 2.0 or metrics.impressions > 50000:
+                competition = "HIGH"
+            elif metrics.avg_cpc > 0.5 or metrics.impressions > 5000:
+                competition = "MEDIUM"
+            else:
+                competition = "LOW"
+
+        detail = AdGroupDetail(
+            ad_group_id=ad_group.ad_group_id,
+            campaign_id=ad_group.campaign_id,
+            customer_id=ad_group.customer_id,
+            ad_group_name=ad_group.ad_group_name,
+            status=ad_group.status,
+            type=ad_group.type,
+            cpc_bid_micros=ad_group.cpc_bid_micros,
+            cpm_bid_micros=ad_group.cpm_bid_micros,
+            target_cpa_micros=ad_group.target_cpa_micros,
+            target_roas=ad_group.target_roas,
+            ad_rotation_mode=ad_group.ad_rotation_mode,
+            created_at=ad_group.created_at,
+            quality_score=round(quality_score, 2),
+            competition=competition,
+            metrics=metrics
+        )
+        ad_group_details.append(detail)
+
+    return AdGroupListResponse(
+        ad_groups=ad_group_details,
+        total=total,
+        limit=limit,
+        offset=offset,
+        has_more=(offset + limit) < total
+    )
 
 def get_ad_group_metrics(ad_group_id: int, db: Session) -> AdGroupMetrics:
     """Get aggregated metrics for an ad group"""

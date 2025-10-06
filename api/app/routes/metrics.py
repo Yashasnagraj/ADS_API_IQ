@@ -15,18 +15,32 @@ router = APIRouter(prefix="/metrics", tags=["metrics"])
 
 @router.get("/summary", response_model=MetricsSummary)
 def get_metrics_summary(
-    date_range: str = Query(default="LAST_30_DAYS", regex="^(LAST_7_DAYS|LAST_30_DAYS|LAST_90_DAYS|ALL_TIME)$"),
-    customer_id: Optional[int] = None,
+    date_range: str = Query(default="LAST_30_DAYS"),
+    customer_id: Optional[int] = Query(default=None),
     db: Session = Depends(get_db)
 ):
     """
     Get global metrics aggregation
     """
+    # Validate date_range
+    valid_ranges = ["LAST_7_DAYS", "LAST_30_DAYS", "LAST_90_DAYS", "THIS_MONTH", "LAST_MONTH", "THIS_YEAR", "ALL_TIME"]
+    if date_range not in valid_ranges:
+        raise HTTPException(status_code=422, detail=f"Invalid date_range. Must be one of: {', '.join(valid_ranges)}")
+
     # Build date filter
     date_filter = None
     if date_range != "ALL_TIME":
-        days = {"LAST_7_DAYS": 7, "LAST_30_DAYS": 30, "LAST_90_DAYS": 90}[date_range]
-        cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        if date_range in ["LAST_7_DAYS", "LAST_30_DAYS", "LAST_90_DAYS"]:
+            days = {"LAST_7_DAYS": 7, "LAST_30_DAYS": 30, "LAST_90_DAYS": 90}[date_range]
+            cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        elif date_range == "THIS_MONTH":
+            cutoff_date = datetime.now().replace(day=1).strftime("%Y-%m-%d")
+        elif date_range == "LAST_MONTH":
+            last_month = datetime.now().replace(day=1) - timedelta(days=1)
+            cutoff_date = last_month.replace(day=1).strftime("%Y-%m-%d")
+        elif date_range == "THIS_YEAR":
+            cutoff_date = datetime.now().replace(month=1, day=1).strftime("%Y-%m-%d")
+
         date_filter = CampaignKeyword.date >= cutoff_date
 
     # Base query
@@ -35,6 +49,7 @@ def get_metrics_summary(
         func.coalesce(func.sum(CampaignKeyword.impressions), 0).label("total_impressions"),
         func.coalesce(func.sum(CampaignKeyword.cost_micros), 0).label("total_cost_micros"),
         func.coalesce(func.sum(CampaignKeyword.conversions), 0).label("total_conversions"),
+        func.coalesce(func.sum(CampaignKeyword.conversion_value), 0).label("total_conversion_value"),
         func.coalesce(func.avg(CampaignKeyword.ctr), 0).label("avg_ctr"),
         func.coalesce(func.avg(CampaignKeyword.conversion_rate), 0).label("avg_conversion_rate"),
     )
@@ -66,6 +81,7 @@ def get_metrics_summary(
         total_impressions=metrics.total_impressions or 0,
         total_cost=total_cost_micros / 1_000_000 if total_cost_micros else 0,
         total_conversions=metrics.total_conversions or 0,
+        total_conversion_value=metrics.total_conversion_value or 0,
         avg_ctr=metrics.avg_ctr or 0,
         avg_conversion_rate=metrics.avg_conversion_rate or 0,
         avg_cpc=total_cost_micros / total_clicks / 1_000_000 if total_clicks > 0 else 0,
@@ -75,14 +91,18 @@ def get_metrics_summary(
 
 @router.get("/timeseries", response_model=TimeSeriesResponse)
 def get_timeseries_metrics(
-    interval: str = Query(default="daily", regex="^(daily|weekly|monthly)$"),
-    campaign_id: Optional[int] = None,
+    interval: str = Query(default="daily"),
+    campaign_id: Optional[int] = Query(default=None),
     days: int = Query(default=30, ge=1, le=365),
     db: Session = Depends(get_db)
 ):
     """
     Get time series data for charts
     """
+    # Validate interval
+    valid_intervals = ["daily", "weekly", "monthly"]
+    if interval not in valid_intervals:
+        raise HTTPException(status_code=422, detail=f"Invalid interval. Must be one of: {', '.join(valid_intervals)}")
     # Calculate date range
     end_date = datetime.now()
     start_date = end_date - timedelta(days=days)

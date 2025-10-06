@@ -16,7 +16,7 @@ from app.core.exceptions import (
     general_exception_handler
 )
 from app.db.database import engine, Base
-from app.routes import campaigns, ad_groups, keywords, search_terms, ml_features, metrics
+from app.routes import campaigns, ad_groups, keywords, search_terms, ml_features, metrics, customers
 
 # Configure logging
 logging.basicConfig(
@@ -47,11 +47,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add CORS middleware
+# Add CORS middleware - allow all origins for development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],  # Allow all origins for development
+    allow_credentials=False,  # Must be False when allow_origins is ["*"]
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
@@ -62,6 +62,7 @@ app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, general_exception_handler)
 
 # Include routers
+app.include_router(customers.router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(campaigns.router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(ad_groups.router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(keywords.router, prefix=f"/api/{settings.API_VERSION}")

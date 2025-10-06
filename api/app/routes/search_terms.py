@@ -15,6 +15,7 @@ router = APIRouter(prefix="/search-terms", tags=["search_terms"])
 def get_search_terms(
     limit: int = Query(default=settings.PAGINATION_DEFAULT_LIMIT, ge=1, le=settings.PAGINATION_MAX_LIMIT),
     offset: int = Query(default=0, ge=0),
+    customer_id: Optional[int] = Query(default=None, description="Filter by customer ID"),
     campaign_id: Optional[int] = None,
     ad_group_id: Optional[int] = None,
     search_term: Optional[str] = None,
@@ -23,9 +24,12 @@ def get_search_terms(
 ):
     """
     Get all search terms with performance data
+    Filter by customer_id to show only specific customer's search terms
     """
     query = db.query(SearchTerm)
 
+    if customer_id:
+        query = query.filter(SearchTerm.customer_id == customer_id)
     if campaign_id:
         query = query.filter(SearchTerm.campaign_id == campaign_id)
     if ad_group_id:

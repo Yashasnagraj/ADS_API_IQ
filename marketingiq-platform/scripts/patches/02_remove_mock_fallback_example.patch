@@ -1,0 +1,119 @@
+--- a/web/src/agents/optimization_agent/KeywordOptimizer.tsx
++++ b/web/src/agents/optimization_agent/KeywordOptimizer.tsx
+@@ -1,6 +1,7 @@
+ import React, { useState, useEffect } from 'react';
+ import { Box, Card, CardContent, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip } from '@mui/material';
+ import { api } from '../../services/api';
++import { formatINR, formatPercentage, formatDecimal } from '@/utils/formatters';
+
+ interface Recommendation {
+   keyword: string;
+@@ -55,20 +56,18 @@
+   useEffect(() => {
+     async function loadData() {
+       try {
+         const response = await api.getKeywordOptimization();
+-        // Transform API response to expected format or use mock data
+         if (response.data) {
+-          setData({
+-            ...mockData,
+-            ...response.data,
+-          });
++          setData(response.data);
++          setLoading(false);
++          setError(null);
+         } else {
+-          setData(mockData);
++          setError('No optimization data available');
++          setLoading(false);
+         }
+       } catch (error) {
+         console.error('Failed to load keyword optimization data:', error);
+-        setData(mockData);
++        setError('Failed to load keyword optimization data. Please try again.');
++        setLoading(false);
+       }
+-      setLoading(false);
+     }
+
+     loadData();
+@@ -76,77 +75,6 @@
+   }, []);
+
+-  const mockData = {
+-    metrics: {
+-      totalKeywords: 247,
+-      avgQualityScore: 7.2,
+-      potentialSavings: 28450,
+-      optimizationOpportunities: 34
+-    },
+-    recommendations: [
+-      {
+-        keyword: 'digital marketing services',
+-        currentBid: 2.50,
+-        suggestedBid: 2.20,
+-        reason: 'High quality score, reduce bid',
+-        expectedImpact: '+12%',
+-        confidence: 87
+-      },
+-      // ... more mock recommendations
+-    ],
+-    performanceHistory: [
+-      { date: '2024-01-01', qualityScore: 6.8, ctr: 2.3 },
+-      { date: '2024-02-01', qualityScore: 7.1, ctr: 2.5 },
+-      { date: '2024-03-01', qualityScore: 7.2, ctr: 2.7 }
+-    ]
+-  };
+-
+   const displayData = data || mockData;
++  const displayData = data;
+
+-  // Ensure metrics exist with fallback
+-  if (!displayData.metrics) {
+-    displayData.metrics = mockData.metrics;
+-  }
++  if (loading) {
++    return (
++      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
++        <Typography>Loading keyword optimization data...</Typography>
++      </Box>
++    );
++  }
++
++  if (error || !displayData) {
++    return (
++      <Box sx={{ p: 3 }}>
++        <Card sx={{ bgcolor: 'error.light', color: 'error.contrastText' }}>
++          <CardContent>
++            <Typography variant="h6">Error Loading Data</Typography>
++            <Typography>{error || 'No data available'}</Typography>
++            <Button
++              variant="contained"
++              onClick={() => window.location.reload()}
++              sx={{ mt: 2 }}
++            >
++              Retry
++            </Button>
++          </CardContent>
++        </Card>
++      </Box>
++    );
++  }
+
+   return (
+     <Box sx={{ p: 3 }}>
+@@ -432,10 +360,10 @@
+                         <TableCell>{row.keyword}</TableCell>
+                         <TableCell align="right">
+-                          {row.currentBid?.toFixed(2)}
++                          {formatINR(row.currentBid)}
+                         </TableCell>
+                         <TableCell align="right">
+-                          {row.suggestedBid?.toFixed(2)}
++                          {formatINR(row.suggestedBid)}
+                         </TableCell>
+                         <TableCell>{row.reason}</TableCell>
+                         <TableCell align="right">{row.expectedImpact}</TableCell>
+-                        <TableCell align="right">{row.confidence}%</TableCell>
++                        <TableCell align="right">{formatPercentage(row.confidence, 0)}</TableCell>
+                       </TableRow>

@@ -240,8 +240,8 @@ class GoogleAdsETL:
                 metrics.absolute_top_impression_percentage,
                 metrics.top_impression_percentage
             FROM campaign
-            LEFT JOIN campaign_budget ON campaign.campaign_budget = campaign_budget.resource_name
             WHERE campaign.status != 'REMOVED'
+                AND segments.date DURING LAST_30_DAYS
             ORDER BY campaign.id
         """
 

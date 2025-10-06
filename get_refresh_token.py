@@ -1,90 +1,134 @@
 #!/usr/bin/env python3
 """
-Script to obtain a refresh token for Google Ads API.
-Follow the instructions to authenticate and get your refresh token.
+Simple script to get Google Ads API refresh token
 """
 
-import sys
-from google_auth_oauthlib.flow import Flow
-from google.auth.transport.requests import Request
+import webbrowser
+from urllib.parse import urlencode
 
+# Your OAuth2 credentials
 CLIENT_ID = "27301795624-e2iccuor7ba1shjmrt87b58f0iitf2rv.apps.googleusercontent.com"
 CLIENT_SECRET = "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"
+REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob"  # For manual copy-paste
 
-SCOPES = ["https://www.googleapis.com/auth/adwords"]
+print("\n" + "="*70)
+print(" GOOGLE ADS API - REFRESH TOKEN GENERATOR ")
+print("="*70)
+print("\nFollow these steps to get your refresh token:\n")
 
-def main():
-    """Generate a refresh token for Google Ads API access."""
+# Step 1: Generate authorization URL
+auth_params = {
+    'client_id': CLIENT_ID,
+    'redirect_uri': REDIRECT_URI,
+    'scope': 'https://www.googleapis.com/auth/adwords',
+    'response_type': 'code',
+    'access_type': 'offline',
+    'prompt': 'consent'
+}
 
-    print("Google Ads API - Refresh Token Generator")
-    print("=" * 50)
+auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(auth_params)}"
 
-    # Create the flow using the client secrets
-    flow = Flow.from_client_config(
-        {
-            "installed": {
-                "client_id": CLIENT_ID,
-                "client_secret": CLIENT_SECRET,
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-            }
-        },
-        scopes=SCOPES,
-    )
+print("STEP 1: Open this URL in your browser:")
+print("-" * 70)
+print(auth_url)
+print("-" * 70)
 
-    # Set the redirect URI
-    flow.redirect_uri = "http://localhost:8080"
+# Try to open browser
+try:
+    webbrowser.open(auth_url)
+    print("\n✓ Browser opened automatically")
+except:
+    print("\n! Please copy and paste the URL above into your browser")
 
-    # Generate the authorization URL
-    auth_url, _ = flow.authorization_url(
-        access_type="offline",
-        prompt="consent",
-    )
+print("\nSTEP 2: Sign in with the Google account that has access to")
+print("        Google Ads account: 3341907700")
 
-    print("\n1. Open this URL in your browser:")
-    print(f"\n{auth_url}\n")
-    print("2. Authorize the application")
-    print("3. You'll be redirected to localhost:8080")
-    print("4. Copy the entire URL from your browser's address bar")
-    print("5. Paste it here and press Enter:\n")
+print("\nSTEP 3: After authorizing, you'll see an authorization code.")
+print("        Copy that code and paste it below:\n")
 
-    # Get the authorization response URL from the user
-    auth_response = input("Paste the full redirect URL here: ").strip()
+auth_code = input("Enter authorization code: ").strip()
+
+if auth_code:
+    print("\nSTEP 4: Exchanging code for refresh token...")
+
+    # Create the curl command to exchange code for token
+    import requests
+
+    token_params = {
+        'code': auth_code,
+        'client_id': CLIENT_ID,
+        'client_secret': CLIENT_SECRET,
+        'redirect_uri': REDIRECT_URI,
+        'grant_type': 'authorization_code'
+    }
 
     try:
-        # Exchange the authorization code for tokens
-        flow.fetch_token(authorization_response=auth_response)
+        response = requests.post('https://oauth2.googleapis.com/token', data=token_params)
+        token_data = response.json()
 
-        # Get the refresh token
-        refresh_token = flow.credentials.refresh_token
+        if 'refresh_token' in token_data:
+            refresh_token = token_data['refresh_token']
 
-        if refresh_token:
-            print("\n" + "=" * 50)
-            print("SUCCESS! Your refresh token is:")
-            print("\n" + refresh_token)
-            print("\n" + "=" * 50)
-            print("\nTo use this token:")
-            print("1. Open google-ads.yaml")
-            print("2. Replace 'PASTE_REFRESH_TOKEN_HERE' with the token above")
-            print("3. Save the file")
-            print("\nYour google-ads.yaml should look like:")
-            print(f"""
-developer_token: ouYOcEpDiQOJCTs-Rkc1mA
+            print("\n" + "="*70)
+            print(" SUCCESS! Your new refresh token is: ")
+            print("="*70)
+            print(f"\n{refresh_token}\n")
+            print("="*70)
+
+            # Update google-ads.yaml
+            print("\nUpdating google-ads.yaml...")
+            yaml_content = f"""developer_token: ouYOcEpDiQOJCTs-Rkc1mA
 client_id: {CLIENT_ID}
 client_secret: {CLIENT_SECRET}
 refresh_token: {refresh_token}
-use_proto_plus: True
-""")
+login_customer_id: 3341907700
+"""
+            with open('google-ads.yaml', 'w') as f:
+                f.write(yaml_content)
+            print("✓ google-ads.yaml updated")
+
+            # Update .env file
+            print("\nUpdating .env file...")
+            env_lines = []
+            updated = False
+
+            try:
+                with open('.env', 'r') as f:
+                    for line in f:
+                        if line.startswith('GOOGLE_ADS_REFRESH_TOKEN='):
+                            env_lines.append(f'GOOGLE_ADS_REFRESH_TOKEN={refresh_token}\n')
+                            updated = True
+                        else:
+                            env_lines.append(line)
+
+                if not updated:
+                    env_lines.append(f'GOOGLE_ADS_REFRESH_TOKEN={refresh_token}\n')
+
+                with open('.env', 'w') as f:
+                    f.writelines(env_lines)
+
+            except FileNotFoundError:
+                with open('.env', 'w') as f:
+                    f.write(f'GOOGLE_ADS_REFRESH_TOKEN={refresh_token}\n')
+
+            print("✓ .env file updated")
+            print("\n✅ ALL DONE! You can now run: python google_ads_etl_pipeline.py")
+
         else:
-            print("\nError: No refresh token received.")
-            print("Make sure you included 'access_type=offline' in the request.")
+            print("\n✗ Error getting refresh token:")
+            print(token_data)
+            if 'error' in token_data:
+                print(f"\nError: {token_data['error']}")
+                print(f"Description: {token_data.get('error_description', 'N/A')}")
 
     except Exception as e:
-        print(f"\nError obtaining refresh token: {e}")
-        print("\nMake sure you:")
-        print("1. Copied the ENTIRE URL from your browser")
-        print("2. Included everything after 'http://localhost:8080'")
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()
+        print(f"\n✗ Error: {e}")
+        print("\nTry running this command manually:")
+        print(f"\ncurl -X POST https://oauth2.googleapis.com/token \\")
+        print(f"  -d 'code={auth_code}' \\")
+        print(f"  -d 'client_id={CLIENT_ID}' \\")
+        print(f"  -d 'client_secret={CLIENT_SECRET}' \\")
+        print(f"  -d 'redirect_uri={REDIRECT_URI}' \\")
+        print(f"  -d 'grant_type=authorization_code'")
+else:
+    print("\n✗ No authorization code provided. Please try again.")

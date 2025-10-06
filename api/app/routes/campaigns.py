@@ -42,12 +42,17 @@ def get_campaigns(
     limit: int = Query(default=settings.PAGINATION_DEFAULT_LIMIT, ge=1, le=settings.PAGINATION_MAX_LIMIT),
     offset: int = Query(default=0, ge=0),
     status: Optional[str] = None,
+    customer_id: Optional[int] = Query(default=None, description="Filter by customer ID"),
     db: Session = Depends(get_db)
 ):
     """
     List all campaigns with summary metrics
+    Filter by customer_id to show only specific customer's campaigns
     """
     query = db.query(Campaign)
+
+    if customer_id:
+        query = query.filter(Campaign.customer_id == customer_id)
 
     if status:
         query = query.filter(Campaign.status == status)
@@ -58,6 +63,49 @@ def get_campaigns(
     campaign_summaries = []
     for campaign in campaigns:
         metrics = get_campaign_metrics(campaign.campaign_id, db)
+
+        # Calculate quality score dynamically (1-10 scale)
+        # Based on: CTR (40%), CPC efficiency (20%), Conversion Rate (20%), Budget utilization (20%)
+        ctr_score = min(metrics.ctr * 100, 10) * 0.4
+
+        # CPC Efficiency Score
+        cpc_score = 5.0
+        if metrics.avg_cpc > 0:
+            if metrics.avg_cpc < 0.5:
+                cpc_score = 9.0
+            elif metrics.avg_cpc < 1.0:
+                cpc_score = 7.0
+            elif metrics.avg_cpc < 2.0:
+                cpc_score = 5.0
+            else:
+                cpc_score = 3.0
+        cpc_score = cpc_score * 0.2
+
+        # Conversion Rate Score
+        conv_score = min(metrics.conversion_rate * 50, 10) * 0.2
+
+        # Budget utilization score (based on performance)
+        budget_score = 5.0
+        if metrics.ctr > 0.05 and metrics.conversion_rate > 0.02:
+            budget_score = 8.0
+        elif metrics.ctr > 0.03 and metrics.conversion_rate > 0.01:
+            budget_score = 6.5
+        elif metrics.ctr < 0.01:
+            budget_score = 3.0
+        budget_score = budget_score * 0.2
+
+        quality_score = min(max(ctr_score + cpc_score + conv_score + budget_score, 1), 10)
+
+        # Calculate competition level
+        competition = "UNKNOWN"
+        if metrics.avg_cpc > 0 and metrics.impressions > 0:
+            if metrics.avg_cpc > 2.0 or metrics.impressions > 100000:
+                competition = "HIGH"
+            elif metrics.avg_cpc > 0.5 or metrics.impressions > 10000:
+                competition = "MEDIUM"
+            else:
+                competition = "LOW"
+
         summary = CampaignSummary(
             campaign_id=campaign.campaign_id,
             customer_id=campaign.customer_id,
@@ -70,6 +118,8 @@ def get_campaigns(
             budget_amount_micros=campaign.budget_amount_micros,
             start_date=campaign.start_date,
             end_date=campaign.end_date,
+            quality_score=round(quality_score, 2),
+            competition=competition,
             metrics=metrics
         )
         campaign_summaries.append(summary)

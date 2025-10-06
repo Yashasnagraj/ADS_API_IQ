@@ -43,6 +43,7 @@ def get_keyword_metrics(keyword_id: str, db: Session) -> KeywordMetrics:
 def get_keywords(
     limit: int = Query(default=settings.PAGINATION_DEFAULT_LIMIT, ge=1, le=settings.PAGINATION_MAX_LIMIT),
     offset: int = Query(default=0, ge=0),
+    customer_id: Optional[int] = Query(default=None, description="Filter by customer ID"),
     campaign_id: Optional[int] = None,
     status: Optional[str] = None,
     quality_score_min: Optional[int] = Query(None, ge=1, le=10),
@@ -50,9 +51,12 @@ def get_keywords(
 ):
     """
     Get all keywords with performance metrics
+    Filter by customer_id to show only specific customer's keywords
     """
     query = db.query(Keyword)
 
+    if customer_id:
+        query = query.filter(Keyword.customer_id == customer_id)
     if campaign_id:
         query = query.filter(Keyword.campaign_id == campaign_id)
     if status:
@@ -66,6 +70,58 @@ def get_keywords(
     keyword_summaries = []
     for keyword in keywords:
         metrics = get_keyword_metrics(keyword.keyword_id, db)
+
+        # Calculate quality score if missing (based on CTR, CPC efficiency, conversion rate)
+        calculated_quality_score = keyword.quality_score
+        if calculated_quality_score is None or calculated_quality_score == 0:
+            # Quality Score calculation (1-10 scale)
+            # Based on: CTR (40%), CPC efficiency (20%), Conversion Rate (20%), Landing Page (20%)
+
+            # CTR Score: Higher CTR = Higher Quality (0-10%)
+            ctr_score = min(metrics.ctr * 100, 10) * 0.4
+
+            # CPC Efficiency Score: Lower CPC relative to performance = Higher Quality
+            # Benchmark: Good CPC is < $1, Excellent < $0.50
+            cpc_score = 5.0  # Default
+            if metrics.avg_cpc > 0:
+                if metrics.avg_cpc < 0.5:
+                    cpc_score = 9.0
+                elif metrics.avg_cpc < 1.0:
+                    cpc_score = 7.0
+                elif metrics.avg_cpc < 2.0:
+                    cpc_score = 5.0
+                else:
+                    cpc_score = 3.0
+            cpc_score = cpc_score * 0.2
+
+            # Conversion Rate Score
+            conv_score = min(metrics.conversion_rate * 50, 10) * 0.2
+
+            # Landing page score (estimated from performance)
+            landing_score = 5.0  # Default middle score
+            if metrics.ctr > 0.05 and metrics.conversion_rate > 0.02:
+                landing_score = 8.0
+            elif metrics.ctr > 0.03 and metrics.conversion_rate > 0.01:
+                landing_score = 6.5
+            elif metrics.ctr < 0.01 or metrics.conversion_rate < 0.005:
+                landing_score = 3.0
+            landing_score = landing_score * 0.2
+
+            calculated_quality_score = min(max(ctr_score + cpc_score + conv_score + landing_score, 1), 10)
+
+        # Calculate competition level based on CPC and impressions
+        competition = "UNKNOWN"
+        if metrics.avg_cpc > 0 and metrics.impressions > 0:
+            # High competition: High CPC (>$2) OR very high impressions
+            if metrics.avg_cpc > 2.0 or metrics.impressions > 100000:
+                competition = "HIGH"
+            # Medium competition: Moderate CPC ($0.50-$2) OR moderate impressions
+            elif metrics.avg_cpc > 0.5 or metrics.impressions > 10000:
+                competition = "MEDIUM"
+            # Low competition: Low CPC (<$0.50) AND low impressions
+            else:
+                competition = "LOW"
+
         summary = KeywordSummary(
             keyword_id=keyword.keyword_id,
             ad_group_id=keyword.ad_group_id,
@@ -74,7 +130,8 @@ def get_keywords(
             keyword_text=keyword.keyword_text,
             match_type=keyword.match_type,
             status=keyword.status,
-            quality_score=keyword.quality_score,
+            quality_score=round(calculated_quality_score, 2),
+            competition=competition,
             metrics=metrics
         )
         keyword_summaries.append(summary)

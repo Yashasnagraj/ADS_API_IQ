@@ -25,14 +25,16 @@ class KeywordMetrics(BaseModel):
     avg_cpc: float = 0
 
 class KeywordSummary(KeywordBase):
-    quality_score: Optional[int] = None
+    quality_score: Optional[float] = None
+    competition: Optional[str] = "UNKNOWN"
     metrics: KeywordMetrics
 
     class Config:
         from_attributes = True
 
 class KeywordDetail(KeywordBase):
-    quality_score: Optional[int] = None
+    quality_score: Optional[float] = None
+    competition: Optional[str] = "UNKNOWN"
     creative_quality_score: Optional[str] = None
     landing_page_quality_score: Optional[str] = None
     search_predicted_ctr: Optional[str] = None

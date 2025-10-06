@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: marketing_sqlserver
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD_FILE=/run/secrets/db_password
+      - MSSQL_PID=Developer
+      - MSSQL_AGENT_ENABLED=true
+    secrets:
+      - db_password
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./sql-scripts:/docker-entrypoint-initdb.d
+      - ./backups:/var/opt/mssql/backups
+    networks:
+      - marketing_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P $$(cat /run/secrets/db_password) -Q 'SELECT 1' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2'
+        reservations:
+          memory: 2G
+          cpus: '1'
+
+  monitoring:
+    image: prom/prometheus:latest
+    container_name: marketing_monitoring
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - marketing_network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: marketing_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_password
+    secrets:
+      - grafana_password
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards
+    networks:
+      - marketing_network
+    restart: unless-stopped
+
+  backup:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: marketing_backup
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./backups:/backups
+      - ./scripts:/scripts
+    secrets:
+      - db_password
+    networks:
+      - marketing_network
+    entrypoint: ["/scripts/backup.sh"]
+    restart: no
+    profiles:
+      - backup
+
+volumes:
+  sqlserver_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  marketing_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  grafana_password:
+    file: ./secrets/grafana_password.txt

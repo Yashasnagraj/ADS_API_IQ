@@ -11,6 +11,7 @@ class MetricsSummary(BaseModel):
     total_impressions: int
     total_cost: float
     total_conversions: float
+    total_conversion_value: float
     avg_ctr: float
     avg_conversion_rate: float
     avg_cpc: float
