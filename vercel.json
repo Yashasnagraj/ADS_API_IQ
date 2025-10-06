@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "buildCommand": "cd marketingiq-platform/web && npm install && npm run build",
+  "outputDirectory": "marketingiq-platform/web/dist",
+  "framework": null,
+  "installCommand": "cd marketingiq-platform/web && npm install",
+  "devCommand": "cd marketingiq-platform/web && npm start",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./marketingiq-platform/web",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    }
+  ]
+}
