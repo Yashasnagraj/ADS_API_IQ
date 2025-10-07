@@ -1,0 +1,78 @@
+═══════════════════════════════════════════════════════════════
+  NETLIFY ENVIRONMENT VARIABLES - COPY & PASTE THIS
+═══════════════════════════════════════════════════════════════
+
+📍 WHERE: Netlify Dashboard → Site Settings → Environment Variables
+
+Click "Add a variable" and add these TWO variables:
+
+───────────────────────────────────────────────────────────────
+VARIABLE 1: API URL (REQUIRED!)
+───────────────────────────────────────────────────────────────
+
+Key:
+REACT_APP_API_URL
+
+Value:
+https://your-backend-url-here.railway.app/api/v1
+
+⚠️ REPLACE "your-backend-url-here.railway.app" with your ACTUAL backend URL!
+
+Example if using Railway:
+https://ads-api-production.up.railway.app/api/v1
+
+Example if using Render:
+https://ads-api.onrender.com/api/v1
+
+───────────────────────────────────────────────────────────────
+VARIABLE 2: NODE VERSION (REQUIRED!)
+───────────────────────────────────────────────────────────────
+
+Key:
+NODE_VERSION
+
+Value:
+18
+
+───────────────────────────────────────────────────────────────
+AFTER ADDING VARIABLES:
+───────────────────────────────────────────────────────────────
+
+1. Click "Save"
+2. Go to "Deploys" tab
+3. Click "Trigger deploy" → "Deploy site"
+4. Wait 2-3 minutes
+5. Your site is live! 🎉
+
+───────────────────────────────────────────────────────────────
+BACKEND NOT DEPLOYED YET?
+───────────────────────────────────────────────────────────────
+
+Deploy backend FIRST on Railway:
+
+1. Go to: https://railway.app
+2. Sign in with GitHub
+3. "New Project" → "Deploy from GitHub repo"
+4. Select: Yashasnagraj/ADS_API_IQ
+5. Settings → Root Directory: api
+6. Variables → Add: PORT = 8000
+7. Deploy!
+8. Copy the URL (looks like: https://xxx.railway.app)
+9. Use that URL in REACT_APP_API_URL above
+
+───────────────────────────────────────────────────────────────
+QUICK TEST AFTER DEPLOY:
+───────────────────────────────────────────────────────────────
+
+✓ Visit: https://your-site.netlify.app
+✓ Visit: https://your-site.netlify.app/dashboard
+✓ Press F12 → Console tab → Should have NO errors
+✓ Press F12 → Network tab → Should see API calls succeeding
+
+───────────────────────────────────────────────────────────────
+DONE! 🎉
+───────────────────────────────────────────────────────────────
+
+Your E-Commerce Dashboard is now live and accessible worldwide!
+
+Share the URL with your boss and enjoy! 🚀
