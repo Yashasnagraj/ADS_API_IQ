@@ -5,8 +5,8 @@ import Layout from './components/common/Layout';
 // Premium Landing Page
 import { PremiumLandingPage } from './components/landing/PremiumLandingPage';
 
-// Unified Dashboard
-import UnifiedDashboard from './components/dashboard/UnifiedDashboard';
+// E-Commerce Dashboard (replaces UnifiedDashboard)
+import EcommerceDashboard from './components/ecommerce/EcommerceDashboard';
 
 // import CampaignsDashboard from './agents/data_agent/CampaignsDashboard';
 import CampaignsDashboard from './components/campaigns/EnhancedCampaignsDashboard';
@@ -42,7 +42,7 @@ function App() {
       <Route path="/*" element={
         <Layout>
           <Routes>
-            <Route path="/dashboard" element={<UnifiedDashboard />} />
+            <Route path="/dashboard" element={<EcommerceDashboard />} />
 
             <Route path="/data/campaigns" element={<CampaignsDashboard />} />
             <Route path="/data/adgroups" element={<AdGroupsDashboard />} />

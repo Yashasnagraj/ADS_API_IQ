@@ -16,7 +16,7 @@ from app.core.exceptions import (
     general_exception_handler
 )
 from app.db.database import engine, Base
-from app.routes import campaigns, ad_groups, keywords, search_terms, ml_features, metrics, customers
+from app.routes import campaigns, ad_groups, keywords, search_terms, ml_features, metrics, customers, ecommerce
 
 # Configure logging
 logging.basicConfig(
@@ -69,6 +69,7 @@ app.include_router(keywords.router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(search_terms.router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(ml_features.router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(metrics.router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(ecommerce.router, prefix=f"/api/{settings.API_VERSION}")
 
 @app.get("/")
 async def root():

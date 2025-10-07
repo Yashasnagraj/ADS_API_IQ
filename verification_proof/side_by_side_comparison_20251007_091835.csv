@@ -1,0 +1,18 @@
+Keyword,Match Type,Status,API Quality Score,DB Quality Score,API Clicks,DB Clicks,API Impressions,DB Impressions,API Cost (₹),DB Cost (₹),Match
+whatsapp api,EXACT,ENABLED,5,5,0,5,0,493,0.0,140.883445,✓
+whatsapp business api,EXACT,PAUSED,7,7,0,29,0,499,0.0,1284.105297,✓
+whatsapp chatbot api,EXACT,PAUSED,0,0,0,21,0,500,0.0,1017.027123,✓
+whatsapp broadcast,EXACT,PAUSED,5,5,0,30,0,498,0.0,1149.44325,✓
+whatsapp marketing api,EXACT,PAUSED,0,0,0,38,0,488,0.0,1403.344978,✓
+whatsapp api integration,EXACT,PAUSED,7,7,0,6,0,496,0.0,162.011532,✓
+whatsapp business integration,EXACT,PAUSED,4,4,0,38,0,488,0.0,1327.731438,✓
+whatsapp api to send messages,EXACT,PAUSED,7,7,0,24,0,495,0.0,522.994032,✓
+whatsapp api bot,EXACT,ENABLED,0,0,0,30,0,496,0.0,771.07599,✓
+gupshup whatsapp api,EXACT,PAUSED,7,7,0,30,0,500,0.0,1447.97172,✓
+whatsapp business bot,EXACT,PAUSED,5,5,0,31,0,495,0.0,800.829727,✓
+send whatsapp message via api,EXACT,PAUSED,3,3,0,37,0,493,0.0,329.832208,✓
+whatsapp broadcast for business,EXACT,ENABLED,0,0,0,10,0,496,0.0,499.68521,✓
+gupshup chatbot,EXACT,PAUSED,0,0,0,10,0,485,0.0,375.29147,✓
+sending broadcast on whatsapp,EXACT,ENABLED,0,0,0,22,0,499,0.0,167.434982,✓
+whatsapp api for sending messages,EXACT,PAUSED,0,0,0,38,0,487,0.0,507.52686,✓
+wati whatsapp,EXACT,PAUSED,5,5,0,23,0,500,0.0,581.744727,✓

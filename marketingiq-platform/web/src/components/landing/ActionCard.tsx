@@ -42,10 +42,10 @@ interface ActionCardProps {
   impact: {
     metric: string;
     current: number;
-    predicted: number;
+    predicted?: number; // Optional - removed fake predictions
     format?: 'currency' | 'percentage' | 'number';
   };
-  confidence: number; // 0-100
+  confidence?: number; // Optional - removed fake confidence scores
   onApply?: () => void;
   applied?: boolean;
 }
@@ -97,8 +97,11 @@ export const ActionCard: React.FC<ActionCardProps> = ({
     }
   };
 
-  const impactDelta = impact.predicted - impact.current;
-  const impactPercent = ((impactDelta / impact.current) * 100).toFixed(1);
+  // Calculate impact delta only if predicted value exists
+  const impactDelta = impact.predicted ? impact.predicted - impact.current : 0;
+  const impactPercent = impact.predicted && impact.current > 0
+    ? ((impactDelta / impact.current) * 100).toFixed(1)
+    : '0';
   const isPositive = impactDelta > 0;
 
   const handleApply = () => {
@@ -203,7 +206,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
           {description}
         </Typography>
 
-        {/* Impact preview */}
+        {/* Impact preview - Only show current value (no predictions) */}
         <Box
           sx={{
             background: alpha(theme.palette.background.paper, 0.5),
@@ -224,82 +227,26 @@ export const ActionCard: React.FC<ActionCardProps> = ({
               mb: 1,
             }}
           >
-            Predicted Impact on {impact.metric}
+            {impact.metric}
           </Typography>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-            <Box>
-              <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontSize: '0.7rem' }}>
-                Current
-              </Typography>
-              <Typography variant="body2" sx={{ color: theme.palette.text.primary, fontWeight: 600 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                variant="h5"
+                sx={{
+                  color: config.color,
+                  fontWeight: 700,
+                  fontSize: '1.8rem',
+                }}
+              >
                 {formatValue(impact.current)}
               </Typography>
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  color: isPositive ? '#66bb6a' : '#ff5252',
-                  fontWeight: 700,
-                  fontSize: '1.1rem',
-                }}
-              >
-                {isPositive ? '↑' : '↓'} {impactPercent}%
-              </Typography>
-            </Box>
-
-            <Box>
               <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontSize: '0.7rem' }}>
-                Predicted
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: isPositive ? '#66bb6a' : '#ff5252',
-                  fontWeight: 700,
-                }}
-              >
-                {formatValue(impact.predicted)}
+                {impact.format === 'number' ? 'campaigns' : 'current'}
               </Typography>
             </Box>
           </Box>
-
-          {/* Progress bar visualization */}
-          <Box sx={{ position: 'relative', height: 6, background: alpha('#fff', 0.1), borderRadius: 3, overflow: 'hidden' }}>
-            <Box
-              sx={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                height: '100%',
-                width: `${Math.min((impact.predicted / Math.max(impact.current, impact.predicted)) * 100, 100)}%`,
-                background: `linear-gradient(90deg, ${config.color}, ${alpha(config.color, 0.6)})`,
-                borderRadius: 3,
-                transition: 'width 0.5s ease-out',
-              }}
-            />
-          </Box>
-        </Box>
-
-        {/* Confidence indicator */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <ElectricBolt sx={{ fontSize: '1rem', color: '#ffa726' }} />
-          <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontSize: '0.7rem' }}>
-            AI Confidence:
-          </Typography>
-          <Chip
-            label={`${confidence}%`}
-            size="small"
-            sx={{
-              height: 20,
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              background: alpha('#ffa726', 0.15),
-              color: '#ffa726',
-            }}
-          />
         </Box>
 
         {/* Action button */}

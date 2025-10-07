@@ -1,0 +1,1193 @@
+{
+  "matches": [],
+  "differences": [
+    {
+      "keyword_id": "6265362093_183978226496_378087630219",
+      "keyword_text": "whatsapp business integration",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 38
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 488
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 1327731438
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 5.243996639071787
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_890320452950",
+      "keyword_text": "gupshup chatbot",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 10
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 485
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 375291470
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 1.073735439693479
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_184604275324_578465764221",
+      "keyword_text": "whatsapp business pricing",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 12
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 489
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 255881448
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 1.0370522807430864
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_367799791091",
+      "keyword_text": "whatsapp api integration",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 28
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 496
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 1210025880
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 1.5387185760803366
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_184604275324_613175924155",
+      "keyword_text": "whatsapp cloud api",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 5
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 494
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 145602745
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 0.7407281484576088
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_446000102824",
+      "keyword_text": "whatsapp api bot",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 11
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 485
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 84738522
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 0.7135141260273071
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_184604275324_435260751103",
+      "keyword_text": "business whatsapp api",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 33
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 495
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 1319873082
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 3.8282946594834524
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_535870079252",
+      "keyword_text": "whatsapp business bot",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 14
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 494
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 562765574
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 1.4884864529347688
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_1158371319330",
+      "keyword_text": "whatsapp api shopify",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 28
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 486
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 913093804
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 3.46529103697294
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_184604275324_778919985553",
+      "keyword_text": "whatsapp business api pricing",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 10
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 492
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 94349280
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 0.37873005511150165
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_184604275324_307147016619",
+      "keyword_text": "whatsapp api",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 28
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 492
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 232306816
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 3.303456276350216
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_184604275324_440861069204",
+      "keyword_text": "api whatsapp business",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 9
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 486
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 155574126
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 0.7433298407091893
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_184604275324_369750161985",
+      "keyword_text": "whatsapp business api",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 23
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 485
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 363382359
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 1.2757591148744474
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_1683832502773",
+      "keyword_text": "whatsapp business platform api",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 14
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 491
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 615405168
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 1.6725345366552968
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_184604275324_341697873039",
+      "keyword_text": "whatsapp api integration",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 27
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 495
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 179811522
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 3.268615705516812
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_776064974776",
+      "keyword_text": "whatsapp broadcast for business",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 10
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 496
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 499685210
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 1.1501161126757693
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_334216643898",
+      "keyword_text": "whatsapp broadcast",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 30
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 498
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 1149443250
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 0.6281719354157135
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_184604275324_437913834138",
+      "keyword_text": "whatsapp api pricing",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 8
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 497
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 171036064
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 0.42461492495406306
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_328750895705",
+      "keyword_text": "whatsapp business api",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 29
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 499
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 1284105297
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 0.4437518844217526
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_184604275324_435560749336",
+      "keyword_text": "whatsapp for business pricing",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 17
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 488
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 748249798
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 2.093826103281383
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_901647027798",
+      "keyword_text": "sending broadcast on whatsapp",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 17
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 492
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 176750921
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 0.47765370402601015
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_184604275324_377442763582",
+      "keyword_text": "whatsapp business integration",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 19
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 494
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 113562259
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 2.435413827337415
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_522894111103",
+      "keyword_text": "gupshup whatsapp api",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 31
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 486
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 895340078
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 3.937533824201329
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_184604275324_402107391515",
+      "keyword_text": "whatsapp chatbot api",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 13
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 488
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 565848933
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 1.3302996734810817
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_344700131951",
+      "keyword_text": "whatsapp marketing api",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 38
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 488
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 1403344978
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 2.162600145245344
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_617755096312",
+      "keyword_text": "send whatsapp message via api",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 37
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 493
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 329832208
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 3.5607000026987694
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_1023377950051",
+      "keyword_text": "wati whatsapp",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 23
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 500
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 581744727
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 1.3841918146984789
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_303435809013",
+      "keyword_text": "whatsapp api",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 5
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 493
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 140883445
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 0.7332665954455007
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_332324671903",
+      "keyword_text": "whatsapp chatbot api",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 21
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 500
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 1017027123
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 0.4349770549627515
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_1015247205832",
+      "keyword_text": "whatsapp api for sending messages",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 38
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 487
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 507526860
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 0.9756846221072448
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_184604275324_603544686952",
+      "keyword_text": "whatsapp business bot",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 35
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 488
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 888023815
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 3.2144651143755905
+        }
+      ]
+    },
+    {
+      "keyword_id": "6265362093_183978226496_394455799093",
+      "keyword_text": "whatsapp api to send messages",
+      "differences": [
+        {
+          "field": "clicks",
+          "api_value": 0,
+          "db_value": 27
+        },
+        {
+          "field": "impressions",
+          "api_value": 0,
+          "db_value": 493
+        },
+        {
+          "field": "cost_micros",
+          "api_value": 0,
+          "db_value": 433300482
+        },
+        {
+          "field": "conversions",
+          "api_value": 0,
+          "db_value": 3.288730293139046
+        }
+      ]
+    }
+  ],
+  "api_only": [
+    {
+      "source": "GOOGLE_ADS_API",
+      "keyword_id": "6265362093_184604275324_397724559515",
+      "customer_id": "6265362093",
+      "campaign_id": 22837421944,
+      "campaign_name": "Whatsappapicommunn",
+      "ad_group_id": 184604275324,
+      "ad_group_name": "Ad group 1",
+      "criterion_id": 397724559515,
+      "keyword_text": "whatsapp bot api",
+      "match_type": "PHRASE",
+      "status": "ENABLED",
+      "quality_score": 0,
+      "creative_quality_score": null,
+      "landing_page_quality_score": null,
+      "search_predicted_ctr": null,
+      "cpc_bid_micros": 0,
+      "first_page_cpc_micros": 0,
+      "first_position_cpc_micros": 0,
+      "top_of_page_cpc_micros": 0,
+      "approval_status": "APPROVED",
+      "system_serving_status": "ELIGIBLE",
+      "is_negative": false,
+      "bid_modifier": null,
+      "clicks": 0,
+      "impressions": 0,
+      "cost_micros": 0,
+      "conversions": 0,
+      "conversions_value": 0,
+      "ctr": 0,
+      "average_cpc": 0
+    },
+    {
+      "source": "GOOGLE_ADS_API",
+      "keyword_id": "6265362093_183978226496_921494612",
+      "customer_id": "6265362093",
+      "campaign_id": 22837421944,
+      "campaign_name": "Whatsappapicommunn",
+      "ad_group_id": 183978226496,
+      "ad_group_name": "whatsapp.2",
+      "criterion_id": 921494612,
+      "keyword_text": "wati",
+      "match_type": "EXACT",
+      "status": "PAUSED",
+      "quality_score": 3,
+      "creative_quality_score": "ABOVE_AVERAGE",
+      "landing_page_quality_score": "BELOW_AVERAGE",
+      "search_predicted_ctr": "BELOW_AVERAGE",
+      "cpc_bid_micros": 0,
+      "first_page_cpc_micros": 0,
+      "first_position_cpc_micros": 0,
+      "top_of_page_cpc_micros": 0,
+      "approval_status": "APPROVED",
+      "system_serving_status": "ELIGIBLE",
+      "is_negative": false,
+      "bid_modifier": null,
+      "clicks": 0,
+      "impressions": 0,
+      "cost_micros": 0,
+      "conversions": 0,
+      "conversions_value": 0,
+      "ctr": 0,
+      "average_cpc": 0
+    },
+    {
+      "source": "GOOGLE_ADS_API",
+      "keyword_id": "6265362093_184604275324_1325261459477",
+      "customer_id": "6265362093",
+      "campaign_id": 22837421944,
+      "campaign_name": "Whatsappapicommunn",
+      "ad_group_id": 184604275324,
+      "ad_group_name": "Ad group 1",
+      "criterion_id": 1325261459477,
+      "keyword_text": "wati whatsapp api",
+      "match_type": "PHRASE",
+      "status": "ENABLED",
+      "quality_score": 0,
+      "creative_quality_score": null,
+      "landing_page_quality_score": null,
+      "search_predicted_ctr": null,
+      "cpc_bid_micros": 0,
+      "first_page_cpc_micros": 0,
+      "first_position_cpc_micros": 0,
+      "top_of_page_cpc_micros": 0,
+      "approval_status": "APPROVED",
+      "system_serving_status": "ELIGIBLE",
+      "is_negative": false,
+      "bid_modifier": null,
+      "clicks": 0,
+      "impressions": 0,
+      "cost_micros": 0,
+      "conversions": 0,
+      "conversions_value": 0,
+      "ctr": 0,
+      "average_cpc": 0
+    },
+    {
+      "source": "GOOGLE_ADS_API",
+      "keyword_id": "6265362093_184604275324_1677451380946",
+      "customer_id": "6265362093",
+      "campaign_id": 22837421944,
+      "campaign_name": "Whatsappapicommunn",
+      "ad_group_id": 184604275324,
+      "ad_group_name": "Ad group 1",
+      "criterion_id": 1677451380946,
+      "keyword_text": "whatsapp cloud api pricing",
+      "match_type": "PHRASE",
+      "status": "ENABLED",
+      "quality_score": 0,
+      "creative_quality_score": null,
+      "landing_page_quality_score": null,
+      "search_predicted_ctr": null,
+      "cpc_bid_micros": 0,
+      "first_page_cpc_micros": 0,
+      "first_position_cpc_micros": 0,
+      "top_of_page_cpc_micros": 0,
+      "approval_status": "APPROVED",
+      "system_serving_status": "ELIGIBLE",
+      "is_negative": false,
+      "bid_modifier": null,
+      "clicks": 0,
+      "impressions": 0,
+      "cost_micros": 0,
+      "conversions": 0,
+      "conversions_value": 0,
+      "ctr": 0,
+      "average_cpc": 0
+    },
+    {
+      "source": "GOOGLE_ADS_API",
+      "keyword_id": "6265362093_183978226496_850918796821",
+      "customer_id": "6265362093",
+      "campaign_id": 22837421944,
+      "campaign_name": "Whatsappapicommunn",
+      "ad_group_id": 183978226496,
+      "ad_group_name": "whatsapp.2",
+      "criterion_id": 850918796821,
+      "keyword_text": "whatsapp business broadcast",
+      "match_type": "EXACT",
+      "status": "ENABLED",
+      "quality_score": 2,
+      "creative_quality_score": "AVERAGE",
+      "landing_page_quality_score": "BELOW_AVERAGE",
+      "search_predicted_ctr": "BELOW_AVERAGE",
+      "cpc_bid_micros": 0,
+      "first_page_cpc_micros": 0,
+      "first_position_cpc_micros": 0,
+      "top_of_page_cpc_micros": 0,
+      "approval_status": "APPROVED",
+      "system_serving_status": "ELIGIBLE",
+      "is_negative": false,
+      "bid_modifier": null,
+      "clicks": 0,
+      "impressions": 0,
+      "cost_micros": 0,
+      "conversions": 0,
+      "conversions_value": 0,
+      "ctr": 0,
+      "average_cpc": 0
+    },
+    {
+      "source": "GOOGLE_ADS_API",
+      "keyword_id": "6265362093_183978226496_459058364869",
+      "customer_id": "6265362093",
+      "campaign_id": 22837421944,
+      "campaign_name": "Whatsappapicommunn",
+      "ad_group_id": 183978226496,
+      "ad_group_name": "whatsapp.2",
+      "criterion_id": 459058364869,
+      "keyword_text": "whatsapp api chatbot",
+      "match_type": "EXACT",
+      "status": "PAUSED",
+      "quality_score": 0,
+      "creative_quality_score": null,
+      "landing_page_quality_score": null,
+      "search_predicted_ctr": null,
+      "cpc_bid_micros": 0,
+      "first_page_cpc_micros": 0,
+      "first_position_cpc_micros": 0,
+      "top_of_page_cpc_micros": 0,
+      "approval_status": "APPROVED",
+      "system_serving_status": "ELIGIBLE",
+      "is_negative": false,
+      "bid_modifier": null,
+      "clicks": 0,
+      "impressions": 0,
+      "cost_micros": 0,
+      "conversions": 0,
+      "conversions_value": 0,
+      "ctr": 0,
+      "average_cpc": 0
+    },
+    {
+      "source": "GOOGLE_ADS_API",
+      "keyword_id": "6265362093_184604275324_395899341731",
+      "customer_id": "6265362093",
+      "campaign_id": 22837421944,
+      "campaign_name": "Whatsappapicommunn",
+      "ad_group_id": 184604275324,
+      "ad_group_name": "Ad group 1",
+      "criterion_id": 395899341731,
+      "keyword_text": "whatsapp message api",
+      "match_type": "PHRASE",
+      "status": "ENABLED",
+      "quality_score": 0,
+      "creative_quality_score": null,
+      "landing_page_quality_score": null,
+      "search_predicted_ctr": null,
+      "cpc_bid_micros": 0,
+      "first_page_cpc_micros": 0,
+      "first_position_cpc_micros": 0,
+      "top_of_page_cpc_micros": 0,
+      "approval_status": "APPROVED",
+      "system_serving_status": "ELIGIBLE",
+      "is_negative": false,
+      "bid_modifier": null,
+      "clicks": 0,
+      "impressions": 0,
+      "cost_micros": 0,
+      "conversions": 0,
+      "conversions_value": 0,
+      "ctr": 0,
+      "average_cpc": 0
+    },
+    {
+      "source": "GOOGLE_ADS_API",
+      "keyword_id": "6265362093_183978226496_1678475796208",
+      "customer_id": "6265362093",
+      "campaign_id": 22837421944,
+      "campaign_name": "Whatsappapicommunn",
+      "ad_group_id": 183978226496,
+      "ad_group_name": "whatsapp.2",
+      "criterion_id": 1678475796208,
+      "keyword_text": "whatsapp business account waba",
+      "match_type": "EXACT",
+      "status": "PAUSED",
+      "quality_score": 7,
+      "creative_quality_score": "ABOVE_AVERAGE",
+      "landing_page_quality_score": "BELOW_AVERAGE",
+      "search_predicted_ctr": "ABOVE_AVERAGE",
+      "cpc_bid_micros": 0,
+      "first_page_cpc_micros": 0,
+      "first_position_cpc_micros": 0,
+      "top_of_page_cpc_micros": 0,
+      "approval_status": "APPROVED",
+      "system_serving_status": "ELIGIBLE",
+      "is_negative": false,
+      "bid_modifier": null,
+      "clicks": 0,
+      "impressions": 0,
+      "cost_micros": 0,
+      "conversions": 0,
+      "conversions_value": 0,
+      "ctr": 0,
+      "average_cpc": 0
+    },
+    {
+      "source": "GOOGLE_ADS_API",
+      "keyword_id": "6265362093_184604275324_918990142292",
+      "customer_id": "6265362093",
+      "campaign_id": 22837421944,
+      "campaign_name": "Whatsappapicommunn",
+      "ad_group_id": 184604275324,
+      "ad_group_name": "Ad group 1",
+      "criterion_id": 918990142292,
+      "keyword_text": "whatsapp business api account",
+      "match_type": "PHRASE",
+      "status": "ENABLED",
+      "quality_score": 0,
+      "creative_quality_score": null,
+      "landing_page_quality_score": null,
+      "search_predicted_ctr": null,
+      "cpc_bid_micros": 0,
+      "first_page_cpc_micros": 0,
+      "first_position_cpc_micros": 0,
+      "top_of_page_cpc_micros": 0,
+      "approval_status": "APPROVED",
+      "system_serving_status": "ELIGIBLE",
+      "is_negative": false,
+      "bid_modifier": null,
+      "clicks": 0,
+      "impressions": 0,
+      "cost_micros": 0,
+      "conversions": 0,
+      "conversions_value": 0,
+      "ctr": 0,
+      "average_cpc": 0
+    },
+    {
+      "source": "GOOGLE_ADS_API",
+      "keyword_id": "6265362093_183978226496_1642299685898",
+      "customer_id": "6265362093",
+      "campaign_id": 22837421944,
+      "campaign_name": "Whatsappapicommunn",
+      "ad_group_id": 183978226496,
+      "ad_group_name": "whatsapp.2",
+      "criterion_id": 1642299685898,
+      "keyword_text": "whatsapp api wati",
+      "match_type": "EXACT",
+      "status": "PAUSED",
+      "quality_score": 0,
+      "creative_quality_score": null,
+      "landing_page_quality_score": null,
+      "search_predicted_ctr": null,
+      "cpc_bid_micros": 0,
+      "first_page_cpc_micros": 0,
+      "first_position_cpc_micros": 0,
+      "top_of_page_cpc_micros": 0,
+      "approval_status": "APPROVED",
+      "system_serving_status": "ELIGIBLE",
+      "is_negative": false,
+      "bid_modifier": null,
+      "clicks": 0,
+      "impressions": 0,
+      "cost_micros": 0,
+      "conversions": 0,
+      "conversions_value": 0,
+      "ctr": 0,
+      "average_cpc": 0
+    },
+    {
+      "source": "GOOGLE_ADS_API",
+      "keyword_id": "6265362093_183978226496_1302666630612",
+      "customer_id": "6265362093",
+      "campaign_id": 22837421944,
+      "campaign_name": "Whatsappapicommunn",
+      "ad_group_id": 183978226496,
+      "ad_group_name": "whatsapp.2",
+      "criterion_id": 1302666630612,
+      "keyword_text": "interakt whatsapp api",
+      "match_type": "EXACT",
+      "status": "PAUSED",
+      "quality_score": 5,
+      "creative_quality_score": "ABOVE_AVERAGE",
+      "landing_page_quality_score": "AVERAGE",
+      "search_predicted_ctr": "BELOW_AVERAGE",
+      "cpc_bid_micros": 0,
+      "first_page_cpc_micros": 0,
+      "first_position_cpc_micros": 0,
+      "top_of_page_cpc_micros": 0,
+      "approval_status": "APPROVED",
+      "system_serving_status": "ELIGIBLE",
+      "is_negative": false,
+      "bid_modifier": null,
+      "clicks": 0,
+      "impressions": 0,
+      "cost_micros": 0,
+      "conversions": 0,
+      "conversions_value": 0,
+      "ctr": 0,
+      "average_cpc": 0
+    }
+  ],
+  "db_only": [],
+  "accuracy_rate": 0.0
+}

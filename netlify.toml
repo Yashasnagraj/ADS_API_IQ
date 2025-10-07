@@ -1,0 +1,48 @@
+# Netlify Configuration for MarketingIQ E-Commerce Dashboard
+
+[build]
+  # Build command
+  command = "cd marketingiq-platform/web && npm install && npm run build"
+
+  # Directory with the build output
+  publish = "marketingiq-platform/web/dist"
+
+  # Base directory (root of the project)
+  base = "."
+
+[build.environment]
+  # Node version
+  NODE_VERSION = "18"
+
+# Redirect rules for SPA (Single Page Application)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security and caching
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Environment variables (you'll need to set these in Netlify UI)
+# REACT_APP_API_URL = "https://your-backend-api.com"

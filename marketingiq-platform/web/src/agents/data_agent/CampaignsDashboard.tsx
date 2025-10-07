@@ -39,7 +39,7 @@ import {
   TipsAndUpdates,
   Speed,
 } from '@mui/icons-material';
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { keyframes } from '@mui/system';
 import KPICard from '../../components/common/KPICard';
 import InsightCard from '../../components/common/InsightCard';
@@ -50,6 +50,18 @@ import KPIDetailDrawer, { KPIDetailItem } from '../../components/kpi/KPIDetailDr
 import { EnhancedChart } from '../../components/charts/EnhancedChart';
 import { useFilters } from '../../context/FilterContext';
 import { useCampaigns, useMetricsSummary } from '../../hooks/useFilteredAPI';
+import {
+  getXAxisConfig,
+  getYAxisConfig,
+  getTooltipConfig,
+  getLegendConfig,
+  getCartesianGridConfig,
+  formatCurrency,
+  formatNumber,
+  formatCurrencyFull,
+  formatNumberFull,
+  generateMockChartData
+} from '../../components/charts/PowerBITheme';
 
 const fadeIn = keyframes`
   from {
@@ -110,7 +122,10 @@ const CampaignsDashboard: React.FC = () => {
     totalClicks: 98000,
   };
 
-  const chartData = [
+  // Use mock data as fallback to ensure charts always show
+  const fallbackChartData = generateMockChartData(7);
+
+  const chartData = campaigns.length > 0 ? [
     { date: 'Mon', impressions: 35000, clicks: 1400, spend: 980 },
     { date: 'Tue', impressions: 42000, clicks: 1680, spend: 1176 },
     { date: 'Wed', impressions: 38000, clicks: 1520, spend: 1064 },
@@ -118,7 +133,7 @@ const CampaignsDashboard: React.FC = () => {
     { date: 'Fri', impressions: 52000, clicks: 2080, spend: 1456 },
     { date: 'Sat', impressions: 48000, clicks: 1920, spend: 1344 },
     { date: 'Sun', impressions: 41000, clicks: 1640, spend: 1148 },
-  ];
+  ] : fallbackChartData;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -449,43 +464,61 @@ const CampaignsDashboard: React.FC = () => {
               }}
             >
               <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    Impressions & Clicks Trend
-                  </Typography>
-                  <Tooltip title="Shows how many people saw and clicked your ads over time">
-                    <IconButton size="small" color="primary">
-                      <TipsAndUpdates fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              <EnhancedChart
-                height={300}
-                xAxis={{ label: 'Day', dataKey: 'date' }}
-                yAxis={{ label: 'Count', format: 'compact' }}
-                showGrid={true}
-                showTooltip={true}
-                showLegend={true}
-              >
-                <AreaChart data={chartData}>
-                  <Area
-                    type="monotone"
-                    dataKey="impressions"
-                    stroke="#00bcd4"
-                    fill="#00bcd4"
-                    fillOpacity={0.3}
-                    name="Impressions"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="clicks"
-                    stroke="#4caf50"
-                    fill="#4caf50"
-                    fillOpacity={0.3}
-                    name="Clicks"
-                  />
-                </AreaChart>
-              </EnhancedChart>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                  Impressions & Clicks Trend (Last 7 Days)
+                </Typography>
+                <ResponsiveContainer width="100%" height={350}>
+                  <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 60, bottom: 50 }}>
+                    <defs>
+                      <linearGradient id="colorImpressions" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#00bcd4" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#00bcd4" stopOpacity={0.1}/>
+                      </linearGradient>
+                      <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#4caf50" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#4caf50" stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+
+                    <CartesianGrid {...getCartesianGridConfig()} />
+
+                    <XAxis
+                      {...getXAxisConfig('Day of Week', 'date')}
+                    />
+
+                    <YAxis
+                      {...getYAxisConfig('Count', formatNumber)}
+                    />
+
+                    <RechartsTooltip
+                      {...getTooltipConfig({
+                        numberFields: ['impressions', 'clicks'],
+                        labelFormatter: (label) => `Day: ${label}`
+                      })}
+                    />
+
+                    <Legend {...getLegendConfig('top')} />
+
+                    <Area
+                      type="monotone"
+                      dataKey="impressions"
+                      stroke="#00bcd4"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorImpressions)"
+                      name="Impressions"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="clicks"
+                      stroke="#4caf50"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorClicks)"
+                      name="Clicks"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
             </CardContent>
           </Card>
           </Box>
@@ -502,34 +535,41 @@ const CampaignsDashboard: React.FC = () => {
               }}
             >
               <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    Daily Spend Trend
-                  </Typography>
-                  <Tooltip title="Monitor your daily advertising spend to stay within budget">
-                    <IconButton size="small" color="primary">
-                      <TipsAndUpdates fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              <EnhancedChart
-                height={300}
-                xAxis={{ label: 'Day', dataKey: 'date' }}
-                yAxis={{ label: 'Spend (₹)', format: 'currency' }}
-                showGrid={true}
-                showTooltip={true}
-              >
-                <LineChart data={chartData}>
-                  <Line
-                    type="monotone"
-                    dataKey="spend"
-                    stroke="#ffa726"
-                    strokeWidth={3}
-                    dot={{ fill: '#ffa726', r: 4 }}
-                    name="Spend"
-                  />
-                </LineChart>
-              </EnhancedChart>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                  Daily Spend Trend (Last 7 Days)
+                </Typography>
+                <ResponsiveContainer width="100%" height={350}>
+                  <LineChart data={chartData} margin={{ top: 20, right: 30, left: 60, bottom: 50 }}>
+                    <CartesianGrid {...getCartesianGridConfig()} />
+
+                    <XAxis
+                      {...getXAxisConfig('Day of Week', 'date')}
+                    />
+
+                    <YAxis
+                      {...getYAxisConfig('Spend (₹)', formatCurrency)}
+                    />
+
+                    <RechartsTooltip
+                      {...getTooltipConfig({
+                        currencyFields: ['spend'],
+                        labelFormatter: (label) => `Day: ${label}`
+                      })}
+                    />
+
+                    <Legend {...getLegendConfig('top')} />
+
+                    <Line
+                      type="monotone"
+                      dataKey="spend"
+                      stroke="#ffa726"
+                      strokeWidth={3}
+                      dot={{ fill: '#ffa726', r: 5 }}
+                      activeDot={{ r: 8 }}
+                      name="Daily Spend"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
             </CardContent>
           </Card>
           </Box>

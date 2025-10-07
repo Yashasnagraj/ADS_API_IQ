@@ -137,7 +137,7 @@ export const PremiumLandingPage: React.FC = () => {
   const ecommerceRevenue = totalConversionValue; // Real revenue from conversion tracking
 
   // Prepare chart data from timeseries
-  const chartData = (timeseriesData?.data_points || []).map((point: any) => ({
+  const chartData = (timeseriesData?.data_points || timeseriesData?.timeseries || []).map((point: any) => ({
     name: new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     clicks: point.clicks,
     cost: point.cost,
@@ -145,47 +145,71 @@ export const PremiumLandingPage: React.FC = () => {
     ctr: point.ctr,
   }));
 
-  // Generate AI recommendations (based on real data analysis)
+  // Calculate real trend percentages from timeseries data
+  const calculateTrend = (data: any[], field: string): number => {
+    if (!data || data.length < 2) return 0;
+
+    // Compare last period (last half) vs previous period (first half)
+    const midPoint = Math.floor(data.length / 2);
+    const previousPeriod = data.slice(0, midPoint);
+    const lastPeriod = data.slice(midPoint);
+
+    const previousSum = previousPeriod.reduce((sum: number, d: any) => sum + (d[field] || 0), 0);
+    const lastSum = lastPeriod.reduce((sum: number, d: any) => sum + (d[field] || 0), 0);
+
+    if (previousSum === 0) return 0;
+    return ((lastSum - previousSum) / previousSum) * 100;
+  };
+
+  // Real trend values from timeseries
+  const clicksTrend = calculateTrend(chartData, 'clicks');
+  const costTrend = calculateTrend(chartData, 'cost');
+  const conversionsTrend = calculateTrend(chartData, 'conversions');
+
+  // Count real issues for recommendations
+  const lowCTRCampaigns = campaigns.filter((c: any) => (c.metrics?.ctr || 0) < 0.01);
+  const highCPCCampaigns = campaigns.filter((c: any) => (c.metrics?.cpc || 0) > avgCPC * 1.5);
+  const zeroConversionCampaigns = campaigns.filter((c: any) =>
+    (c.metrics?.clicks || 0) > 50 && (c.metrics?.conversions || 0) === 0
+  );
+
+  // Generate AI recommendations (based on real data analysis - NO FAKE PREDICTIONS)
   const recommendations = [
     {
       priority: 'critical' as const,
-      title: 'Pause Underperforming Campaign',
-      description: campaigns.length > 0
-        ? `Campaign "${campaigns[campaigns.length - 1]?.campaign_name || 'Low Performer'}" has CTR below 1% - wasting budget`
-        : 'Review campaign performance',
+      title: `${lowCTRCampaigns.length} Low CTR Campaign${lowCTRCampaigns.length !== 1 ? 's' : ''}`,
+      description: lowCTRCampaigns.length > 0
+        ? `${lowCTRCampaigns.length} campaign${lowCTRCampaigns.length !== 1 ? 's have' : ' has'} CTR below 1% - review ad copy and targeting`
+        : 'All campaigns have healthy CTR',
       impact: {
-        metric: 'Monthly Spend',
-        current: totalCost,
-        predicted: totalCost * 0.85,
-        format: 'currency' as const,
+        metric: 'Campaigns Needing Attention',
+        current: lowCTRCampaigns.length,
+        format: 'number' as const,
       },
-      confidence: 92,
     },
     {
       priority: 'recommended' as const,
-      title: 'Increase Top Keyword Bids',
-      description: keywords.length > 0
-        ? `Keyword "${keywords[0]?.keyword_text || 'Top Keyword'}" shows high CVR - increase bid for more volume`
-        : 'Optimize keyword bids',
+      title: `${highCPCCampaigns.length} High CPC Campaign${highCPCCampaigns.length !== 1 ? 's' : ''}`,
+      description: highCPCCampaigns.length > 0
+        ? `${highCPCCampaigns.length} campaign${highCPCCampaigns.length !== 1 ? 's have' : ' has'} CPC above average - optimize bids`
+        : 'All campaigns have optimal CPC',
       impact: {
-        metric: 'Conversions',
-        current: totalConversions,
-        predicted: totalConversions * 1.23,
+        metric: 'Campaigns to Optimize',
+        current: highCPCCampaigns.length,
         format: 'number' as const,
       },
-      confidence: 87,
     },
     {
       priority: 'opportunity' as const,
-      title: 'Enable Smart Bidding',
-      description: 'AI-powered bidding can optimize for conversions automatically across all campaigns',
+      title: `${zeroConversionCampaigns.length} Zero Conversion Campaign${zeroConversionCampaigns.length !== 1 ? 's' : ''}`,
+      description: zeroConversionCampaigns.length > 0
+        ? `${zeroConversionCampaigns.length} campaign${zeroConversionCampaigns.length !== 1 ? 's have' : ' has'} clicks but no conversions - check tracking`
+        : 'All campaigns generating conversions',
       impact: {
-        metric: 'Revenue',
-        current: ecommerceRevenue,
-        predicted: ecommerceRevenue * 1.15,
-        format: 'currency' as const,
+        metric: 'Campaigns to Fix',
+        current: zeroConversionCampaigns.length,
+        format: 'number' as const,
       },
-      confidence: 78,
     },
   ];
 
@@ -452,8 +476,8 @@ export const PremiumLandingPage: React.FC = () => {
                           value={totalClicks}
                           format="number"
                           icon={<Mouse />}
-                          trend="up"
-                          trendValue={12.5}
+                          trend={clicksTrend >= 0 ? "up" : "down"}
+                          trendValue={Math.abs(clicksTrend)}
                           sparklineData={chartData.slice(-10).map((d: any) => d.clicks)}
                           color="info"
                           onClick={() => navigate('/data/campaigns')}
@@ -468,8 +492,8 @@ export const PremiumLandingPage: React.FC = () => {
                         value={activeCampaigns}
                         format="number"
                         icon={<Campaign />}
-                        trend="up"
-                        trendValue={5.2}
+                        trend="neutral"
+                        trendValue={0}
                         color="primary"
                         glowEffect
                         onClick={() => navigate('/data/campaigns')}
@@ -484,8 +508,8 @@ export const PremiumLandingPage: React.FC = () => {
                         value={totalCost}
                         format="currency"
                         icon={<MonetizationOn />}
-                        trend="up"
-                        trendValue={8.3}
+                        trend={costTrend >= 0 ? "up" : "down"}
+                        trendValue={Math.abs(costTrend)}
                         sparklineData={chartData.slice(-10).map((d: any) => d.cost)}
                         color="warning"
                       />
@@ -499,8 +523,8 @@ export const PremiumLandingPage: React.FC = () => {
                         value={totalConversions}
                         format="number"
                         icon={<TrendingUp />}
-                        trend="up"
-                        trendValue={15.7}
+                        trend={conversionsTrend >= 0 ? "up" : "down"}
+                        trendValue={Math.abs(conversionsTrend)}
                         sparklineData={chartData.slice(-10).map((d: any) => d.conversions)}
                         color="success"
                         glowEffect
@@ -515,8 +539,8 @@ export const PremiumLandingPage: React.FC = () => {
                         value={ecommerceOrders}
                         format="number"
                         icon={<ShoppingCart />}
-                        trend="up"
-                        trendValue={11.2}
+                        trend={conversionsTrend >= 0 ? "up" : "down"}
+                        trendValue={Math.abs(conversionsTrend)}
                         color="success"
                       />
                     </Box>
@@ -529,8 +553,8 @@ export const PremiumLandingPage: React.FC = () => {
                         value={ecommerceRevenue}
                         format="currency"
                         icon={<AutoAwesome />}
-                        trend="up"
-                        trendValue={23.4}
+                        trend={conversionsTrend >= 0 ? "up" : "down"}
+                        trendValue={Math.abs(conversionsTrend)}
                         color="success"
                         glowEffect
                       />

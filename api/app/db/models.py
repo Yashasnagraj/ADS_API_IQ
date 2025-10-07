@@ -5,6 +5,19 @@ from sqlalchemy import Column, Integer, String, Float, Boolean, Text, TIMESTAMP,
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 
+class Customer(Base):
+    __tablename__ = "customers"
+
+    customer_id = Column(Integer, primary_key=True, index=True)
+    customer_name = Column(String, nullable=False)
+    descriptive_name = Column(String)
+    currency_code = Column(String, default='INR')
+    time_zone = Column(String, default='Asia/Kolkata')
+    status = Column(String, default='ENABLED')
+    created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
+    updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+
 class Campaign(Base):
     __tablename__ = "campaigns"
 

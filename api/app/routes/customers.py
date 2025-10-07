@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func, distinct
 from app.db.database import get_db
-from app.db.models import Campaign
+from app.db.models import Campaign, Customer
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/customers", tags=["customers"])
@@ -36,12 +36,17 @@ def get_customers(db: Session = Depends(get_db)):
         func.count(Campaign.campaign_id).label("campaigns_count")
     ).group_by(Campaign.customer_id).all()
 
-    # Build customer list (using customer_id as name for now)
+    # Build customer list with actual customer names
     customers = []
     for customer_id, campaigns_count in customers_data:
+        # Try to get customer name from customers table
+        customer_record = db.query(Customer).filter(Customer.customer_id == customer_id).first()
+
+        customer_name = customer_record.customer_name if customer_record else f"Customer {customer_id}"
+
         customer = CustomerInfo(
             customer_id=customer_id,
-            customer_name=f"Customer {customer_id}",  # Can be enhanced with actual names
+            customer_name=customer_name,
             campaigns_count=campaigns_count
         )
         customers.append(customer)
@@ -57,6 +62,10 @@ def get_customer_summary(customer_id: int, db: Session = Depends(get_db)):
     Get summary metrics for a specific customer
     """
     from app.db.models import CampaignKeyword
+
+    # Get customer name
+    customer_record = db.query(Customer).filter(Customer.customer_id == customer_id).first()
+    customer_name = customer_record.customer_name if customer_record else f"Customer {customer_id}"
 
     # Get campaign count
     campaigns_count = db.query(func.count(distinct(Campaign.campaign_id)))\
@@ -78,7 +87,7 @@ def get_customer_summary(customer_id: int, db: Session = Depends(get_db)):
 
     return {
         "customer_id": customer_id,
-        "customer_name": f"Customer {customer_id}",
+        "customer_name": customer_name,
         "campaigns_count": campaigns_count,
         "metrics": {
             "clicks": total_clicks,

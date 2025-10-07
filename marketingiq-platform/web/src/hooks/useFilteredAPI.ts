@@ -198,4 +198,61 @@ export const useBudgetOptimization = (additionalParams?: Record<string, any>) =>
   });
 };
 
+// E-commerce hooks
+export const useEcommerceOverview = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ecommerce/overview',
+    autoFetch: true
+  });
+};
+
+export const useEcommerceKPIs = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ecommerce/kpis',
+    autoFetch: true
+  });
+};
+
+export const useEcommerceFunnel = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ecommerce/funnel',
+    autoFetch: true
+  });
+};
+
+export const useChannelPerformance = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ecommerce/channels',
+    autoFetch: true
+  });
+};
+
+export const useProductPerformance = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ecommerce/products',
+    autoFetch: true
+  });
+};
+
+export const useCustomerSegmentation = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ecommerce/segments',
+    autoFetch: true
+  });
+};
+
+export const useRevenueForecast = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ecommerce/forecast',
+    autoFetch: true
+  });
+};
+
+export const useEcommerceAnomalies = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ecommerce/anomalies',
+    autoFetch: true
+  });
+};
+
 export default useFilteredAPI;
