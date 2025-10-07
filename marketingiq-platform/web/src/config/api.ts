@@ -4,48 +4,54 @@
  * Supports environment variables for production deployment
  */
 
-// Check if we're in production (Netlify sets NODE_ENV to 'production')
-const isProduction = process.env.NODE_ENV === 'production';
+// @ts-ignore - Webpack DefinePlugin will replace these at build time
+declare const REACT_APP_API_URL: string | undefined;
+// @ts-ignore
+declare const REACT_APP_DATA_API_URL: string | undefined;
+// @ts-ignore
+declare const REACT_APP_AGENT_API_URL: string | undefined;
+// @ts-ignore
+declare const REACT_APP_CHATBOT_API_URL: string | undefined;
+// @ts-ignore
+declare const NODE_ENV: string | undefined;
 
-// Get API URLs from environment variables or use defaults
-const getApiUrl = (envVar: string, defaultUrl: string) => {
-  // In browser, check for runtime env vars (set via Netlify UI)
-  if (typeof window !== 'undefined' && (window as any).ENV) {
-    return (window as any).ENV[envVar] || defaultUrl;
-  }
-  // In build time, use process.env
-  return process.env[envVar] || defaultUrl;
+// Check if we're in production (webpack DefinePlugin injects this)
+const isProduction = typeof NODE_ENV !== 'undefined' && NODE_ENV === 'production';
+
+// Helper to get env var with fallback
+const getEnvVar = (value: string | undefined, fallback: string): string => {
+  return value || fallback;
 };
 
 export const API_CONFIG = {
   // Backend REST API (SQLite)
   // Set REACT_APP_API_URL in Netlify environment variables
-  BASE_URL: getApiUrl(
-    'REACT_APP_API_URL',
+  BASE_URL: getEnvVar(
+    typeof REACT_APP_API_URL !== 'undefined' ? REACT_APP_API_URL : undefined,
     isProduction
       ? 'https://your-backend-api.com/api/v1'  // Replace with your actual backend URL
       : 'http://localhost:8000/api/v1'
   ),
 
   // Main Data API (SQLite-based)
-  DATA_API_URL: getApiUrl(
-    'REACT_APP_DATA_API_URL',
+  DATA_API_URL: getEnvVar(
+    typeof REACT_APP_DATA_API_URL !== 'undefined' ? REACT_APP_DATA_API_URL : undefined,
     isProduction
       ? 'https://your-backend-api.com'
       : 'http://localhost:8000'
   ),
 
   // Multi-Agent System API
-  AGENT_API_URL: getApiUrl(
-    'REACT_APP_AGENT_API_URL',
+  AGENT_API_URL: getEnvVar(
+    typeof REACT_APP_AGENT_API_URL !== 'undefined' ? REACT_APP_AGENT_API_URL : undefined,
     isProduction
       ? 'https://your-agent-api.com/api'
       : 'http://localhost:8001/api'
   ),
 
   // ADK Chatbot API
-  CHATBOT_API_URL: getApiUrl(
-    'REACT_APP_CHATBOT_API_URL',
+  CHATBOT_API_URL: getEnvVar(
+    typeof REACT_APP_CHATBOT_API_URL !== 'undefined' ? REACT_APP_CHATBOT_API_URL : undefined,
     isProduction
       ? 'https://your-chatbot-api.com/api'
       : 'http://localhost:8002/api'

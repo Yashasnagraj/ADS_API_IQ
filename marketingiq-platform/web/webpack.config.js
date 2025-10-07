@@ -1,15 +1,19 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
-module.exports = {
-  entry: './src/index.tsx',
-  output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js',
-    publicPath: '/'
-  },
-  mode: 'development',
-  devtool: 'source-map',
+module.exports = (env, argv) => {
+  const isProduction = argv.mode === 'production';
+
+  return {
+    entry: './src/index.tsx',
+    output: {
+      path: path.resolve(__dirname, 'dist'),
+      filename: 'bundle.js',
+      publicPath: '/'
+    },
+    mode: isProduction ? 'production' : 'development',
+    devtool: isProduction ? 'source-map' : 'eval-source-map',
   module: {
     rules: [
       {
@@ -40,6 +44,13 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: './public/index.html'
+    }),
+    new webpack.DefinePlugin({
+      NODE_ENV: JSON.stringify(isProduction ? 'production' : 'development'),
+      REACT_APP_API_URL: JSON.stringify(process.env.REACT_APP_API_URL || ''),
+      REACT_APP_DATA_API_URL: JSON.stringify(process.env.REACT_APP_DATA_API_URL || ''),
+      REACT_APP_AGENT_API_URL: JSON.stringify(process.env.REACT_APP_AGENT_API_URL || ''),
+      REACT_APP_CHATBOT_API_URL: JSON.stringify(process.env.REACT_APP_CHATBOT_API_URL || ''),
     })
   ],
   devServer: {
@@ -54,4 +65,5 @@ module.exports = {
       }
     ]
   }
+  };
 };
