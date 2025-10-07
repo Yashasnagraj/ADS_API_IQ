@@ -1,18 +1,19 @@
 # Netlify Configuration for MarketingIQ E-Commerce Dashboard
 
 [build]
+  # Base directory - where the web app is located
+  base = "marketingiq-platform/web"
+
   # Build command
-  command = "cd marketingiq-platform/web && npm install && npm run build"
+  command = "npm install && npm run build"
 
-  # Directory with the build output
-  publish = "marketingiq-platform/web/dist"
-
-  # Base directory (root of the project)
-  base = "."
+  # Directory with the build output (relative to base)
+  publish = "dist"
 
 [build.environment]
   # Node version
   NODE_VERSION = "18"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 # Redirect rules for SPA (Single Page Application)
 [[redirects]]
