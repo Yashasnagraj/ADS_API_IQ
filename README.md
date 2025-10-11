@@ -26,9 +26,10 @@ A comprehensive ETL pipeline and REST API service for Google Ads data extraction
 ### ETL Pipeline
 - **Automated Data Extraction**: Pulls comprehensive data from Google Ads API
 - **Multi-Account Support**: Manages multiple client accounts via Manager Account
-- **Data Normalization**: Structured storage in 7 normalized tables
+- **Data Normalization**: Structured storage in 5 normalized tables with customer_id filtering
 - **Performance Metrics**: Tracks CTR, conversions, quality scores, and costs
 - **ML-Ready Features**: Pre-processed features for machine learning models
+- **Cloud Deployment**: Deployed on Google Cloud Run with OAuth token management
 
 ### REST API Service
 - **FastAPI Framework**: High-performance, async API with automatic documentation
@@ -36,16 +37,58 @@ A comprehensive ETL pipeline and REST API service for Google Ads data extraction
 - **Metrics Aggregation**: Real-time calculation of performance metrics
 - **Time Series Data**: Historical performance data for trend analysis
 - **Pagination & Filtering**: Efficient data retrieval for large datasets
+- **Multi-Customer Filtering**: All endpoints support customer_id filtering for multi-tenant support
+
+## 📊 ETL Pipeline Status
+
+### What We've Achieved
+- **Cloud Deployment**: Successfully deployed ETL pipeline to Google Cloud Run
+  - Service: `ads-etl-pipeline`
+  - URL: https://ads-etl-pipeline-178867443107.us-central1.run.app
+  - Region: us-central1
+  - Resources: 2 CPU, 2GB RAM, 30-minute timeout
+- **OAuth Integration**: Implemented secure token refresh mechanism using Google Secret Manager
+- **Database Schema**: Created 5 normalized tables with customer_id filtering support:
+  - `campaigns_performance` - Campaign-level metrics with customer_id
+  - `adgroups_performance` - Ad group metrics with customer_id
+  - `keywords_performance` - Keyword-level performance with customer_id
+  - `search_terms` - Search query data with customer_id
+  - `ml_features` - Pre-processed ML features with customer_id
+- **Multi-Customer Architecture**: All tables include customer_id for multi-tenant dashboard support
+- **Backend API**: Implemented FastAPI routes with customer_id query parameter support
+- **Frontend Integration**: Added global customer selector and filter context
+
+### Current Blocker
+**Google Ads API Version Compatibility Issue**
+- **Problem**: The deployed code uses Google Ads API v16, but the ListAccessibleCustomers endpoint is unavailable/deprecated
+- **Error**: `501 GRPC target method can't be resolved` when calling `CustomerService.list_accessible_customers()`
+- **Root Cause**: API version mismatch between google-ads library (v22.1.0 supports v17/v18) and code implementation (using v16)
+- **Impact**: ETL pipeline cannot list accessible customer accounts, blocking data extraction
+
+### Solution in Progress
+We've updated `warehouse_etl.py` with:
+1. Direct customer ID configuration instead of API listing
+2. Upgraded to use newer API version patterns
+3. Added error handling for API failures
+4. Ready for redeployment once API version is finalized
+
+### Next Steps
+1. Update Google Ads API client to use v17 or v18 explicitly
+2. Configure customer IDs directly in the deployment
+3. Test ETL pipeline end-to-end with real Google Ads accounts
+4. Set up Cloud Scheduler for automated daily runs
+5. Implement monitoring and alerting
 
 ## 📊 Data Schema
 
 ### Core Tables
-- **campaigns**: Campaign configuration and settings
-- **ad_groups**: Ad group structure and bidding strategies
-- **keywords**: Keyword targeting with quality scores
-- **search_terms**: Actual search queries and performance
-- **campaign_keywords**: Performance metrics aggregation
-- **ml_features**: Denormalized features for ML training
+All tables include `customer_id` for multi-customer filtering:
+
+- **campaigns_performance**: Campaign configuration, settings, and performance metrics
+- **adgroups_performance**: Ad group structure, bidding strategies, and metrics
+- **keywords_performance**: Keyword targeting with quality scores and performance
+- **search_terms**: Actual search queries and their performance data
+- **ml_features**: Denormalized features for ML training and predictions
 
 ## 🛠️ Setup Instructions
 

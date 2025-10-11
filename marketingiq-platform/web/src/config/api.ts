@@ -54,7 +54,7 @@ export const API_CONFIG = {
     typeof REACT_APP_CHATBOT_API_URL !== 'undefined' ? REACT_APP_CHATBOT_API_URL : undefined,
     isProduction
       ? 'https://your-chatbot-api.com/api'
-      : 'http://localhost:8002/api'
+      : 'http://localhost:8003/api'
   ),
 
   // Request timeout (ms)

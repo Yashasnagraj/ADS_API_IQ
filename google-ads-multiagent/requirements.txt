@@ -1,6 +1,9 @@
 # Google Ads SDK
 google-ads==25.1.0
 
+# Google Generative AI (Gemini) - already installed via langchain-google-genai
+# google-generativeai==0.3.2
+
 # LangChain & LangGraph
 langchain==0.3.9
 langchain-community==0.3.9

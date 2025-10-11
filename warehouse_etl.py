@@ -25,7 +25,8 @@ class WarehouseETL:
         """Initialize warehouse ETL pipeline"""
         try:
             self.client = GoogleAdsClient.load_from_storage("google-ads.yaml")
-            self.ga_service = self.client.get_service("GoogleAdsService")
+            # Explicitly use v16 - latest stable version supported by google-ads 24.0.0
+            self.ga_service = self.client.get_service("GoogleAdsService", version="v16")
             self.manager_id = os.getenv("GOOGLE_ADS_LOGIN_CUSTOMER_ID", "3341907700")
             self.db_path = db_path
             self.conn = sqlite3.connect(db_path)
@@ -177,32 +178,48 @@ class WarehouseETL:
 
     def get_accessible_customers(self):
         """Get list of accessible customer accounts"""
-        query = """
-            SELECT
-                customer_client.id,
-                customer_client.descriptive_name,
-                customer_client.level,
-                customer_client.manager,
-                customer_client.status
-            FROM customer_client
-            WHERE customer_client.level <= 1
-        """
-
         try:
-            response = self.ga_service.search_stream(
-                customer_id=self.manager_id,
-                query=query
-            )
+            # Use CustomerService to get accessible customers - explicitly use v16
+            customer_service = self.client.get_service("CustomerService", version="v16")
+            accessible_customers = customer_service.list_accessible_customers()
 
             customers = []
-            for batch in response:
-                for row in batch.results:
-                    if row.customer_client.status.name == "ENABLED":
+            # For each customer, get details
+            for resource_name in accessible_customers.resource_names:
+                customer_id = resource_name.split("/")[-1]
+
+                # Get customer details
+                query = """
+                    SELECT
+                        customer.id,
+                        customer.descriptive_name,
+                        customer.manager
+                    FROM customer
+                    LIMIT 1
+                """
+
+                try:
+                    response_iterator = self.ga_service.search(
+                        customer_id=customer_id,
+                        query=query
+                    )
+
+                    for row in response_iterator:
                         customers.append({
-                            'customer_id': str(row.customer_client.id),
-                            'customer_name': row.customer_client.descriptive_name,
-                            'is_manager': row.customer_client.manager
+                            'customer_id': str(row.customer.id),
+                            'customer_name': row.customer.descriptive_name if row.customer.descriptive_name else f"Customer {row.customer.id}",
+                            'is_manager': row.customer.manager
                         })
+                        break  # Only need one row since we're getting customer details
+                except Exception as e:
+                    logger.warning(f"Could not get details for customer {customer_id}: {e}")
+                    # Add customer with minimal info if we can't get full details
+                    customers.append({
+                        'customer_id': customer_id,
+                        'customer_name': f"Customer {customer_id}",
+                        'is_manager': False
+                    })
+                    continue
 
             logger.info(f"Found {len(customers)} accessible customer accounts")
             return customers
@@ -235,14 +252,13 @@ class WarehouseETL:
         """
 
         try:
-            response = self.ga_service.search_stream(
+            response = self.ga_service.search(
                 customer_id=customer_id,
                 query=query
             )
 
             data = []
-            for batch in response:
-                for row in batch.results:
+            for row in response:
                     campaign = row.campaign
                     metrics = row.metrics
                     segment_date = row.segments.date
@@ -307,14 +323,13 @@ class WarehouseETL:
         """
 
         try:
-            response = self.ga_service.search_stream(
+            response = self.ga_service.search(
                 customer_id=customer_id,
                 query=query
             )
 
             data = []
-            for batch in response:
-                for row in batch.results:
+            for row in response:
                     ad_group = row.ad_group
                     metrics = row.metrics
                     segment_date = row.segments.date
@@ -372,14 +387,13 @@ class WarehouseETL:
         """
 
         try:
-            response = self.ga_service.search_stream(
+            response = self.ga_service.search(
                 customer_id=customer_id,
                 query=query
             )
 
             data = []
-            for batch in response:
-                for row in batch.results:
+            for row in response:
                     criterion = row.ad_group_criterion
                     metrics = row.metrics
                     segment_date = row.segments.date
@@ -437,14 +451,13 @@ class WarehouseETL:
         """
 
         try:
-            response = self.ga_service.search_stream(
+            response = self.ga_service.search(
                 customer_id=customer_id,
                 query=query
             )
 
             data = []
-            for batch in response:
-                for row in batch.results:
+            for row in response:
                     search_term = row.search_term_view
                     metrics = row.metrics
                     segment_date = row.segments.date

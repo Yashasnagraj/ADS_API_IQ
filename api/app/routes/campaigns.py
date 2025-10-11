@@ -43,11 +43,13 @@ def get_campaigns(
     offset: int = Query(default=0, ge=0),
     status: Optional[str] = None,
     customer_id: Optional[int] = Query(default=None, description="Filter by customer ID"),
+    channel_type: Optional[str] = Query(default=None, description="Filter by campaign type (SEARCH, DISPLAY, SMART, etc.)"),
     db: Session = Depends(get_db)
 ):
     """
     List all campaigns with summary metrics
     Filter by customer_id to show only specific customer's campaigns
+    Filter by channel_type to show only specific campaign types
     """
     query = db.query(Campaign)
 
@@ -56,6 +58,9 @@ def get_campaigns(
 
     if status:
         query = query.filter(Campaign.status == status)
+
+    if channel_type:
+        query = query.filter(Campaign.channel_type == channel_type)
 
     total = query.count()
     campaigns = query.offset(offset).limit(limit).all()

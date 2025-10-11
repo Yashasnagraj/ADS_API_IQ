@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/common/Layout';
+import { ChatProvider } from './context/ChatContext';
 
 // Premium Landing Page
 import { PremiumLandingPage } from './components/landing/PremiumLandingPage';
@@ -33,14 +34,15 @@ import AlertsDashboard from './agents/alert_agent/AlertsDashboard';
 
 function App() {
   return (
-    <Routes>
-      {/* Landing Page - Full Screen (No Layout) */}
-      <Route path="/" element={<PremiumLandingPage />} />
-      <Route path="/landing" element={<PremiumLandingPage />} />
+    <ChatProvider>
+      <Routes>
+        {/* Landing Page - Full Screen (No Layout) */}
+        <Route path="/" element={<PremiumLandingPage />} />
+        <Route path="/landing" element={<PremiumLandingPage />} />
 
-      {/* All Other Dashboards - With Layout */}
-      <Route path="/*" element={
-        <Layout>
+        {/* All Other Dashboards - With Layout */}
+        <Route path="/*" element={
+          <Layout>
           <Routes>
             <Route path="/dashboard" element={<EcommerceDashboard />} />
 
@@ -68,7 +70,8 @@ function App() {
           </Routes>
         </Layout>
       } />
-    </Routes>
+      </Routes>
+    </ChatProvider>
   );
 }
 

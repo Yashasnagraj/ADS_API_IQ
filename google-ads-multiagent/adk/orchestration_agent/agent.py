@@ -11,8 +11,8 @@ from google.adk.agents import Agent
 logger = logging.getLogger(__name__)
 
 # API Configuration
-# Use port 8004 for SQLite API (api_sqlite.py runs on 8004)
-API_BASE_URL = "http://localhost:8004"
+# Use port 8000 for main MarketingIQ API (runs on port 8000)
+API_BASE_URL = "http://localhost:8000/api/v1"
 
 
 # Helper function for API calls
@@ -38,7 +38,7 @@ def make_api_request(endpoint: str, params: Optional[Dict] = None) -> Dict[str, 
 
 
 # Tool functions for Data Agent
-def get_campaign_performance(customer_id: Optional[str] = None) -> Dict[str, Any]:
+def get_campaign_performance(customer_id: Optional[str] = None, campaign_type: Optional[str] = None) -> Dict[str, Any]:
     """
     Retrieve campaign performance data from Google Ads API.
 
@@ -48,17 +48,27 @@ def get_campaign_performance(customer_id: Optional[str] = None) -> Dict[str, Any
     Returns:
         Campaign performance metrics including impressions, clicks, conversions
     """
-    campaigns = make_api_request("/campaigns")
-    if "error" not in campaigns:
+    params = {}
+    if customer_id:
+        params["customer_id"] = customer_id
+    if campaign_type:
+        params["channel_type"] = campaign_type
+
+    response = make_api_request("/campaigns", params=params)
+    if "error" not in response:
+        # Extract campaigns array from response
+        campaigns_list = response.get("campaigns", [])
+
         # Get summary metrics
         summary = make_api_request("/metrics/summary")
         return {
             "status": "success",
             "customer_id": customer_id or "all",
-            "campaigns": campaigns,
-            "summary": summary
+            "campaigns": campaigns_list,  # Return just the array
+            "summary": summary,
+            "total": response.get("total", len(campaigns_list))
         }
-    return campaigns
+    return response
 
 
 def get_campaign_details(campaign_id: str) -> Dict[str, Any]:
@@ -94,14 +104,20 @@ def get_ad_group_performance(customer_id: Optional[str] = None) -> Dict[str, Any
     Returns:
         Ad group performance metrics
     """
-    ad_groups = make_api_request("/ad-groups")
-    if "error" not in ad_groups:
+    params = {}
+    if customer_id:
+        params["customer_id"] = customer_id
+
+    response = make_api_request("/ad-groups", params=params)
+    if "error" not in response:
+        ad_groups_list = response.get("ad_groups", [])
         return {
             "status": "success",
             "customer_id": customer_id or "all",
-            "ad_groups": ad_groups
+            "ad_groups": ad_groups_list,
+            "total": response.get("total", len(ad_groups_list))
         }
-    return ad_groups
+    return response
 
 
 def get_keyword_performance(customer_id: Optional[str] = None) -> Dict[str, Any]:
@@ -114,17 +130,30 @@ def get_keyword_performance(customer_id: Optional[str] = None) -> Dict[str, Any]
     Returns:
         Keyword performance metrics including quality scores
     """
-    keywords = make_api_request("/keywords")
-    underperformers = make_api_request("/keywords/underperformers")
+    params = {"limit": 100}
+    if customer_id:
+        params["customer_id"] = customer_id
 
-    if "error" not in keywords:
+    response = make_api_request("/keywords", params=params)
+
+    if "error" not in response:
+        keywords_list = response.get("keywords", [])
+
+        # Find underperformers: low quality score, high cost, low conversions
+        underperformers = [
+            kw for kw in keywords_list
+            if (kw.get("quality_score", 10) < 5 and
+                kw.get("metrics", {}).get("cost", 0) > 1000)
+        ]
+
         return {
             "status": "success",
             "customer_id": customer_id or "all",
-            "keywords": keywords,
-            "underperforming_keywords": underperformers
+            "keywords": keywords_list,
+            "underperforming_keywords": underperformers,
+            "total": response.get("total", len(keywords_list))
         }
-    return keywords
+    return response
 
 
 def get_search_terms_data(customer_id: Optional[str] = None) -> Dict[str, Any]:
@@ -465,7 +494,7 @@ def optimize_keywords(data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 # Tool functions for Forecasting Agent
 def forecast_performance(days: int = 30) -> Dict[str, Any]:
     """
-    Forecast future campaign performance based on historical trends.
+    Forecast future campaign performance based on current metrics.
 
     Args:
         days: Number of days to forecast (default 30)
@@ -473,42 +502,43 @@ def forecast_performance(days: int = 30) -> Dict[str, Any]:
     Returns:
         Performance forecasts
     """
-    trends = make_api_request("/metrics/trends")
     summary = make_api_request("/metrics/summary")
 
-    if "error" not in trends and "error" not in summary:
-        # Simple forecasting based on recent trends
-        current_metrics = summary
+    if "error" not in summary:
+        # Use LAST_30_DAYS metrics to calculate daily averages
+        total_clicks = summary.get('total_clicks', 0)
+        total_impressions = summary.get('total_impressions', 0)
+        total_cost = summary.get('total_cost', 0)
+        total_conversions = summary.get('total_conversions', 0)
 
-        # Calculate average daily metrics from trends
-        if isinstance(trends, list) and len(trends) > 0:
-            recent_trends = trends[-7:] if len(trends) >= 7 else trends  # Last 7 data points
+        # Calculate daily averages (assuming 30-day period)
+        avg_daily_clicks = total_clicks / 30
+        avg_daily_impressions = total_impressions / 30
+        avg_daily_cost = total_cost / 30
+        avg_daily_conversions = total_conversions / 30
 
-            avg_daily_impressions = sum(t.get('impressions', 0) for t in recent_trends) / len(recent_trends)
-            avg_daily_clicks = sum(t.get('clicks', 0) for t in recent_trends) / len(recent_trends)
-            avg_daily_conversions = sum(t.get('conversions', 0) for t in recent_trends) / len(recent_trends)
-            avg_daily_cost = sum(t.get('cost', 0) for t in recent_trends) / len(recent_trends)
-
-            # Project forward
-            forecast = {
-                "status": "success",
-                "forecast_period": f"{days} days",
-                "current_metrics": current_metrics,
-                "predicted_metrics": {
-                    "impressions": round(avg_daily_impressions * days),
-                    "clicks": round(avg_daily_clicks * days),
-                    "conversions": round(avg_daily_conversions * days, 1),
-                    "cost": round(avg_daily_cost * days, 2)
-                },
-                "daily_averages": {
-                    "impressions": round(avg_daily_impressions),
-                    "clicks": round(avg_daily_clicks),
-                    "conversions": round(avg_daily_conversions, 2),
-                    "cost": round(avg_daily_cost, 2)
-                },
-                "confidence": "Based on last 7 days of data"
-            }
-            return forecast
+        # Project forward for requested period
+        forecast = {
+            "status": "success",
+            "forecast_period": f"{days} days",
+            "based_on": "Last 30 days average performance",
+            "predicted_metrics": {
+                "impressions": round(avg_daily_impressions * days),
+                "clicks": round(avg_daily_clicks * days),
+                "conversions": round(avg_daily_conversions * days, 1),
+                "cost": round(avg_daily_cost * days, 2),
+                "ctr": summary.get('avg_ctr', 0),
+                "avg_cpc": summary.get('avg_cpc', 0)
+            },
+            "daily_averages": {
+                "impressions": round(avg_daily_impressions),
+                "clicks": round(avg_daily_clicks),
+                "conversions": round(avg_daily_conversions, 2),
+                "cost": round(avg_daily_cost, 2)
+            },
+            "confidence": "medium"
+        }
+        return forecast
 
     return {"status": "error", "message": "Insufficient data for forecasting"}
 

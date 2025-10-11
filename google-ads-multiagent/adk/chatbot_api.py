@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ADK Chatbot API - Connects Google ADK Orchestration Agent to MarketingIQ Platform
-Provides conversational interface to multi-agent system
+Provides conversational interface to multi-agent system with Gemini-powered friendly responses
 """
 
 from fastapi import FastAPI, HTTPException
@@ -12,6 +12,11 @@ from datetime import datetime
 import sys
 import os
 from pathlib import Path
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv(Path(__file__).parent / ".env")
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -34,6 +39,21 @@ except ImportError as e:
     print(f"Warning: Could not import ADK agents: {e}")
     ADK_AVAILABLE = False
 
+# Configure Gemini
+GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+GEMINI_ENABLED = bool(GEMINI_API_KEY)
+
+if GEMINI_ENABLED:
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+        print("[OK] Gemini API configured for friendly responses")
+    except Exception as e:
+        print(f"[WARNING] Gemini configuration failed: {e}")
+        GEMINI_ENABLED = False
+else:
+    print("[WARNING] GOOGLE_API_KEY not found - using default formatting")
+
 # Initialize FastAPI
 app = FastAPI(
     title="ADK Chatbot API",
@@ -54,6 +74,8 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     message: str
     customer_id: Optional[str] = None
+    campaign_type: Optional[str] = None
+    date_range: Optional[str] = None
     context: Optional[Dict[str, Any]] = None
 
 class ChatResponse(BaseModel):
@@ -93,8 +115,16 @@ def classify_user_intent(message: str) -> Dict[str, Any]:
             "keywords": ["ad_group"]
         }
 
+    # Forecasting (check this BEFORE performance analysis to avoid conflicts)
+    if any(word in message_lower for word in ['forecast', 'predict', 'projection', 'future', 'next month', 'next week', 'next 30 days']):
+        return {
+            "agent": "forecasting",
+            "action": "forecast_performance",
+            "keywords": ["forecast"]
+        }
+
     # Performance analysis/trends
-    if any(word in message_lower for word in ['trend', 'performance', 'analyze', 'insight', 'how is']):
+    if any(word in message_lower for word in ['trend', 'analyze', 'insight', 'how is']):
         return {
             "agent": "insight",
             "action": "analyze_trends",
@@ -110,7 +140,7 @@ def classify_user_intent(message: str) -> Dict[str, Any]:
         }
 
     # Budget optimization
-    if any(word in message_lower for word in ['budget', 'spend', 'allocate', 'reallocate']):
+    if any(word in message_lower for word in ['budget', 'allocate', 'reallocate']):
         return {
             "agent": "optimization",
             "action": "optimize_budgets",
@@ -125,14 +155,6 @@ def classify_user_intent(message: str) -> Dict[str, Any]:
             "keywords": ["bid"]
         }
 
-    # Forecasting
-    if any(word in message_lower for word in ['forecast', 'predict', 'projection', 'future', 'next month']):
-        return {
-            "agent": "forecasting",
-            "action": "forecast_performance",
-            "keywords": ["forecast"]
-        }
-
     # Default to orchestrator for comprehensive analysis
     return {
         "agent": "orchestrator",
@@ -140,7 +162,7 @@ def classify_user_intent(message: str) -> Dict[str, Any]:
         "keywords": []
     }
 
-def execute_agent_action(intent: Dict, customer_id: Optional[str] = None) -> Dict[str, Any]:
+def execute_agent_action(intent: Dict, customer_id: Optional[str] = None, campaign_type: Optional[str] = None, date_range: Optional[str] = None) -> Dict[str, Any]:
     """
     Execute the appropriate agent action based on intent
     """
@@ -157,7 +179,7 @@ def execute_agent_action(intent: Dict, customer_id: Optional[str] = None) -> Dic
         # Data Agent actions
         if agent == "data":
             if action == "campaign_performance":
-                return get_campaign_performance(customer_id)
+                return get_campaign_performance(customer_id, campaign_type)
             elif action == "keyword_performance":
                 return get_keyword_performance(customer_id)
             elif action == "adgroup_performance":
@@ -218,14 +240,29 @@ def format_response(user_message: str, intent: Dict, agent_data: Dict) -> str:
         if action == "campaign_performance":
             campaigns = agent_data.get("campaigns", [])
             if isinstance(campaigns, list) and len(campaigns) > 0:
-                top_5 = campaigns[:5]
-                response = "📊 **Top Performing Campaigns:**\n\n"
+                # Filter campaigns with actual performance (clicks > 0)
+                active_campaigns = [c for c in campaigns if c.get('metrics', {}).get('clicks', 0) > 0]
+
+                # Sort by clicks descending
+                active_campaigns.sort(key=lambda x: x.get('metrics', {}).get('clicks', 0), reverse=True)
+
+                if len(active_campaigns) == 0:
+                    return "📊 No campaigns with active performance data found. All campaigns may be paused or have no traffic."
+
+                top_5 = active_campaigns[:5]
+                response = f"📊 **Top {len(top_5)} Performing Campaigns** (out of {len(campaigns)} total):\n\n"
                 for i, c in enumerate(top_5, 1):
                     name = c.get('campaign_name', 'Unknown')
-                    clicks = c.get('clicks', 0)
-                    cost = c.get('cost', 0)
-                    conv = c.get('conversions', 0)
-                    response += f"{i}. **{name}**\n   - Clicks: {clicks:,} | Cost: ₹{cost:,.2f} | Conversions: {conv}\n\n"
+                    status = c.get('status', 'UNKNOWN')
+                    # Metrics are nested in a metrics object from the API
+                    metrics = c.get('metrics', {})
+                    clicks = metrics.get('clicks', 0)
+                    cost = metrics.get('cost', 0)
+                    conv = metrics.get('conversions', 0)
+                    ctr = metrics.get('ctr', 0) * 100  # Convert to percentage
+                    response += f"{i}. **{name}** ({status})\n"
+                    response += f"   - Clicks: {clicks:,} | Cost: ₹{cost:,.2f}\n"
+                    response += f"   - CTR: {ctr:.2f}% | Conversions: {conv:.1f}\n\n"
                 return response
 
         elif action == "keyword_performance":
@@ -233,13 +270,23 @@ def format_response(user_message: str, intent: Dict, agent_data: Dict) -> str:
             underperformers = agent_data.get("underperforming_keywords", [])
 
             response = f"🔑 **Keyword Analysis:**\n\n"
-            response += f"Total Keywords: {len(keywords) if isinstance(keywords, list) else 0}\n"
-            response += f"Underperforming: {len(underperformers) if isinstance(underperformers, list) else 0}\n\n"
+            response += f"Total Keywords Analyzed: {len(keywords) if isinstance(keywords, list) else 0}\n"
+            response += f"Underperforming Keywords: {len(underperformers) if isinstance(underperformers, list) else 0}\n\n"
 
             if isinstance(underperformers, list) and len(underperformers) > 0:
-                response += "**Top Underperformers:**\n"
-                for kw in underperformers[:3]:
-                    response += f"- {kw.get('keyword_text', 'Unknown')} (Quality Score: {kw.get('quality_score', 'N/A')})\n"
+                response += "**Top Underperformers** (Low Quality Score + High Cost):\n\n"
+                for i, kw in enumerate(underperformers[:5], 1):
+                    text = kw.get('keyword_text', 'Unknown')
+                    qs = kw.get('quality_score', 'N/A')
+                    metrics = kw.get('metrics', {})
+                    cost = metrics.get('cost', 0)
+                    conv = metrics.get('conversions', 0)
+                    ctr = metrics.get('ctr', 0)
+                    response += f"{i}. **{text}**\n"
+                    response += f"   - Quality Score: {qs}/10 | Cost: ₹{cost:,.2f}\n"
+                    response += f"   - CTR: {ctr:.2f}% | Conversions: {conv:.1f}\n\n"
+            else:
+                response += "✅ All keywords are performing well! No major underperformers detected.\n"
 
             return response
 
@@ -299,14 +346,62 @@ def format_response(user_message: str, intent: Dict, agent_data: Dict) -> str:
 
     elif agent == "forecasting":
         forecast = agent_data.get("predicted_metrics", {})
-        response = "🔮 **30-Day Forecast:**\n\n"
-        response += f"Expected Clicks: {forecast.get('clicks', 'N/A'):,}\n"
-        response += f"Expected Conversions: {forecast.get('conversions', 'N/A')}\n"
-        response += f"Projected Cost: ₹{forecast.get('cost', 0):,.2f}\n"
+        period = agent_data.get("forecast_period", "30 days")
+        based_on = agent_data.get("based_on", "historical data")
+
+        response = f"🔮 **Performance Forecast ({period}):**\n\n"
+        response += f"_Based on: {based_on}_\n\n"
+        response += "**Projected Metrics:**\n"
+        response += f"• Impressions: {forecast.get('impressions', 0):,}\n"
+        response += f"• Clicks: {forecast.get('clicks', 0):,}\n"
+        response += f"• Conversions: {forecast.get('conversions', 0):.1f}\n"
+        response += f"• Cost: ₹{forecast.get('cost', 0):,.2f}\n"
+        response += f"• CTR: {forecast.get('ctr', 0):.2f}%\n"
+        response += f"• Avg CPC: ₹{forecast.get('avg_cpc', 0):.2f}\n\n"
+
+        daily = agent_data.get("daily_averages", {})
+        if daily:
+            response += "**Daily Averages:**\n"
+            response += f"• ~{daily.get('clicks', 0):,} clicks/day\n"
+            response += f"• ~₹{daily.get('cost', 0):,.2f} spend/day\n"
+
         return response
 
     # Default response
     return "I've processed your request. Here's what I found:\n\n" + str(agent_data.get("message", "Analysis complete"))
+
+def enhance_with_gemini(user_query: str, technical_response: str) -> str:
+    """
+    Use Gemini to transform technical ADK responses into friendly, conversational replies
+    """
+    if not GEMINI_ENABLED:
+        return technical_response
+
+    try:
+        prompt = f"""You are a friendly AI Marketing Assistant helping a marketing professional understand their Google Ads performance.
+
+User asked: "{user_query}"
+
+The ADK multi-agent system provided this technical data:
+{technical_response}
+
+Your task:
+1. Keep all the data and numbers EXACTLY as shown (don't change metrics)
+2. Make the response warm, conversational, and encouraging
+3. Add helpful context or insights where appropriate
+4. Use emojis sparingly and naturally
+5. Keep the markdown formatting for better readability
+6. Be concise - don't add unnecessary fluff
+7. Maintain a professional yet friendly tone
+
+Transform this into a friendly response that feels like talking to a knowledgeable colleague:"""
+
+        response = gemini_model.generate_content(prompt)
+        return response.text
+
+    except Exception as e:
+        print(f"Gemini enhancement failed: {e}")
+        return technical_response  # Fallback to technical response
 
 
 @app.get("/")
@@ -325,6 +420,7 @@ def health_check():
     return {
         "status": "healthy",
         "adk_agents": "available" if ADK_AVAILABLE else "unavailable",
+        "gemini_enabled": GEMINI_ENABLED,
         "timestamp": datetime.now().isoformat()
     }
 
@@ -336,21 +432,27 @@ async def chat(request: ChatRequest):
     try:
         user_message = request.message
         customer_id = request.customer_id
+        campaign_type = request.campaign_type
+        date_range = request.date_range
 
         # Step 1: Classify intent
         intent = classify_user_intent(user_message)
 
-        # Step 2: Execute agent action
-        agent_data = execute_agent_action(intent, customer_id)
+        # Step 2: Execute agent action with filters
+        agent_data = execute_agent_action(intent, customer_id, campaign_type, date_range)
 
         # Step 3: Format response
         formatted_response = format_response(user_message, intent, agent_data)
 
+        # Step 4: Enhance with Gemini for friendly, conversational tone
+        final_response = enhance_with_gemini(user_message, formatted_response)
+
         return ChatResponse(
-            response=formatted_response,
+            response=final_response,
             metadata={
                 "intent": intent,
-                "data_available": "error" not in agent_data
+                "data_available": "error" not in agent_data,
+                "gemini_enhanced": GEMINI_ENABLED
             },
             timestamp=datetime.now(),
             agent_used=intent.get("agent")

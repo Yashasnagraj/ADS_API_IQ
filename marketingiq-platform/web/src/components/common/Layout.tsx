@@ -5,6 +5,7 @@ import Header from './Header';
 import GlobalFilterBar from './GlobalFilterBar';
 import FloatingChatbot from '../chatbot/FloatingChatbot';
 import { useFilters } from '../../context/FilterContext';
+import { useChat } from '../../context/ChatContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const theme = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { filters, setFilters } = useFilters();
+  const { isChatOpen, chatPanelWidth } = useChat();
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen);
@@ -27,9 +29,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           flexGrow: 1,
           display: 'flex',
           flexDirection: 'column',
+          marginRight: isChatOpen ? `${chatPanelWidth}px` : 0,
           transition: theme.transitions.create(['margin'], {
             easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
+            duration: theme.transitions.duration.enteringScreen,
           }),
         }}
       >

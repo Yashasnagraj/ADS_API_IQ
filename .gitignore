@@ -91,6 +91,8 @@ htmlcov/
 *.backup
 *.old
 ab
+nul
+pip_cache/
 
 # ========================================
 # Database (comment out if you want to share sample data)

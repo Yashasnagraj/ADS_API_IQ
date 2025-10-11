@@ -92,7 +92,21 @@ const CampaignsDashboard: React.FC = () => {
   const { data: metricsData, loading: metricsLoading } = useMetricsSummary();
 
   const loading = campaignsLoading || metricsLoading;
-  const campaigns = campaignsData?.campaigns || [];
+
+  // Transform campaigns data to flatten metrics object
+  const campaigns = (campaignsData?.campaigns || []).map((campaign: any) => ({
+    ...campaign,
+    // Flatten metrics into top-level properties for easier access
+    clicks: campaign.metrics?.clicks || 0,
+    impressions: campaign.metrics?.impressions || 0,
+    cost: campaign.metrics?.cost || 0,
+    spend: campaign.metrics?.cost || 0, // alias for cost
+    conversions: campaign.metrics?.conversions || 0,
+    ctr: campaign.metrics?.ctr ? (campaign.metrics.ctr * 100).toFixed(2) : '0.00',
+    cpc: campaign.metrics?.avg_cpc?.toFixed(2) || '0.00',
+    conversion_rate: campaign.metrics?.conversion_rate || 0,
+  }));
+
   const metrics = metricsData?.metrics || null;
 
   const [showInsights, setShowInsights] = useState(true);
@@ -151,21 +165,21 @@ const CampaignsDashboard: React.FC = () => {
   // Computed metrics from real data
   const totalCampaigns = campaigns.length;
   const activeCampaigns = campaigns.filter((c: any) => c.status === 'ACTIVE' || c.status === 'ENABLED').length;
-  const avgCPC = campaigns.length > 0 ? campaigns.reduce((sum: number, c: any) => sum + (c.cpc || 0), 0) / campaigns.length : 0;
-  const avgCTR = campaigns.length > 0 ? campaigns.reduce((sum: number, c: any) => sum + (c.ctr || 0), 0) / campaigns.length : 0;
-  const totalSpend = campaigns.reduce((sum: number, c: any) => sum + (c.cost || c.spend || 0), 0);
+  const avgCPC = campaigns.length > 0 ? campaigns.reduce((sum: number, c: any) => sum + (parseFloat(c.cpc) || 0), 0) / campaigns.length : 0;
+  const avgCTR = campaigns.length > 0 ? campaigns.reduce((sum: number, c: any) => sum + (parseFloat(c.ctr) || 0), 0) / campaigns.length : 0;
+  const totalSpend = campaigns.reduce((sum: number, c: any) => sum + (c.spend || 0), 0);
   const totalImpressions = campaigns.reduce((sum: number, c: any) => sum + (c.impressions || 0), 0);
   const totalClicks = campaigns.reduce((sum: number, c: any) => sum + (c.clicks || 0), 0);
 
   // KPI Click Handlers
   const handleTotalCampaignsClick = () => {
     const items: KPIDetailItem[] = campaigns.map((c: any) => ({
-      id: c.id || c.campaign_id,
-      name: c.name || c.campaign_name,
+      id: c.campaign_id,
+      name: c.campaign_name,
       value: `₹${c.spend?.toLocaleString() || 0}`,
-      status: c.status === 'ACTIVE' ? 'success' : c.status === 'PAUSED' ? 'warning' : 'error',
+      status: c.status === 'ACTIVE' || c.status === 'ENABLED' ? 'success' : c.status === 'PAUSED' ? 'warning' : 'error',
       subtitle: `${c.clicks?.toLocaleString() || 0} clicks • ${c.impressions?.toLocaleString() || 0} impressions`,
-      trend: c.ctr,
+      trend: parseFloat(c.ctr) || 0,
     }));
     setDrawerData(items);
     setDrawerTitle('All Campaigns');
@@ -176,12 +190,12 @@ const CampaignsDashboard: React.FC = () => {
   const handleActiveCampaignsClick = () => {
     const activeCamps = campaigns.filter((c: any) => c.status === 'ACTIVE' || c.status === 'ENABLED');
     const items: KPIDetailItem[] = activeCamps.map((c: any) => ({
-      id: c.id || c.campaign_id,
-      name: c.name || c.campaign_name,
+      id: c.campaign_id,
+      name: c.campaign_name,
       value: `${c.ctr}% CTR`,
       status: 'success',
       subtitle: `₹${c.spend?.toLocaleString() || 0} spend • ${c.clicks?.toLocaleString() || 0} clicks`,
-      trend: c.ctr,
+      trend: parseFloat(c.ctr) || 0,
     }));
     setDrawerData(items);
     setDrawerTitle('Active Campaigns');
@@ -190,12 +204,12 @@ const CampaignsDashboard: React.FC = () => {
   };
 
   const handleAvgCPCClick = () => {
-    const sortedByCPC = [...campaigns].sort((a: any, b: any) => (a.cpc || 0) - (b.cpc || 0));
+    const sortedByCPC = [...campaigns].sort((a: any, b: any) => (parseFloat(a.cpc) || 0) - (parseFloat(b.cpc) || 0));
     const items: KPIDetailItem[] = sortedByCPC.map((c: any) => ({
-      id: c.id || c.campaign_id,
-      name: c.name || c.campaign_name,
-      value: `₹${c.cpc || 0}`,
-      status: (c.cpc || 0) < 0.7 ? 'success' : (c.cpc || 0) < 1.0 ? 'warning' : 'error',
+      id: c.campaign_id,
+      name: c.campaign_name,
+      value: `₹${c.cpc}`,
+      status: (parseFloat(c.cpc) || 0) < 0.7 ? 'success' : (parseFloat(c.cpc) || 0) < 1.0 ? 'warning' : 'error',
       subtitle: `${c.clicks?.toLocaleString() || 0} clicks • ₹${c.spend?.toLocaleString() || 0} spend`,
     }));
     setDrawerData(items);
@@ -205,14 +219,14 @@ const CampaignsDashboard: React.FC = () => {
   };
 
   const handleAvgCTRClick = () => {
-    const sortedByCTR = [...campaigns].sort((a: any, b: any) => (b.ctr || 0) - (a.ctr || 0));
+    const sortedByCTR = [...campaigns].sort((a: any, b: any) => (parseFloat(b.ctr) || 0) - (parseFloat(a.ctr) || 0));
     const items: KPIDetailItem[] = sortedByCTR.map((c: any) => ({
-      id: c.id || c.campaign_id,
-      name: c.name || c.campaign_name,
+      id: c.campaign_id,
+      name: c.campaign_name,
       value: `${c.ctr}%`,
-      status: (c.ctr || 0) >= 4 ? 'success' : (c.ctr || 0) >= 2 ? 'warning' : 'error',
+      status: (parseFloat(c.ctr) || 0) >= 4 ? 'success' : (parseFloat(c.ctr) || 0) >= 2 ? 'warning' : 'error',
       subtitle: `${c.clicks?.toLocaleString() || 0} clicks / ${c.impressions?.toLocaleString() || 0} impressions`,
-      trend: c.ctr,
+      trend: parseFloat(c.ctr) || 0,
     }));
     setDrawerData(items);
     setDrawerTitle('CTR Performance');
@@ -484,10 +498,12 @@ const CampaignsDashboard: React.FC = () => {
 
                     <XAxis
                       {...getXAxisConfig('Day of Week', 'date')}
+                      label={{ value: 'Date', position: 'bottom', offset: 0, style: { fontSize: 14, fontWeight: 600, fill: '#666' } }}
                     />
 
                     <YAxis
                       {...getYAxisConfig('Count', formatNumber)}
+                      label={{ value: 'Impressions / Clicks', angle: -90, position: 'left', offset: 10, style: { fontSize: 14, fontWeight: 600, fill: '#666', textAnchor: 'middle' } }}
                     />
 
                     <RechartsTooltip
@@ -544,10 +560,12 @@ const CampaignsDashboard: React.FC = () => {
 
                     <XAxis
                       {...getXAxisConfig('Day of Week', 'date')}
+                      label={{ value: 'Date', position: 'bottom', offset: 0, style: { fontSize: 14, fontWeight: 600, fill: '#666' } }}
                     />
 
                     <YAxis
                       {...getYAxisConfig('Spend (₹)', formatCurrency)}
+                      label={{ value: 'Cost (₹)', angle: -90, position: 'left', offset: 10, style: { fontSize: 14, fontWeight: 600, fill: '#666', textAnchor: 'middle' } }}
                     />
 
                     <RechartsTooltip
@@ -623,7 +641,7 @@ const CampaignsDashboard: React.FC = () => {
               <TableBody>
                 {(campaigns.length > 0 ? campaigns : mockCampaigns).map((campaign: any, index: number) => (
                   <TableRow
-                    key={campaign.id || campaign.campaign_id || index}
+                    key={campaign.campaign_id || index}
                     hover
                     sx={{
                       cursor: 'pointer',
@@ -635,7 +653,7 @@ const CampaignsDashboard: React.FC = () => {
                     }}
                     onClick={() => setSelectedCampaign(campaign)}
                   >
-                    <TableCell>{campaign.name || campaign.campaign_name}</TableCell>
+                    <TableCell>{campaign.campaign_name}</TableCell>
                     <TableCell>
                       <Chip
                         label={campaign.status}

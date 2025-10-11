@@ -24,6 +24,8 @@ import {
 } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 import { API_CONFIG } from '../../config/api';
+import { useFilters } from '../../context/FilterContext';
+import { useChat } from '../../context/ChatContext';
 
 interface Message {
   id: string;
@@ -34,7 +36,9 @@ interface Message {
 
 const FloatingChatbot: React.FC = () => {
   const theme = useTheme();
-  const [open, setOpen] = useState(false);
+  const { filters } = useFilters();
+  const { isChatOpen, chatPanelWidth, setChatOpen, setChatPanelWidth } = useChat();
+  const [isResizing, setIsResizing] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -46,6 +50,7 @@ const FloatingChatbot: React.FC = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const resizeHandleRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -54,6 +59,39 @@ const FloatingChatbot: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Handle resize drag
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isResizing) {
+        const newWidth = window.innerWidth - e.clientX;
+        setChatPanelWidth(Math.max(300, Math.min(800, newWidth)));
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.body.style.cursor = 'default';
+      document.body.style.userSelect = 'auto';
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsResizing(true);
+    e.preventDefault();
+  };
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
@@ -78,7 +116,9 @@ const FloatingChatbot: React.FC = () => {
         },
         body: JSON.stringify({
           message: input,
-          customer_id: localStorage.getItem('selected_customer_id') || null,
+          customer_id: filters.customerId ? String(filters.customerId) : null,
+          campaign_type: filters.campaignType !== 'ALL' ? filters.campaignType : null,
+          date_range: filters.dateRange || null,
         }),
       });
 
@@ -133,25 +173,47 @@ const FloatingChatbot: React.FC = () => {
 
   return (
     <>
-      {/* Floating Chat Window */}
-      <Slide direction="up" in={open} mountOnEnter unmountOnExit>
+      {/* Side Panel Chat Window */}
+      <Slide direction="left" in={isChatOpen} mountOnEnter unmountOnExit>
         <Paper
           elevation={8}
           sx={{
             position: 'fixed',
-            bottom: 90,
-            right: 24,
-            width: 400,
-            height: 600,
+            top: 0,
+            right: 0,
+            width: `${chatPanelWidth}px`,
+            height: '100vh',
             display: 'flex',
             flexDirection: 'column',
-            borderRadius: 3,
+            borderRadius: 0,
             overflow: 'hidden',
             zIndex: 1300,
             bgcolor: 'background.paper',
-            boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.3)}`,
+            boxShadow: `-4px 0 24px ${alpha(theme.palette.primary.main, 0.2)}`,
+            transition: 'width 0.1s ease-out',
           }}
         >
+          {/* Resize Handle */}
+          <Box
+            ref={resizeHandleRef}
+            onMouseDown={handleMouseDown}
+            sx={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: '6px',
+              cursor: 'col-resize',
+              bgcolor: 'transparent',
+              '&:hover': {
+                bgcolor: alpha(theme.palette.primary.main, 0.1),
+              },
+              '&:active': {
+                bgcolor: alpha(theme.palette.primary.main, 0.2),
+              },
+              zIndex: 1,
+            }}
+          />
           {/* Header */}
           <Box
             sx={{
@@ -182,17 +244,17 @@ const FloatingChatbot: React.FC = () => {
                 </Typography>
               </Box>
             </Box>
-            <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <IconButton
                 size="small"
                 onClick={handleClearChat}
-                sx={{ color: 'white', mr: 0.5 }}
+                sx={{ color: 'white' }}
               >
                 <RefreshIcon fontSize="small" />
               </IconButton>
               <IconButton
                 size="small"
-                onClick={() => setOpen(false)}
+                onClick={() => setChatOpen(false)}
                 sx={{ color: 'white' }}
               >
                 <CloseIcon />
@@ -409,7 +471,7 @@ const FloatingChatbot: React.FC = () => {
       {/* Floating Button */}
       <Fab
         color="primary"
-        onClick={() => setOpen(!open)}
+        onClick={() => setChatOpen(!isChatOpen)}
         sx={{
           position: 'fixed',
           bottom: 24,
@@ -424,7 +486,7 @@ const FloatingChatbot: React.FC = () => {
           transition: 'all 0.3s ease',
         }}
       >
-        {open ? <CloseIcon /> : <ChatIcon />}
+        {isChatOpen ? <CloseIcon /> : <ChatIcon />}
       </Fab>
     </>
   );
