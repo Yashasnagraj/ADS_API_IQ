@@ -46,7 +46,7 @@ export const API_CONFIG = {
     typeof REACT_APP_AGENT_API_URL !== 'undefined' ? REACT_APP_AGENT_API_URL : undefined,
     isProduction
       ? 'https://your-agent-api.com/api'
-      : 'http://localhost:8001/api'
+      : 'http://localhost:8000/api'
   ),
 
   // ADK Chatbot API

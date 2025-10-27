@@ -11,8 +11,8 @@ from google.adk.agents import Agent
 logger = logging.getLogger(__name__)
 
 # API Configuration
-# Use port 8000 for main MarketingIQ API (runs on port 8000)
-API_BASE_URL = "http://localhost:8000/api/v1"
+# Use port 8001 for main MarketingIQ API (ADK web runs on port 8000)
+API_BASE_URL = "http://localhost:8001/api/v1"
 
 
 # Helper function for API calls
@@ -611,73 +611,329 @@ def analyze_scenarios(budget_change_percent: int = 0) -> Dict[str, Any]:
     return {"status": "error", "message": "Failed to analyze scenarios"}
 
 
+# GA4 Tool Functions for Data Agent
+def get_ga4_session_behavior(
+    customer_id: int = 1,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    source: Optional[str] = None,
+    campaign: Optional[str] = None,
+    device: Optional[str] = None,
+    limit: int = 100
+) -> Dict[str, Any]:
+    """
+    Get GA4 session behavior data including bounce rate, engagement, and session duration.
+
+    Args:
+        customer_id: Customer ID (default: 1)
+        start_date: Start date in YYYYMMDD format (optional)
+        end_date: End date in YYYYMMDD format (optional)
+        source: Filter by traffic source (optional)
+        campaign: Filter by campaign name (optional)
+        device: Filter by device category (optional)
+        limit: Maximum number of records to return (default: 100)
+
+    Returns:
+        Session behavior data with bounce rate, engagement rate, avg session duration, etc.
+    """
+    params = {"customer_id": customer_id, "limit": limit}
+    if start_date:
+        params["start_date"] = start_date
+    if end_date:
+        params["end_date"] = end_date
+    if source:
+        params["source"] = source
+    if campaign:
+        params["campaign"] = campaign
+    if device:
+        params["device"] = device
+
+    response = make_api_request("/ga4/sessions", params=params)
+    if "error" not in response:
+        return {
+            "status": "success",
+            "data": response,
+            "total_sessions": len(response) if isinstance(response, list) else 0
+        }
+    return response
+
+
+def get_ga4_campaign_quality(
+    customer_id: int = 1,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Get GA4 campaign quality scores (0-100) based on bounce rate, engagement, and pages per session.
+
+    Args:
+        customer_id: Customer ID (default: 1)
+        start_date: Start date in YYYYMMDD format (optional)
+        end_date: End date in YYYYMMDD format (optional)
+
+    Returns:
+        Campaign quality scores with detailed metrics
+    """
+    params = {"customer_id": customer_id}
+    if start_date:
+        params["start_date"] = start_date
+    if end_date:
+        params["end_date"] = end_date
+
+    response = make_api_request("/ga4/campaign-enrichment", params=params)
+    if "error" not in response:
+        return {
+            "status": "success",
+            "quality_scores": response,
+            "description": "Quality scores range from 0-100, based on bounce rate (40%), engagement (30%), and pages per session (30%)"
+        }
+    return response
+
+
+def get_ga4_behavior_by_campaign(
+    customer_id: int = 1,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Get aggregated GA4 behavior metrics grouped by campaign.
+
+    Args:
+        customer_id: Customer ID (default: 1)
+        start_date: Start date in YYYYMMDD format (optional)
+        end_date: End date in YYYYMMDD format (optional)
+
+    Returns:
+        Campaign-level aggregated behavior data
+    """
+    params = {"customer_id": customer_id}
+    if start_date:
+        params["start_date"] = start_date
+    if end_date:
+        params["end_date"] = end_date
+
+    response = make_api_request("/ga4/sessions/by-campaign", params=params)
+    if "error" not in response:
+        return {
+            "status": "success",
+            "campaigns": response,
+            "total_campaigns": len(response) if isinstance(response, list) else 0
+        }
+    return response
+
+
+def get_ga4_conversion_paths(
+    customer_id: int = 1,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    min_touchpoints: int = 2,
+    limit: int = 50
+) -> Dict[str, Any]:
+    """
+    Get GA4 multi-touch attribution data showing conversion paths.
+
+    Args:
+        customer_id: Customer ID (default: 1)
+        start_date: Start date in YYYYMMDD format (optional)
+        end_date: End date in YYYYMMDD format (optional)
+        min_touchpoints: Minimum number of touchpoints to include (default: 2)
+        limit: Maximum number of paths to return (default: 50)
+
+    Returns:
+        Conversion path data for multi-touch attribution analysis
+    """
+    params = {
+        "customer_id": customer_id,
+        "min_touchpoints": min_touchpoints,
+        "limit": limit
+    }
+    if start_date:
+        params["start_date"] = start_date
+    if end_date:
+        params["end_date"] = end_date
+
+    response = make_api_request("/ga4/conversion-paths", params=params)
+    if "error" not in response:
+        return {
+            "status": "success",
+            "conversion_paths": response,
+            "total_paths": len(response) if isinstance(response, list) else 0
+        }
+    return response
+
+
+def get_ga4_device_performance(
+    customer_id: int = 1,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Get GA4 device performance breakdown (desktop, mobile, tablet).
+
+    Args:
+        customer_id: Customer ID (default: 1)
+        start_date: Start date in YYYYMMDD format (optional)
+        end_date: End date in YYYYMMDD format (optional)
+
+    Returns:
+        Device-level performance metrics including engagement and conversion data
+    """
+    params = {"customer_id": customer_id}
+    if start_date:
+        params["start_date"] = start_date
+    if end_date:
+        params["end_date"] = end_date
+
+    response = make_api_request("/ga4/audience-insights/devices", params=params)
+    if "error" not in response:
+        return {
+            "status": "success",
+            "device_performance": response,
+            "total_devices": len(response) if isinstance(response, list) else 0
+        }
+    return response
+
+
+def get_ga4_audience_insights(
+    customer_id: int = 1,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    segment_type: str = "country"
+) -> Dict[str, Any]:
+    """
+    Get GA4 audience insights including demographics and geographic data.
+
+    Args:
+        customer_id: Customer ID (default: 1)
+        start_date: Start date in YYYYMMDD format (optional)
+        end_date: End date in YYYYMMDD format (optional)
+        segment_type: Type of segmentation - 'country', 'device', or 'all' (default: 'country')
+
+    Returns:
+        Audience segment data with engagement and conversion metrics
+    """
+    params = {"customer_id": customer_id, "segment_type": segment_type}
+    if start_date:
+        params["start_date"] = start_date
+    if end_date:
+        params["end_date"] = end_date
+
+    response = make_api_request("/ga4/audience-insights", params=params)
+    if "error" not in response:
+        return {
+            "status": "success",
+            "audience_segments": response,
+            "segment_type": segment_type,
+            "total_segments": len(response) if isinstance(response, list) else 0
+        }
+    return response
+
+
 # Create specialized sub-agents following ADK pattern
 data_agent = Agent(
     name="DataAgent",
     model="gemini-2.0-flash",
-    description="Retrieves and processes real Google Ads campaign data, ad groups, keywords, and search terms from the API.",
-    instruction="""You are responsible for collecting and organizing Google Ads data from the API.
+    description="Retrieves and processes real Google Ads campaign data, ad groups, keywords, search terms, and GA4 analytics data from the API.",
+    instruction="""You are responsible for collecting and organizing Google Ads and GA4 analytics data from the API.
     Use the available tools to retrieve campaign, ad group, keyword, and search term performance metrics.
+    Also use GA4 tools to get session behavior, campaign quality scores, device performance, and audience insights.
     Always ensure data is properly formatted and includes relevant metrics.
-    The API is available at http://localhost:8004 with various endpoints for different data types.""",
-    tools=[get_campaign_performance, get_campaign_details, get_ad_group_performance,
-           get_keyword_performance, get_search_terms_data, get_top_performers]
+    The API is available at http://localhost:8001 with various endpoints for Google Ads and GA4 data.""",
+    tools=[
+        # Google Ads tools
+        get_campaign_performance, get_campaign_details, get_ad_group_performance,
+        get_keyword_performance, get_search_terms_data, get_top_performers,
+        # GA4 tools
+        get_ga4_session_behavior, get_ga4_campaign_quality, get_ga4_behavior_by_campaign,
+        get_ga4_conversion_paths, get_ga4_device_performance, get_ga4_audience_insights
+    ]
 )
 
 insight_agent = Agent(
     name="InsightAgent",
     model="gemini-2.0-flash",
-    description="Analyzes real campaign performance data, detects trends, anomalies, and calculates ROI metrics using API data.",
-    instruction="""You analyze real Google Ads data from the API to provide actionable insights.
+    description="Analyzes real campaign performance data, detects trends, anomalies, calculates ROI metrics, and evaluates campaign quality using Google Ads and GA4 data.",
+    instruction="""You analyze real Google Ads and GA4 analytics data from the API to provide actionable insights.
     Use your tools to identify trends, detect anomalies, calculate ROI, and compare time periods.
+    Use GA4 tools to get campaign quality scores, session behavior, and audience insights.
+    Combine Google Ads metrics with GA4 behavior data to provide comprehensive campaign analysis.
     Focus on providing clear, data-driven insights that help improve campaign performance.
     All analysis should be based on actual data from the API, not mock data.""",
-    tools=[analyze_performance_trends, detect_anomalies, calculate_roi, compare_time_periods]
+    tools=[
+        # Google Ads analysis tools
+        analyze_performance_trends, detect_anomalies, calculate_roi, compare_time_periods,
+        # GA4 tools for quality insights
+        get_ga4_campaign_quality, get_ga4_behavior_by_campaign, get_ga4_device_performance,
+        get_ga4_audience_insights
+    ]
 )
 
 optimization_agent = Agent(
     name="OptimizationAgent",
     model="gemini-2.0-flash",
-    description="Provides data-driven optimization recommendations for bids, budgets, and keywords based on real performance data.",
-    instruction="""You are an optimization specialist for Google Ads campaigns using real data.
+    description="Provides data-driven optimization recommendations for bids, budgets, and keywords based on real Google Ads and GA4 performance data.",
+    instruction="""You are an optimization specialist for Google Ads campaigns using real data from both Google Ads and GA4.
     Analyze actual performance data from the API and provide specific recommendations for:
-    - Bid adjustments based on conversion rates and CPC
-    - Budget reallocation based on ROAS and performance
+    - Bid adjustments based on conversion rates, CPC, and GA4 quality scores
+    - Budget reallocation based on ROAS, performance, and GA4 engagement metrics
     - Keyword optimization including additions, removals, and negative keywords
+    - Use GA4 campaign quality scores to prioritize high-quality traffic sources
+    - Consider GA4 device performance when making device bid adjustments
     Always base recommendations on actual performance metrics from the API.""",
-    tools=[optimize_bids, optimize_budgets, optimize_keywords]
+    tools=[
+        # Google Ads optimization tools
+        optimize_bids, optimize_budgets, optimize_keywords,
+        # GA4 tools for quality-based optimization
+        get_ga4_campaign_quality, get_ga4_behavior_by_campaign, get_ga4_device_performance
+    ]
 )
 
 forecasting_agent = Agent(
     name="ForecastingAgent",
     model="gemini-2.0-flash",
-    description="Forecasts future campaign performance and analyzes scenarios based on historical API data.",
-    instruction="""You provide performance forecasts and scenario analysis using real Google Ads data.
+    description="Forecasts future campaign performance and analyzes scenarios based on historical Google Ads and GA4 data.",
+    instruction="""You provide performance forecasts and scenario analysis using real Google Ads and GA4 data.
     Use historical data from the API to predict future performance.
     Analyze different budget and bid scenarios to help with strategic planning.
+    Use GA4 conversion paths for multi-touch attribution modeling.
+    Use GA4 session behavior trends to improve forecast accuracy.
     Base all forecasts on actual trends and patterns in the data.
     Include confidence levels and assumptions in your forecasts.""",
-    tools=[forecast_performance, analyze_scenarios]
+    tools=[
+        # Google Ads forecasting tools
+        forecast_performance, analyze_scenarios,
+        # GA4 tools for attribution and trend analysis
+        get_ga4_conversion_paths, get_ga4_session_behavior, get_ga4_behavior_by_campaign
+    ]
 )
 
 # Create the root orchestrator agent with sub-agents
 root_agent = Agent(
     name="GoogleAdsOrchestrator",
     model="gemini-2.0-flash",
-    description="Orchestrates multiple specialized agents for comprehensive Google Ads management using real API data.",
-    instruction="""You are the main orchestrator for Google Ads campaign management using real data from the API at http://localhost:8004.
+    description="Orchestrates multiple specialized agents for comprehensive Google Ads and GA4 analytics management using real API data.",
+    instruction="""You are the main orchestrator for Google Ads campaign management using real data from both Google Ads and GA4 Analytics APIs at http://localhost:8001.
 
-    You coordinate between four specialized agents:
-    1. DataAgent - For retrieving real campaign data from the API
-    2. InsightAgent - For analyzing actual performance and trends
+    You coordinate between four specialized agents with GA4 analytics capabilities:
+    1. DataAgent - For retrieving real Google Ads and GA4 data from the API
+       - Google Ads: campaigns, ad groups, keywords, search terms
+       - GA4: session behavior, campaign quality scores, conversion paths, device performance, audience insights
+    2. InsightAgent - For analyzing actual performance, trends, and campaign quality
+       - Combines Google Ads metrics with GA4 behavior data
+       - Evaluates campaign quality scores (bounce rate, engagement, pages/session)
     3. OptimizationAgent - For data-driven optimization recommendations
+       - Uses GA4 quality scores for bid and budget optimization
+       - Considers GA4 device performance for device bid adjustments
     4. ForecastingAgent - For performance predictions based on historical data
+       - Uses GA4 conversion paths for multi-touch attribution
+       - Analyzes GA4 session behavior trends for improved forecasts
 
     Based on user requests:
-    - If they ask for data or metrics, delegate to DataAgent to fetch from API
+    - If they ask for data or metrics, delegate to DataAgent to fetch from API (Google Ads or GA4)
+    - If they want campaign quality analysis, use GA4 tools to get quality scores and behavior metrics
     - If they want analysis or insights, use DataAgent first to get real data, then InsightAgent
-    - If they need optimization advice, gather actual data first, then use OptimizationAgent
-    - If they want forecasts, collect historical data from API, then use ForecastingAgent
+    - If they need optimization advice, gather actual data first (including GA4 quality), then use OptimizationAgent
+    - If they want forecasts, collect historical data from API (including GA4 attribution), then use ForecastingAgent
     - For comprehensive analysis, coordinate all agents to provide complete insights from real data
 
     Always provide clear, structured responses with actionable recommendations based on actual data.

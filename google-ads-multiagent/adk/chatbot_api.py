@@ -176,39 +176,76 @@ def execute_agent_action(intent: Dict, customer_id: Optional[str] = None, campai
         agent = intent.get("agent")
         action = intent.get("action")
 
+        print(f"\n{'='*80}", flush=True)
+        print(f"[ADK AGENT INVOCATION]", flush=True)
+        print(f"{'='*80}", flush=True)
+        print(f"Agent: {agent.upper()}", flush=True)
+        print(f"Action: {action}", flush=True)
+        print(f"Customer ID: {customer_id or 'ALL'}", flush=True)
+        print(f"Campaign Type: {campaign_type or 'ALL'}", flush=True)
+        print(f"Date Range: {date_range or 'ALL_TIME'}", flush=True)
+        print(f"{'='*80}\n", flush=True)
+
         # Data Agent actions
         if agent == "data":
             if action == "campaign_performance":
-                return get_campaign_performance(customer_id, campaign_type)
+                print(f">> Querying database: campaigns_performance table for customer {customer_id}", flush=True)
+                result = get_campaign_performance(customer_id, campaign_type)
+                print(f">> Database returned {len(result.get('campaigns', []))} campaigns", flush=True)
+                return result
             elif action == "keyword_performance":
-                return get_keyword_performance(customer_id)
+                print(f">> Querying database: keywords_performance table for customer {customer_id}", flush=True)
+                result = get_keyword_performance(customer_id)
+                print(f">> Database returned {len(result.get('keywords', []))} keywords", flush=True)
+                return result
             elif action == "adgroup_performance":
-                return get_ad_group_performance(customer_id)
+                print(f">> Querying database: adgroups_performance table for customer {customer_id}", flush=True)
+                result = get_ad_group_performance(customer_id)
+                print(f">> Database returned {len(result.get('adgroups', []))} ad groups", flush=True)
+                return result
 
         # Insight Agent actions
         elif agent == "insight":
             if action == "analyze_trends":
-                return analyze_performance_trends()
+                print(f">> Analyzing performance trends from ml_features table...", flush=True)
+                result = analyze_performance_trends()
+                print(f">> Trends analysis complete: {len(result.get('trends', []))} trends detected", flush=True)
+                return result
             elif action == "detect_anomalies":
-                return detect_anomalies()
+                print(f">> Running anomaly detection on campaign/keyword metrics...", flush=True)
+                result = detect_anomalies()
+                print(f">> Anomaly detection complete: {len(result.get('anomalies', []))} anomalies found", flush=True)
+                return result
 
         # Optimization Agent actions
         elif agent == "optimization":
             if action == "optimize_budgets":
-                return optimize_budgets()
+                print(f">> Running budget optimization algorithm...", flush=True)
+                result = optimize_budgets()
+                print(f">> Budget optimization complete: {len(result.get('recommendations', []))} recommendations", flush=True)
+                return result
             elif action == "optimize_bids":
-                return optimize_bids()
+                print(f">> Running bid optimization algorithm...", flush=True)
+                result = optimize_bids()
+                print(f">> Bid optimization complete: {len(result.get('recommendations', []))} recommendations", flush=True)
+                return result
 
         # Forecasting Agent actions
         elif agent == "forecasting":
             if action == "forecast_performance":
-                return forecast_performance(30)  # Default 30 days
+                print(f">> Running ML forecasting model (30-day horizon)...", flush=True)
+                result = forecast_performance(30)  # Default 30 days
+                print(f">> Forecast complete: Predicted {result.get('predicted_metrics', {}).get('clicks', 0):,} clicks", flush=True)
+                return result
 
         # Orchestrator - use root agent for complex queries
         elif agent == "orchestrator":
-            # For now, return a combined summary
+            print(f">> Orchestrator coordinating multiple agents...", flush=True)
+            print(f"  -> Invoking Data Agent for campaigns...", flush=True)
             campaign_data = get_campaign_performance(customer_id)
+            print(f"  -> Invoking Insight Agent for trends...", flush=True)
             trends = analyze_performance_trends()
+            print(f">> Orchestrator analysis complete", flush=True)
             return {
                 "status": "success",
                 "campaigns": campaign_data,
@@ -435,17 +472,46 @@ async def chat(request: ChatRequest):
         campaign_type = request.campaign_type
         date_range = request.date_range
 
+        print(f"\n{'#'*80}", flush=True)
+        print(f"[NEW CHAT REQUEST RECEIVED]", flush=True)
+        print(f"{'#'*80}", flush=True)
+        print(f"User Message: '{user_message}'", flush=True)
+        print(f"Customer ID: {customer_id or 'Not specified'}", flush=True)
+        print(f"Campaign Type: {campaign_type or 'All types'}", flush=True)
+        print(f"Date Range: {date_range or 'All time'}", flush=True)
+        print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
+        print(f"{'#'*80}\n", flush=True)
+
         # Step 1: Classify intent
+        print(f"[STEP 1] Classifying user intent...", flush=True)
         intent = classify_user_intent(user_message)
+        print(f">> Intent classified: Agent='{intent.get('agent')}', Action='{intent.get('action')}'", flush=True)
+        print(f"   Keywords detected: {intent.get('keywords', [])}\n", flush=True)
 
         # Step 2: Execute agent action with filters
+        print(f"[STEP 2] Executing ADK agent action...", flush=True)
         agent_data = execute_agent_action(intent, customer_id, campaign_type, date_range)
+        print(f">> Agent execution complete\n", flush=True)
 
         # Step 3: Format response
+        print(f"[STEP 3] Formatting response for user...", flush=True)
         formatted_response = format_response(user_message, intent, agent_data)
+        print(f">> Response formatted ({len(formatted_response)} characters)\n", flush=True)
 
         # Step 4: Enhance with Gemini for friendly, conversational tone
+        print(f"[STEP 4] Enhancing response with Gemini AI...", flush=True)
         final_response = enhance_with_gemini(user_message, formatted_response)
+        if GEMINI_ENABLED:
+            print(f">> Gemini enhancement complete ({len(final_response)} characters)\n", flush=True)
+        else:
+            print(f"WARNING: Gemini not available, using standard formatting\n", flush=True)
+
+        print(f"{'='*80}", flush=True)
+        print(f"[RESPONSE READY] Sending back to frontend", flush=True)
+        print(f"   Agent used: {intent.get('agent')}", flush=True)
+        print(f"   Data available: {'Yes' if 'error' not in agent_data else 'No'}", flush=True)
+        print(f"   Response length: {len(final_response)} chars", flush=True)
+        print(f"{'='*80}\n", flush=True)
 
         return ChatResponse(
             response=final_response,

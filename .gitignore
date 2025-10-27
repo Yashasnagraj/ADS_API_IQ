@@ -107,6 +107,7 @@ pip_cache/
 # ========================================
 .key
 secrets/
+credentials/
 *.encrypted
 config.encrypted
 *.pem

@@ -6,11 +6,16 @@ import { ChatProvider } from './context/ChatContext';
 // Premium Landing Page
 import { PremiumLandingPage } from './components/landing/PremiumLandingPage';
 
+// AI Terminal Command Center ⭐ NEW
+import AITerminal from './pages/AITerminal';
+
 // E-Commerce Dashboard (replaces UnifiedDashboard)
 import EcommerceDashboard from './components/ecommerce/EcommerceDashboard';
 
-// import CampaignsDashboard from './agents/data_agent/CampaignsDashboard';
-import CampaignsDashboard from './components/campaigns/EnhancedCampaignsDashboard';
+// Google Ads Campaigns (OLD - without GA4)
+import CampaignsDashboard from './agents/data_agent/CampaignsDashboard';
+// Enriched Campaigns Dashboard (NEW - with GA4 integration) ⭐
+import EnrichedCampaignsDashboard from './agents/data_agent/EnrichedCampaignsDashboard';
 import AdGroupsDashboard from './agents/data_agent/AdGroupsDashboard';
 import KeywordsDashboard from './agents/data_agent/KeywordsDashboard';
 import SearchTermsDashboard from './agents/data_agent/SearchTermsDashboard';
@@ -40,13 +45,20 @@ function App() {
         <Route path="/" element={<PremiumLandingPage />} />
         <Route path="/landing" element={<PremiumLandingPage />} />
 
+        {/* ⭐ AI Terminal Command Center - Full Screen (No Layout) */}
+        <Route path="/ai" element={<AITerminal />} />
+        <Route path="/ai-terminal" element={<AITerminal />} />
+
         {/* All Other Dashboards - With Layout */}
         <Route path="/*" element={
           <Layout>
           <Routes>
             <Route path="/dashboard" element={<EcommerceDashboard />} />
 
-            <Route path="/data/campaigns" element={<CampaignsDashboard />} />
+            {/* ⭐ NEW: Enriched Campaigns with GA4 Integration */}
+            <Route path="/data/campaigns" element={<EnrichedCampaignsDashboard />} />
+            <Route path="/data/campaigns/legacy" element={<CampaignsDashboard />} />
+
             <Route path="/data/adgroups" element={<AdGroupsDashboard />} />
             <Route path="/data/keywords" element={<KeywordsDashboard />} />
             <Route path="/data/search-terms" element={<SearchTermsDashboard />} />

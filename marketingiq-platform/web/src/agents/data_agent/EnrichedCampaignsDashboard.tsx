@@ -1,9 +1,9 @@
 /**
- * ⭐ ENRICHED AD GROUPS DASHBOARD ⭐
- * Combines Google Ads ad group performance with GA4 user behavior data
- * Shows complete insights: clicks, conversions + bounce rate, engagement, quality scores
+ * ⭐ ENRICHED CAMPAIGNS DASHBOARD ⭐
+ * Combines Google Ads performance metrics with GA4 user behavior data
+ * Shows the complete picture: clicks, conversions + bounce rate, engagement, quality scores
  */
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Grid,
@@ -17,15 +17,18 @@ import {
   TableHead,
   TableRow,
   Chip,
-  CircularProgress,
   Alert,
+  CircularProgress,
   IconButton,
   Tooltip,
   useTheme,
   alpha,
+  Paper,
+  Divider,
 } from '@mui/material';
 import {
-  AccountTree,
+  Campaign,
+  TrendingUp,
   AttachMoney,
   TouchApp,
   Visibility,
@@ -40,21 +43,21 @@ import {
   Timeline,
 } from '@mui/icons-material';
 import { useFilters } from '../../context/FilterContext';
-import { useGA4AdGroupEnrichment } from '../../hooks/useFilteredAPI';
+import { useGA4CampaignEnrichment } from '../../hooks/useFilteredAPI';
 import GA4KPICard from '../../components/ga4/GA4KPICard';
-import InsightCard from '../../components/common/InsightCard';
-import { generateAdGroupInsights } from '../../utils/insights-generator';
 import {
   formatCurrency,
   formatNumber,
+  formatCurrencyFull,
+  formatNumberFull,
 } from '../../components/charts/PowerBITheme';
 
-const AdGroupsDashboard: React.FC = () => {
+const EnrichedCampaignsDashboard: React.FC = () => {
   const theme = useTheme();
   const { filters } = useFilters();
 
-  // Fetch enriched ad group data (Google Ads + GA4 combined)
-  const { data, loading, error, refetch } = useGA4AdGroupEnrichment();
+  // Fetch enriched campaign data (Google Ads + GA4 combined)
+  const { data, loading, error, refetch } = useGA4CampaignEnrichment();
 
   if (!filters.customerId) {
     return (
@@ -69,7 +72,7 @@ const AdGroupsDashboard: React.FC = () => {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
         <CircularProgress size={60} />
-        <Typography sx={{ mt: 2 }}>Loading enriched ad group data...</Typography>
+        <Typography sx={{ mt: 2 }}>Loading enriched campaign data...</Typography>
         <Typography variant="caption" color="text.secondary">
           Combining Google Ads performance with GA4 user behavior
         </Typography>
@@ -81,28 +84,28 @@ const AdGroupsDashboard: React.FC = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
-          Error loading enriched ad groups: {error.message}
+          Error loading enriched campaigns: {error.message}
         </Alert>
       </Box>
     );
   }
 
-  const adGroups = data?.ad_groups || [];
+  const campaigns = data?.campaigns || [];
 
-  if (adGroups.length === 0) {
+  if (campaigns.length === 0) {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="info">
           <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-            No Ad Group Data Available
+            No Campaign Data Available
           </Typography>
           <Typography variant="body2">
-            No ad groups with GA4 data found for the selected customer. This could mean:
+            No campaigns with GA4 data found for the selected customer. This could mean:
           </Typography>
           <ul style={{ marginTop: 8, marginBottom: 0 }}>
-            <li>No ad groups have been created yet</li>
+            <li>No campaigns have been created yet</li>
             <li>GA4 integration is not set up for this customer</li>
-            <li>No GA4 data matches your ad group names (check UTM parameters)</li>
+            <li>No GA4 data matches your campaign names (check UTM parameters)</li>
             <li>Try selecting a different customer from the filter bar above</li>
           </ul>
         </Alert>
@@ -111,12 +114,12 @@ const AdGroupsDashboard: React.FC = () => {
   }
 
   // Calculate aggregate metrics
-  const totalAdGroups = adGroups.length;
-  const avgQualityScore = adGroups.reduce((sum: number, ag: any) => sum + (ag.quality_score || 0), 0) / totalAdGroups;
-  const avgBounceRate = adGroups.reduce((sum: number, ag: any) => sum + (ag.ga4_bounce_rate || 0), 0) / totalAdGroups;
-  const avgEngagement = adGroups.reduce((sum: number, ag: any) => sum + (ag.ga4_engagement_rate || 0), 0) / totalAdGroups;
-  const avgSessionDuration = adGroups.reduce((sum: number, ag: any) => sum + (ag.ga4_avg_session_duration || 0), 0) / totalAdGroups;
-  const totalGA4Sessions = adGroups.reduce((sum: number, ag: any) => sum + (ag.ga4_sessions || 0), 0);
+  const totalCampaigns = campaigns.length;
+  const avgQualityScore = campaigns.reduce((sum: number, c: any) => sum + (c.quality_score || 0), 0) / totalCampaigns;
+  const avgBounceRate = campaigns.reduce((sum: number, c: any) => sum + (c.ga4_bounce_rate || 0), 0) / totalCampaigns;
+  const avgEngagement = campaigns.reduce((sum: number, c: any) => sum + (c.ga4_engagement_rate || 0), 0) / totalCampaigns;
+  const avgSessionDuration = campaigns.reduce((sum: number, c: any) => sum + (c.ga4_avg_session_duration || 0), 0) / totalCampaigns;
+  const totalGA4Sessions = campaigns.reduce((sum: number, c: any) => sum + (c.ga4_sessions || 0), 0);
 
   // Quality score color
   const getQualityColor = (score: number) => {
@@ -149,7 +152,7 @@ const AdGroupsDashboard: React.FC = () => {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            Enriched Ad Groups Dashboard
+            Enriched Campaigns Dashboard
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             Google Ads Performance + GA4 User Behavior Analytics
@@ -178,18 +181,6 @@ const AdGroupsDashboard: React.FC = () => {
           Scores above 70 indicate high-quality traffic worth investing in.
         </Typography>
       </Alert>
-
-      {/* AI-Powered Intelligence Section */}
-      {adGroups.length > 0 && (
-        <Box sx={{ mb: 3 }}>
-          <InsightCard
-            insights={generateAdGroupInsights(data)}
-            title="Ad Group Intelligence"
-            expandable={true}
-            animated={true}
-          />
-        </Box>
-      )}
 
       {/* GA4 KPI Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -237,15 +228,15 @@ const AdGroupsDashboard: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* Enriched Ad Groups Table */}
+      {/* Enriched Campaigns Table */}
       <Card>
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Ad Group Performance + User Behavior
+              Campaign Performance + User Behavior
             </Typography>
             <Chip
-              label={`${totalAdGroups} ad groups`}
+              label={`${totalCampaigns} campaigns`}
               size="small"
               color="primary"
               variant="outlined"
@@ -256,7 +247,7 @@ const AdGroupsDashboard: React.FC = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Ad Group Name</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Campaign Name</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 700 }}>
                     <Tooltip title="Google Ads Clicks">
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
@@ -317,13 +308,13 @@ const AdGroupsDashboard: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {adGroups.map((adGroup: any, index: number) => {
-                  const qualityScore = adGroup.quality_score || 0;
+                {campaigns.map((campaign: any, index: number) => {
+                  const qualityScore = campaign.quality_score || 0;
                   const qualityColor = getQualityColor(qualityScore);
 
                   return (
                     <TableRow
-                      key={adGroup.ad_group_id || index}
+                      key={campaign.campaign_name || index}
                       hover
                       sx={{
                         '&:hover': {
@@ -332,50 +323,45 @@ const AdGroupsDashboard: React.FC = () => {
                       }}
                     >
                       <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <AccountTree sx={{ fontSize: 16, color: theme.palette.text.secondary }} />
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {adGroup.ad_group_name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {adGroup.campaign_name || 'N/A'}
-                            </Typography>
-                          </Box>
-                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {campaign.campaign_name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          UTM: {campaign.utm_campaign || 'N/A'}
+                        </Typography>
                       </TableCell>
 
                       {/* Google Ads Metrics */}
                       <TableCell align="center">
-                        <Typography variant="body2">{formatNumber(adGroup.ad_clicks || 0)}</Typography>
+                        <Typography variant="body2">{formatNumber(campaign.clicks || 0)}</Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <Typography variant="body2">{formatCurrency(adGroup.ad_cost || 0)}</Typography>
+                        <Typography variant="body2">{formatCurrency(campaign.cost || 0)}</Typography>
                       </TableCell>
 
                       {/* GA4 Metrics */}
                       <TableCell align="center" sx={{ backgroundColor: alpha(theme.palette.info.main, 0.02) }}>
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {formatNumber(adGroup.ga4_sessions || 0)}
+                          {formatNumber(campaign.ga4_sessions || 0)}
                         </Typography>
                       </TableCell>
                       <TableCell align="center" sx={{ backgroundColor: alpha(theme.palette.info.main, 0.02) }}>
                         <Chip
-                          label={`${(adGroup.ga4_bounce_rate || 0).toFixed(1)}%`}
+                          label={`${(campaign.ga4_bounce_rate || 0).toFixed(1)}%`}
                           size="small"
-                          color={(adGroup.ga4_bounce_rate || 0) < 40 ? 'success' : (adGroup.ga4_bounce_rate || 0) < 60 ? 'warning' : 'error'}
+                          color={(campaign.ga4_bounce_rate || 0) < 40 ? 'success' : (campaign.ga4_bounce_rate || 0) < 60 ? 'warning' : 'error'}
                         />
                       </TableCell>
                       <TableCell align="center" sx={{ backgroundColor: alpha(theme.palette.info.main, 0.02) }}>
                         <Chip
-                          label={`${(adGroup.ga4_engagement_rate || 0).toFixed(1)}%`}
+                          label={`${(campaign.ga4_engagement_rate || 0).toFixed(1)}%`}
                           size="small"
-                          color={(adGroup.ga4_engagement_rate || 0) >= 60 ? 'success' : (adGroup.ga4_engagement_rate || 0) >= 40 ? 'warning' : 'error'}
+                          color={(campaign.ga4_engagement_rate || 0) >= 60 ? 'success' : (campaign.ga4_engagement_rate || 0) >= 40 ? 'warning' : 'error'}
                         />
                       </TableCell>
                       <TableCell align="center" sx={{ backgroundColor: alpha(theme.palette.info.main, 0.02) }}>
                         <Typography variant="body2">
-                          {Math.floor((adGroup.ga4_avg_session_duration || 0) / 60)}m {Math.floor((adGroup.ga4_avg_session_duration || 0) % 60)}s
+                          {Math.floor((campaign.ga4_avg_session_duration || 0) / 60)}m {Math.floor((campaign.ga4_avg_session_duration || 0) % 60)}s
                         </Typography>
                       </TableCell>
 
@@ -400,7 +386,7 @@ const AdGroupsDashboard: React.FC = () => {
                             fontWeight: 500,
                           }}
                         >
-                          {adGroup.recommendation || 'No recommendation available'}
+                          {campaign.recommendation || 'No recommendation available'}
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -420,14 +406,14 @@ const AdGroupsDashboard: React.FC = () => {
         <Typography variant="body2">
           <strong>Overall Assessment:</strong>{' '}
           {avgQualityScore >= 70
-            ? `Excellent! Your ad groups have an average quality score of ${avgQualityScore.toFixed(1)}/100. Traffic is highly engaged with low bounce rates. Consider increasing bids for top performers.`
+            ? `Excellent! Your campaigns have an average quality score of ${avgQualityScore.toFixed(1)}/100. Traffic is highly engaged with low bounce rates. Consider increasing budgets for top performers.`
             : avgQualityScore >= 50
-            ? `Good performance with average quality score of ${avgQualityScore.toFixed(1)}/100. Some ad groups show room for improvement in user engagement. Focus on landing page optimization.`
-            : `Average quality score is ${avgQualityScore.toFixed(1)}/100, indicating opportunities for improvement. High bounce rates suggest landing page or targeting issues. Review low-quality ad groups and pause if needed.`}
+            ? `Good performance with average quality score of ${avgQualityScore.toFixed(1)}/100. Some campaigns show room for improvement in user engagement. Focus on landing page optimization.`
+            : `Average quality score is ${avgQualityScore.toFixed(1)}/100, indicating opportunities for improvement. High bounce rates suggest landing page or targeting issues. Review low-quality campaigns and pause if needed.`}
         </Typography>
       </Alert>
     </Box>
   );
 };
 
-export default AdGroupsDashboard;
+export default EnrichedCampaignsDashboard;

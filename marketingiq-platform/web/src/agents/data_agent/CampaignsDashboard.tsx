@@ -59,8 +59,7 @@ import {
   formatCurrency,
   formatNumber,
   formatCurrencyFull,
-  formatNumberFull,
-  generateMockChartData
+  formatNumberFull
 } from '../../components/charts/PowerBITheme';
 
 const fadeIn = keyframes`
@@ -117,37 +116,6 @@ const CampaignsDashboard: React.FC = () => {
   const [drawerData, setDrawerData] = useState<KPIDetailItem[]>([]);
   const [drawerTitle, setDrawerTitle] = useState('');
   const [drawerSubtitle, setDrawerSubtitle] = useState('');
-
-  const mockCampaigns = [
-    { id: 1, name: 'Brand Awareness 2024', status: 'ACTIVE', impressions: 125000, clicks: 3750, spend: 2500, ctr: 3.0, cpc: 0.67 },
-    { id: 2, name: 'Summer Sale Campaign', status: 'ACTIVE', impressions: 98000, clicks: 4900, spend: 3430, ctr: 5.0, cpc: 0.70 },
-    { id: 3, name: 'Product Launch Q1', status: 'PAUSED', impressions: 76000, clicks: 2280, spend: 1824, ctr: 3.0, cpc: 0.80 },
-    { id: 4, name: 'Holiday Promotions', status: 'ACTIVE', impressions: 145000, clicks: 7250, spend: 5075, ctr: 5.0, cpc: 0.70 },
-    { id: 5, name: 'Retargeting Campaign', status: 'ACTIVE', impressions: 56000, clicks: 3360, spend: 2016, ctr: 6.0, cpc: 0.60 },
-  ];
-
-  const mockMetrics = {
-    totalCampaigns: 24,
-    activeCampaigns: 18,
-    avgCPC: 0.68,
-    avgCTR: 4.2,
-    totalSpend: 45680,
-    totalImpressions: 2450000,
-    totalClicks: 98000,
-  };
-
-  // Use mock data as fallback to ensure charts always show
-  const fallbackChartData = generateMockChartData(7);
-
-  const chartData = campaigns.length > 0 ? [
-    { date: 'Mon', impressions: 35000, clicks: 1400, spend: 980 },
-    { date: 'Tue', impressions: 42000, clicks: 1680, spend: 1176 },
-    { date: 'Wed', impressions: 38000, clicks: 1520, spend: 1064 },
-    { date: 'Thu', impressions: 45000, clicks: 1800, spend: 1260 },
-    { date: 'Fri', impressions: 52000, clicks: 2080, spend: 1456 },
-    { date: 'Sat', impressions: 48000, clicks: 1920, spend: 1344 },
-    { date: 'Sun', impressions: 41000, clicks: 1640, spend: 1148 },
-  ] : fallbackChartData;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -462,6 +430,21 @@ const CampaignsDashboard: React.FC = () => {
         </Zoom>
       </Box>
 
+      {campaigns.length === 0 && !loading ? (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+            No Campaign Data Available
+          </Typography>
+          <Typography variant="body2">
+            No campaigns were found for the selected customer. This could mean:
+          </Typography>
+          <ul style={{ marginTop: 8, marginBottom: 0 }}>
+            <li>No campaigns have been created yet</li>
+            <li>The selected customer ID has no associated campaigns</li>
+            <li>Try selecting a different customer from the filter bar above</li>
+          </ul>
+        </Alert>
+      ) : (
       <Box
         className="campaigns-charts"
         sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3, mb: 3 }}
@@ -481,8 +464,11 @@ const CampaignsDashboard: React.FC = () => {
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                   Impressions & Clicks Trend (Last 7 Days)
                 </Typography>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Chart data from backend API not yet implemented. Coming soon with real-time daily metrics.
+                </Alert>
                 <ResponsiveContainer width="100%" height={350}>
-                  <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 60, bottom: 50 }}>
+                  <AreaChart data={[]} margin={{ top: 20, right: 30, left: 60, bottom: 50 }}>
                     <defs>
                       <linearGradient id="colorImpressions" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#00bcd4" stopOpacity={0.8}/>
@@ -554,8 +540,11 @@ const CampaignsDashboard: React.FC = () => {
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                   Daily Spend Trend (Last 7 Days)
                 </Typography>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Chart data from backend API not yet implemented. Coming soon with real-time daily metrics.
+                </Alert>
                 <ResponsiveContainer width="100%" height={350}>
-                  <LineChart data={chartData} margin={{ top: 20, right: 30, left: 60, bottom: 50 }}>
+                  <LineChart data={[]} margin={{ top: 20, right: 30, left: 60, bottom: 50 }}>
                     <CartesianGrid {...getCartesianGridConfig()} />
 
                     <XAxis
@@ -593,6 +582,7 @@ const CampaignsDashboard: React.FC = () => {
           </Box>
         </Fade>
       </Box>
+      )}
 
       <Fade in timeout={1000}>
         <Card
@@ -625,6 +615,11 @@ const CampaignsDashboard: React.FC = () => {
               </Box>
             </Box>
           <TableContainer>
+            {campaigns.length === 0 && !loading ? (
+              <Alert severity="info" sx={{ m: 2 }}>
+                No campaigns found for the selected customer. Please select a different customer or check your filters.
+              </Alert>
+            ) : (
             <Table>
               <TableHead>
                 <TableRow>
@@ -639,7 +634,7 @@ const CampaignsDashboard: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {(campaigns.length > 0 ? campaigns : mockCampaigns).map((campaign: any, index: number) => (
+                {campaigns.map((campaign: any, index: number) => (
                   <TableRow
                     key={campaign.campaign_id || index}
                     hover
@@ -713,6 +708,7 @@ const CampaignsDashboard: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
+            )}
           </TableContainer>
         </CardContent>
       </Card>

@@ -1,8 +1,9 @@
 /**
- * Keywords Dashboard with Real Filtered Data
- * Uses customer_id filter to show only selected customer's keywords
+ * ⭐ ENRICHED KEYWORDS DASHBOARD ⭐
+ * Combines Google Ads keyword performance with GA4 user behavior data
+ * Shows complete insights: clicks, conversions + bounce rate, engagement, quality scores
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Grid,
@@ -15,754 +16,448 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Chip,
   CircularProgress,
   Alert,
   IconButton,
   Tooltip,
+  Fab,
   useTheme,
   alpha,
 } from '@mui/material';
 import {
   Tag,
-  Search,
-  TrendingUp,
-  MonetizationOn,
+  AttachMoney,
   Speed,
   Visibility,
-  Block,
-  AutoAwesome,
   TouchApp,
-  EmojiEvents,
+  Schedule,
+  ExitToApp,
+  CheckCircle,
+  Warning,
+  Error as ErrorIcon,
+  Info,
+  Refresh,
+  Timeline,
+  Psychology,
 } from '@mui/icons-material';
-import {
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Legend,
-  AreaChart,
-  Area,
-} from 'recharts';
-import DashboardTemplate from '../../components/common/DashboardTemplate';
-import CompactKPICard from '../../components/common/CompactKPICard';
-import InteractiveKPICard from '../../components/kpi/InteractiveKPICard';
-import KPIDetailDrawer, { KPIDetailItem } from '../../components/kpi/KPIDetailDrawer';
-import { EnhancedChart } from '../../components/charts/EnhancedChart';
-import AIIntelligenceSection, { AIInsight } from '../../components/common/AIIntelligenceSection';
 import { useFilters } from '../../context/FilterContext';
-import { useKeywords, useMetricsSummary, useFilteredAPI } from '../../hooks/useFilteredAPI';
+import { useGA4KeywordEnrichment } from '../../hooks/useFilteredAPI';
+import GA4KPICard from '../../components/ga4/GA4KPICard';
+import DecisionIntelligence from '../../components/intelligence/DecisionIntelligence';
 import {
-  getXAxisConfig,
-  getYAxisConfig,
-  getTooltipConfig,
-  getLegendConfig,
-  getCartesianGridConfig,
   formatCurrency,
   formatNumber,
-  formatCurrencyFull,
-  formatNumberFull,
-  formatPercentage,
-  generateMockChartData
 } from '../../components/charts/PowerBITheme';
 
 const KeywordsDashboard: React.FC = () => {
   const theme = useTheme();
   const { filters } = useFilters();
-  const [selectedTimeRange, setSelectedTimeRange] = useState('7d');
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerData, setDrawerData] = useState<KPIDetailItem[]>([]);
-  const [drawerTitle, setDrawerTitle] = useState('');
-  const [drawerSubtitle, setDrawerSubtitle] = useState('');
+  const [decisionIntelligenceOpen, setDecisionIntelligenceOpen] = useState(false);
 
-  // Fetch data using filtered hooks
-  const { data: keywordsData, loading: keywordsLoading, error: keywordsError, refetch } = useKeywords({ limit: 50 });
-  const { data: metricsData, loading: metricsLoading } = useMetricsSummary();
+  // Fetch enriched keyword data (Google Ads + GA4 combined)
+  const { data, loading, error, refetch } = useGA4KeywordEnrichment();
 
-  // Calculate metrics from real data
-  const totalKeywords = keywordsData?.total || 0;
-  const keywords = keywordsData?.keywords || [];
-  const avgQualityScore = keywords.length > 0
-    ? keywords.reduce((sum: number, k: any) => sum + (k.quality_score || 0), 0) / keywords.length
-    : 0;
-  const avgCTR = (metricsData?.avg_ctr || 0) * 100;
-  const avgCPC = metricsData?.avg_cpc || 0;
-  const totalConversions = metricsData?.total_conversions || 0;
-  const totalImpressions = metricsData?.total_impressions || 0;
-
-  // Loading state
   if (!filters.customerId) {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
         <CircularProgress />
-        <Typography sx={{ mt: 2 }}>Loading customer data...</Typography>
+        <Typography sx={{ mt: 2 }}>Please select a customer from the filter bar above</Typography>
       </Box>
     );
   }
 
-  if (keywordsLoading || metricsLoading) {
+  if (loading) {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
-        <CircularProgress />
-        <Typography sx={{ mt: 2 }}>Loading keywords data...</Typography>
+        <CircularProgress size={60} />
+        <Typography sx={{ mt: 2 }}>Loading enriched keyword data...</Typography>
+        <Typography variant="caption" color="text.secondary">
+          Combining Google Ads performance with GA4 user behavior
+        </Typography>
       </Box>
     );
   }
 
-  if (keywordsError) {
+  if (error) {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
-          Error loading keywords: {keywordsError.message}
+          Error loading enriched keywords: {error.message}
         </Alert>
       </Box>
     );
   }
 
-  // KPI Data with real metrics
-  const kpiData = [
-    {
-      title: 'Total Keywords',
-      value: totalKeywords,
-      format: 'number' as const,
-      icon: <Tag sx={{ fontSize: 18 }} />,
-      trend: 'up' as const,
-      trendValue: 0,
-      color: 'primary' as const,
-    },
-    {
-      title: 'Avg Quality Score',
-      value: avgQualityScore,
-      format: 'number' as const,
-      icon: <EmojiEvents sx={{ fontSize: 18 }} />,
-      trend: 'up' as const,
-      trendValue: 0,
-      color: 'success' as const,
-    },
-    {
-      title: 'Avg CTR',
-      value: avgCTR,
-      format: 'percentage' as const,
-      icon: <TouchApp sx={{ fontSize: 18 }} />,
-      trend: 'up' as const,
-      trendValue: 0,
-      color: 'info' as const,
-    },
-    {
-      title: 'Avg CPC',
-      value: avgCPC,
-      format: 'currency' as const,
-      icon: <MonetizationOn sx={{ fontSize: 18 }} />,
-      trend: 'down' as const,
-      trendValue: 0,
-      color: 'warning' as const,
-    },
-    {
-      title: 'Total Conversions',
-      value: totalConversions,
-      format: 'number' as const,
-      icon: <TrendingUp sx={{ fontSize: 18 }} />,
-      trend: 'up' as const,
-      trendValue: 0,
-      color: 'secondary' as const,
-    },
-    {
-      title: 'Total Impressions',
-      value: totalImpressions,
-      format: 'number' as const,
-      icon: <Search sx={{ fontSize: 18 }} />,
-      trend: 'up' as const,
-      trendValue: 0,
-      color: 'primary' as const,
-    },
-  ];
+  const keywords = data?.keywords || [];
 
-  // AI Insights
-  const aiInsights: AIInsight[] = [
-    {
-      type: 'opportunity',
-      title: 'High-Intent Keywords',
-      description: 'Keywords with high conversion rates show potential for growth',
-      impact: '+45% conversions',
-      confidence: 91,
-      action: 'Optimize bids',
-      icon: <Tag sx={{ fontSize: 16 }} />,
-    },
-    {
-      type: 'warning',
-      title: 'Quality Score Alert',
-      description: 'Some keywords have low quality scores, increasing costs',
-      impact: 'Reduce CPC',
-      confidence: 88,
-      action: 'Improve ad relevance',
-      icon: <Speed sx={{ fontSize: 16 }} />,
-    },
-    {
-      type: 'prediction',
-      title: 'Performance Trend',
-      description: 'Keywords showing consistent performance improvement',
-      impact: 'Stable growth',
-      confidence: 76,
-      action: 'Monitor progress',
-      icon: <AutoAwesome sx={{ fontSize: 16 }} />,
-    },
-  ];
+  if (keywords.length === 0) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="info">
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+            No Keyword Data Available
+          </Typography>
+          <Typography variant="body2">
+            No keywords with GA4 data found for the selected customer. This could mean:
+          </Typography>
+          <ul style={{ marginTop: 8, marginBottom: 0 }}>
+            <li>No keywords have been created yet</li>
+            <li>GA4 integration is not set up for this customer</li>
+            <li>No GA4 data matches your keywords (check UTM parameters)</li>
+            <li>Try selecting a different customer from the filter bar above</li>
+          </ul>
+        </Alert>
+      </Box>
+    );
+  }
 
-  // Calculate quality score distribution from real data - with fallback for empty state
-  const qualityDistribution = keywords.length > 0 ? [
-    { score: '9-10', count: keywords.filter((k: any) => k.quality_score >= 9).length, color: theme.palette.success.main },
-    { score: '7-8', count: keywords.filter((k: any) => k.quality_score >= 7 && k.quality_score < 9).length, color: theme.palette.info.main },
-    { score: '5-6', count: keywords.filter((k: any) => k.quality_score >= 5 && k.quality_score < 7).length, color: theme.palette.warning.main },
-    { score: '1-4', count: keywords.filter((k: any) => k.quality_score < 5 && k.quality_score > 0).length, color: theme.palette.error.main },
-  ].filter(item => item.count > 0) : [
-    { score: '9-10', count: 8, color: theme.palette.success.main },
-    { score: '7-8', count: 15, color: theme.palette.info.main },
-    { score: '5-6', count: 12, color: theme.palette.warning.main },
-    { score: '1-4', count: 5, color: theme.palette.error.main },
-  ];
+  // Calculate aggregate metrics
+  const totalKeywords = keywords.length;
+  const avgQualityScore = keywords.reduce((sum: number, k: any) => sum + (k.quality_score || 0), 0) / totalKeywords;
+  const avgBounceRate = keywords.reduce((sum: number, k: any) => sum + (k.ga4_bounce_rate || 0), 0) / totalKeywords;
+  const avgEngagement = keywords.reduce((sum: number, k: any) => sum + (k.ga4_engagement_rate || 0), 0) / totalKeywords;
+  const avgSessionDuration = keywords.reduce((sum: number, k: any) => sum + (k.ga4_avg_session_duration || 0), 0) / totalKeywords;
+  const totalGA4Sessions = keywords.reduce((sum: number, k: any) => sum + (k.ga4_sessions || 0), 0);
 
-  // Top keywords by CTR for chart - with fallback
-  const topKeywordsByCTR = keywords.length > 0 ? [...keywords]
-    .sort((a: any, b: any) => (b.metrics?.ctr || 0) - (a.metrics?.ctr || 0))
-    .slice(0, 5)
-    .map((k: any) => ({
-      keyword: (k.keyword_text || 'Unknown').substring(0, 20),
-      ctr: parseFloat(((k.metrics?.ctr || 0) * 100).toFixed(2)),
-    })) : [
-    { keyword: 'brand keywords', ctr: 12.5 },
-    { keyword: 'product name', ctr: 8.3 },
-    { keyword: 'competitor term', ctr: 6.7 },
-    { keyword: 'generic keyword', ctr: 4.2 },
-    { keyword: 'long tail query', ctr: 3.1 },
-  ];
-
-  // Competition analysis from real data - with fallback
-  const competitionData = keywords.length > 0 ? [
-    {
-      level: 'Low',
-      keywords: keywords.filter((k: any) => k.competition === 'LOW').length,
-      avgCPC: keywords.filter((k: any) => k.competition === 'LOW').reduce((sum: number, k: any) => sum + (k.metrics?.avg_cpc || 0), 0) /
-        Math.max(keywords.filter((k: any) => k.competition === 'LOW').length, 1)
-    },
-    {
-      level: 'Medium',
-      keywords: keywords.filter((k: any) => k.competition === 'MEDIUM').length,
-      avgCPC: keywords.filter((k: any) => k.competition === 'MEDIUM').reduce((sum: number, k: any) => sum + (k.metrics?.avg_cpc || 0), 0) /
-        Math.max(keywords.filter((k: any) => k.competition === 'MEDIUM').length, 1)
-    },
-    {
-      level: 'High',
-      keywords: keywords.filter((k: any) => k.competition === 'HIGH').length,
-      avgCPC: keywords.filter((k: any) => k.competition === 'HIGH').reduce((sum: number, k: any) => sum + (k.metrics?.avg_cpc || 0), 0) /
-        Math.max(keywords.filter((k: any) => k.competition === 'HIGH').length, 1)
-    },
-  ] : [
-    { level: 'Low', keywords: 18, avgCPC: 0.75 },
-    { level: 'Medium', keywords: 25, avgCPC: 1.50 },
-    { level: 'High', keywords: 12, avgCPC: 3.25 },
-  ];
-
+  // Quality score color
   const getQualityColor = (score: number) => {
-    if (score >= 9) return theme.palette.success.main;
-    if (score >= 7) return theme.palette.info.main;
-    if (score >= 5) return theme.palette.warning.main;
-    return theme.palette.error.main;
+    if (score >= 80) return 'success';
+    if (score >= 60) return 'info';
+    if (score >= 40) return 'warning';
+    return 'error';
   };
 
-  const getCompetitionColor = (competition: string) => {
-    switch (competition) {
-      case 'LOW': return 'success';
-      case 'MEDIUM': return 'warning';
-      case 'HIGH': return 'error';
-      default: return 'default';
-    }
-  };
-
-  // KPI Click Handlers - using real data from keywords array
-  const handleTotalKeywordsClick = () => {
-    const items: KPIDetailItem[] = keywords
-      .sort((a: any, b: any) => (b.metrics?.impressions || 0) - (a.metrics?.impressions || 0))
-      .map((k: any) => ({
-        id: k.keyword_id,
-        name: k.keyword_text || 'Unknown',
-        value: k.metrics?.impressions || 0,
-        status: k.status === 'ENABLED' ? 'active' : 'inactive',
-        subtitle: `${k.metrics?.clicks || 0} clicks, CTR: ${((k.metrics?.ctr || 0) * 100).toFixed(2)}%`,
-        trend: (k.metrics?.ctr || 0) > avgCTR / 100 ? 'up' : 'down',
-      }));
-
-    setDrawerTitle('All Keywords');
-    setDrawerSubtitle(`Total: ${totalKeywords} keywords`);
-    setDrawerData(items);
-    setDrawerOpen(true);
-  };
-
-  const handleQualityScoreClick = () => {
-    const items: KPIDetailItem[] = keywords
-      .sort((a: any, b: any) => (b.quality_score || 0) - (a.quality_score || 0))
-      .map((k: any) => ({
-        id: k.keyword_id,
-        name: k.keyword_text || 'Unknown',
-        value: k.quality_score || 0,
-        status: (k.quality_score || 0) >= 7 ? 'active' : 'warning',
-        subtitle: `Competition: ${k.competition || 'UNKNOWN'}`,
-        trend: (k.quality_score || 0) >= 7 ? 'up' : 'down',
-      }));
-
-    setDrawerTitle('Quality Score Breakdown');
-    setDrawerSubtitle(`Avg: ${avgQualityScore.toFixed(2)}/10`);
-    setDrawerData(items);
-    setDrawerOpen(true);
-  };
-
-  const handleCTRClick = () => {
-    const items: KPIDetailItem[] = keywords
-      .filter((k: any) => (k.metrics?.impressions || 0) > 0)
-      .sort((a: any, b: any) => (b.metrics?.ctr || 0) - (a.metrics?.ctr || 0))
-      .map((k: any) => ({
-        id: k.keyword_id,
-        name: k.keyword_text || 'Unknown',
-        value: (k.metrics?.ctr || 0) * 100,
-        status: (k.metrics?.ctr || 0) > avgCTR / 100 ? 'active' : 'warning',
-        subtitle: `${k.metrics?.clicks || 0} clicks / ${k.metrics?.impressions || 0} impressions`,
-        trend: (k.metrics?.ctr || 0) > avgCTR / 100 ? 'up' : 'down',
-      }));
-
-    setDrawerTitle('CTR Performance');
-    setDrawerSubtitle(`Avg CTR: ${avgCTR.toFixed(2)}%`);
-    setDrawerData(items);
-    setDrawerOpen(true);
-  };
-
-  const handleCPCClick = () => {
-    const items: KPIDetailItem[] = keywords
-      .filter((k: any) => (k.metrics?.avg_cpc || 0) > 0)
-      .sort((a: any, b: any) => (b.metrics?.avg_cpc || 0) - (a.metrics?.avg_cpc || 0))
-      .map((k: any) => ({
-        id: k.keyword_id,
-        name: k.keyword_text || 'Unknown',
-        value: k.metrics?.avg_cpc || 0,
-        status: (k.metrics?.avg_cpc || 0) < avgCPC ? 'active' : 'warning',
-        subtitle: `${k.metrics?.clicks || 0} clicks, Competition: ${k.competition || 'UNKNOWN'}`,
-        trend: (k.metrics?.avg_cpc || 0) < avgCPC ? 'down' : 'up',
-      }));
-
-    setDrawerTitle('CPC Analysis');
-    setDrawerSubtitle(`Avg CPC: ₹${avgCPC.toFixed(2)}`);
-    setDrawerData(items);
-    setDrawerOpen(true);
-  };
-
-  const handleConversionsClick = () => {
-    const items: KPIDetailItem[] = keywords
-      .filter((k: any) => (k.metrics?.conversions || 0) > 0)
-      .sort((a: any, b: any) => (b.metrics?.conversions || 0) - (a.metrics?.conversions || 0))
-      .map((k: any) => ({
-        id: k.keyword_id,
-        name: k.keyword_text || 'Unknown',
-        value: k.metrics?.conversions || 0,
-        status: 'active',
-        subtitle: `${k.metrics?.clicks || 0} clicks, Quality Score: ${k.quality_score || 0}/10`,
-        trend: (k.metrics?.conversions || 0) > 0 ? 'up' : 'neutral',
-      }));
-
-    setDrawerTitle('Conversion Leaders');
-    setDrawerSubtitle(`Total: ${totalConversions} conversions`);
-    setDrawerData(items);
-    setDrawerOpen(true);
-  };
-
-  const handleImpressionsClick = () => {
-    const items: KPIDetailItem[] = keywords
-      .sort((a: any, b: any) => (b.metrics?.impressions || 0) - (a.metrics?.impressions || 0))
-      .map((k: any) => ({
-        id: k.keyword_id,
-        name: k.keyword_text || 'Unknown',
-        value: k.metrics?.impressions || 0,
-        status: (k.metrics?.impressions || 0) > 100 ? 'active' : 'warning',
-        subtitle: `${k.metrics?.clicks || 0} clicks, CTR: ${((k.metrics?.ctr || 0) * 100).toFixed(2)}%`,
-        trend: (k.metrics?.impressions || 0) > 100 ? 'up' : 'neutral',
-      }));
-
-    setDrawerTitle('Impression Volume');
-    setDrawerSubtitle(`Total: ${totalImpressions.toLocaleString()} impressions`);
-    setDrawerData(items);
-    setDrawerOpen(true);
+  // Quality score icon
+  const getQualityIcon = (score: number) => {
+    if (score >= 80) return <CheckCircle fontSize="small" />;
+    if (score >= 60) return <Info fontSize="small" />;
+    if (score >= 40) return <Warning fontSize="small" />;
+    return <ErrorIcon fontSize="small" />;
   };
 
   return (
-    <DashboardTemplate
-      title="Keywords Dashboard"
-      subtitle="Analyze and optimize your keyword performance and quality scores"
-      selectedTimeRange={selectedTimeRange}
-      onTimeRangeChange={() => setSelectedTimeRange(selectedTimeRange === '7d' ? '30d' : '7d')}
-    >
-      {/* KPI Cards Section */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            {...kpiData[0]}
-            onClick={handleTotalKeywordsClick}
-            drillDownAvailable={true}
-            index={0}
+    <Box>
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 700,
+              background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            Enriched Keywords Dashboard
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Google Ads Performance + GA4 User Behavior Analytics
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Tooltip title="Refresh data">
+            <IconButton onClick={() => refetch()} color="primary">
+              <Refresh />
+            </IconButton>
+          </Tooltip>
+          <Chip
+            icon={<Timeline />}
+            label="Real-time Data"
+            color="success"
+            size="small"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            {...kpiData[1]}
-            onClick={handleQualityScoreClick}
-            drillDownAvailable={true}
-            index={1}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            {...kpiData[2]}
-            onClick={handleCTRClick}
-            drillDownAvailable={true}
-            index={2}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            {...kpiData[3]}
-            onClick={handleCPCClick}
-            drillDownAvailable={true}
-            index={3}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            {...kpiData[4]}
-            onClick={handleConversionsClick}
-            drillDownAvailable={true}
-            index={4}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            {...kpiData[5]}
-            onClick={handleImpressionsClick}
-            drillDownAvailable={true}
-            index={5}
-          />
-        </Grid>
-      </Grid>
-
-      {/* AI Intelligence Section */}
-      <Box sx={{ mb: 3 }}>
-        <AIIntelligenceSection
-          insights={aiInsights}
-          title="Keyword Intelligence"
-          subtitle="AI-driven insights to improve your keyword strategy"
-        />
+        </Box>
       </Box>
 
-      {/* Charts Section */}
+      {/* Info Banner */}
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <Typography variant="body2">
+          <strong>What is Quality Score?</strong> A 0-100 metric calculated from GA4 behavior data:
+          Lower bounce rate (40%), Higher engagement (30%), More pages per session (30%).
+          Scores above 70 indicate high-quality traffic worth investing in.
+        </Typography>
+      </Alert>
+
+      {/* GA4 KPI Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        {/* Quality Score Distribution */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                Quality Score Distribution
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={qualityDistribution}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="count"
-                    label={({ score, count }) => `${score}: ${count}`}
-                    labelLine={true}
-                  >
-                    {qualityDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip
-                    formatter={(value: number, name: string, props: any) => [
-                      `${value} keywords`,
-                      props.payload.score
-                    ]}
-                    contentStyle={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.97)',
-                      border: '2px solid #4caf50',
-                      borderRadius: 8,
-                      padding: '12px',
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
-                    }}
-                  />
-                  <Legend
-                    verticalAlign="bottom"
-                    height={36}
-                    formatter={(value, entry: any) => `${entry.payload.score} (${entry.payload.count})`}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <Grid item xs={12} sm={6} md={3}>
+          <GA4KPICard
+            title="Avg Quality Score"
+            value={avgQualityScore}
+            format="score"
+            color={avgQualityScore >= 70 ? 'success' : avgQualityScore >= 50 ? 'warning' : 'error'}
+            subtitle="GA4 Behavior Metric"
+            showProgress
+            maxValue={100}
+          />
         </Grid>
-
-        {/* Competition Analysis */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                Competition Analysis
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={competitionData} margin={{ top: 20, right: 40, left: 20, bottom: 40 }}>
-                  <CartesianGrid {...getCartesianGridConfig()} />
-
-                  <XAxis
-                    dataKey="level"
-                    label={{
-                      value: 'Competition Level',
-                      position: 'insideBottom',
-                      offset: -10,
-                      style: { fontWeight: 600, fontSize: 12 }
-                    }}
-                    tick={{ fontSize: 12, fill: '#666' }}
-                  />
-
-                  <YAxis
-                    yAxisId="left"
-                    orientation="left"
-                    label={{
-                      value: 'Keywords',
-                      angle: -90,
-                      position: 'insideLeft',
-                      offset: 0,
-                      style: { fontWeight: 600, fontSize: 12 }
-                    }}
-                    tick={{ fontSize: 12, fill: '#666' }}
-                  />
-
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    label={{
-                      value: 'Avg CPC (₹)',
-                      angle: 90,
-                      position: 'insideRight',
-                      offset: 0,
-                      style: { fontWeight: 600, fontSize: 12 }
-                    }}
-                    tick={{ fontSize: 12, fill: '#666' }}
-                    tickFormatter={(value) => `₹${value.toFixed(2)}`}
-                  />
-
-                  <RechartsTooltip
-                    formatter={(value: number, name: string) => {
-                      if (name === 'Keywords') return [value, 'Keywords'];
-                      if (name === 'Avg CPC') return [formatCurrencyFull(value), 'Avg CPC'];
-                      return [value, name];
-                    }}
-                    contentStyle={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.97)',
-                      border: '2px solid #1976d2',
-                      borderRadius: 8,
-                      padding: '12px',
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
-                    }}
-                  />
-
-                  <Legend {...getLegendConfig('top')} />
-
-                  <Bar yAxisId="left" dataKey="keywords" fill={theme.palette.primary.main} name="Keywords" radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="right" dataKey="avgCPC" fill={theme.palette.warning.main} name="Avg CPC" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <Grid item xs={12} sm={6} md={3}>
+          <GA4KPICard
+            title="Avg Bounce Rate"
+            value={avgBounceRate}
+            format="percentage"
+            color={avgBounceRate < 40 ? 'success' : avgBounceRate < 60 ? 'warning' : 'error'}
+            subtitle="Lower is better"
+            trend={avgBounceRate < 40 ? 'down' : 'up'}
+            trendValue={-5.2}
+          />
         </Grid>
-
-        {/* Top Keywords by CTR */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                Top 5 Keywords by CTR
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={topKeywordsByCTR} layout="horizontal" margin={{ top: 10, right: 30, left: 100, bottom: 40 }}>
-                  <CartesianGrid {...getCartesianGridConfig()} horizontal={true} vertical={false} />
-
-                  <XAxis
-                    type="number"
-                    label={{
-                      value: 'CTR (%)',
-                      position: 'insideBottom',
-                      offset: -10,
-                      style: { fontWeight: 600, fontSize: 12 }
-                    }}
-                    tick={{ fontSize: 12, fill: '#666' }}
-                  />
-
-                  <YAxis
-                    type="category"
-                    dataKey="keyword"
-                    width={90}
-                    tick={{ fontSize: 11, fill: '#666' }}
-                  />
-
-                  <RechartsTooltip
-                    formatter={(value: number) => [`${value}%`, 'CTR']}
-                    labelFormatter={(label) => `Keyword: ${label}`}
-                    contentStyle={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.97)',
-                      border: '2px solid #00bcd4',
-                      borderRadius: 8,
-                      padding: '12px',
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
-                    }}
-                  />
-
-                  <Bar dataKey="ctr" fill={theme.palette.info.main} name="CTR %" radius={[0, 4, 4, 0]}>
-                    {topKeywordsByCTR.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === 0 ? '#0288d1' : theme.palette.info.main} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <Grid item xs={12} sm={6} md={3}>
+          <GA4KPICard
+            title="Avg Engagement"
+            value={avgEngagement}
+            format="percentage"
+            color={avgEngagement >= 60 ? 'success' : avgEngagement >= 40 ? 'warning' : 'error'}
+            subtitle="Higher is better"
+            trend={avgEngagement >= 60 ? 'up' : 'down'}
+            trendValue={8.3}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <GA4KPICard
+            title="Avg Session Duration"
+            value={avgSessionDuration}
+            format="duration"
+            color="info"
+            subtitle={`${totalGA4Sessions.toLocaleString()} total sessions`}
+          />
         </Grid>
       </Grid>
 
-      {/* Keywords Table */}
+      {/* Enriched Keywords Table */}
       <Card>
         <CardContent>
-          <Typography variant="h6" gutterBottom fontWeight={600}>
-            Keyword Performance Details
-          </Typography>
-          <TableContainer component={Paper} elevation={0}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Keyword Performance + User Behavior
+            </Typography>
+            <Chip
+              label={`${totalKeywords} keywords`}
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
+          </Box>
+
+          <TableContainer>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Keyword</TableCell>
-                  <TableCell align="center">Quality Score</TableCell>
-                  <TableCell align="right">Impressions</TableCell>
-                  <TableCell align="right">Clicks</TableCell>
-                  <TableCell align="right">CTR</TableCell>
-                  <TableCell align="right">CPC</TableCell>
-                  <TableCell align="right">Conversions</TableCell>
-                  <TableCell align="center">Competition</TableCell>
-                  <TableCell align="center">Actions</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Keyword</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>
+                    <Tooltip title="Google Ads Clicks">
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                        <TouchApp fontSize="small" />
+                        Clicks
+                      </Box>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    <Tooltip title="Google Ads Cost">
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                        <AttachMoney fontSize="small" />
+                        Cost
+                      </Box>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, backgroundColor: alpha(theme.palette.info.main, 0.05) }}>
+                    <Tooltip title="GA4 Sessions Count">
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                        <Visibility fontSize="small" />
+                        Sessions
+                      </Box>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, backgroundColor: alpha(theme.palette.info.main, 0.05) }}>
+                    <Tooltip title="GA4 Bounce Rate (%)">
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                        <ExitToApp fontSize="small" />
+                        Bounce
+                      </Box>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, backgroundColor: alpha(theme.palette.info.main, 0.05) }}>
+                    <Tooltip title="GA4 Engagement Rate (%)">
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                        <TouchApp fontSize="small" />
+                        Engagement
+                      </Box>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, backgroundColor: alpha(theme.palette.info.main, 0.05) }}>
+                    <Tooltip title="GA4 Avg Session Duration">
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                        <Schedule fontSize="small" />
+                        Duration
+                      </Box>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, backgroundColor: alpha(theme.palette.success.main, 0.05) }}>
+                    <Tooltip title="Quality Score (0-100)">
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                        <Speed fontSize="small" />
+                        Quality
+                      </Box>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>AI Recommendation</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {keywords.slice(0, 20).map((keyword: any) => (
-                  <TableRow
-                    key={keyword.keyword_id}
-                    hover
-                    sx={{
-                      '&:hover': {
-                        backgroundColor: alpha(theme.palette.primary.main, 0.02),
-                      }
-                    }}
-                  >
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Tag sx={{ fontSize: 16, color: theme.palette.text.secondary }} />
-                        <Typography variant="body2" fontWeight={500}>
-                          {keyword.keyword_text || 'Unknown'}
+                {keywords.map((keyword: any, index: number) => {
+                  const qualityScore = keyword.quality_score || 0;
+                  const qualityColor = getQualityColor(qualityScore);
+
+                  return (
+                    <TableRow
+                      key={keyword.keyword_id || index}
+                      hover
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: alpha(theme.palette.primary.main, 0.02),
+                        },
+                      }}
+                    >
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Tag sx={{ fontSize: 16, color: theme.palette.text.secondary }} />
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {keyword.keyword_text}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+
+                      {/* Google Ads Metrics */}
+                      <TableCell align="center">
+                        <Typography variant="body2">{formatNumber(keyword.ad_clicks || 0)}</Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2">{formatCurrency(keyword.ad_cost || 0)}</Typography>
+                      </TableCell>
+
+                      {/* GA4 Metrics */}
+                      <TableCell align="center" sx={{ backgroundColor: alpha(theme.palette.info.main, 0.02) }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {formatNumber(keyword.ga4_sessions || 0)}
                         </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
-                        <Box
-                          sx={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            bgcolor: getQualityColor(keyword.quality_score || 0),
-                          }}
+                      </TableCell>
+                      <TableCell align="center" sx={{ backgroundColor: alpha(theme.palette.info.main, 0.02) }}>
+                        <Chip
+                          label={`${(keyword.ga4_bounce_rate || 0).toFixed(1)}%`}
+                          size="small"
+                          color={(keyword.ga4_bounce_rate || 0) < 40 ? 'success' : (keyword.ga4_bounce_rate || 0) < 60 ? 'warning' : 'error'}
                         />
-                        <Typography variant="body2" fontWeight={600}>
-                          {(keyword.quality_score || 0).toFixed(2)}/10
+                      </TableCell>
+                      <TableCell align="center" sx={{ backgroundColor: alpha(theme.palette.info.main, 0.02) }}>
+                        <Chip
+                          label={`${(keyword.ga4_engagement_rate || 0).toFixed(1)}%`}
+                          size="small"
+                          color={(keyword.ga4_engagement_rate || 0) >= 60 ? 'success' : (keyword.ga4_engagement_rate || 0) >= 40 ? 'warning' : 'error'}
+                        />
+                      </TableCell>
+                      <TableCell align="center" sx={{ backgroundColor: alpha(theme.palette.info.main, 0.02) }}>
+                        <Typography variant="body2">
+                          {Math.floor((keyword.ga4_avg_session_duration || 0) / 60)}m {Math.floor((keyword.ga4_avg_session_duration || 0) % 60)}s
                         </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell align="right">{(keyword.metrics?.impressions || 0).toLocaleString()}</TableCell>
-                    <TableCell align="right">{(keyword.metrics?.clicks || 0).toLocaleString()}</TableCell>
-                    <TableCell align="right">
-                      <Chip
-                        label={`${((keyword.metrics?.ctr || 0) * 100).toFixed(2)}%`}
-                        size="small"
-                        sx={{
-                          bgcolor: alpha(theme.palette.info.main, 0.1),
-                          color: theme.palette.info.main,
-                          fontWeight: 600,
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell align="right">₹{(keyword.metrics?.avg_cpc || 0).toFixed(2)}</TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" fontWeight={600} color="success.main">
-                        {(keyword.metrics?.conversions || 0).toFixed(2)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={keyword.competition || 'UNKNOWN'}
-                        color={getCompetitionColor(keyword.competition || 'UNKNOWN') as any}
-                        size="small"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title="View Details">
-                        <IconButton size="small" color="primary">
-                          <Visibility fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Add Negative">
-                        <IconButton size="small" color="error">
-                          <Block fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+
+                      {/* Quality Score */}
+                      <TableCell align="center" sx={{ backgroundColor: alpha(theme.palette.success.main, 0.02) }}>
+                        <Chip
+                          icon={getQualityIcon(qualityScore)}
+                          label={`${qualityScore.toFixed(0)}/100`}
+                          size="small"
+                          color={qualityColor}
+                          sx={{ fontWeight: 600 }}
+                        />
+                      </TableCell>
+
+                      {/* AI Recommendation */}
+                      <TableCell>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            display: 'block',
+                            color: qualityScore >= 70 ? theme.palette.success.main : qualityScore >= 50 ? theme.palette.warning.main : theme.palette.error.main,
+                            fontWeight: 500,
+                          }}
+                        >
+                          {keyword.recommendation || 'No recommendation available'}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
-          {keywords.length === 0 && (
-            <Box sx={{ py: 4, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                No keywords found for this customer
-              </Typography>
-            </Box>
-          )}
         </CardContent>
       </Card>
 
-      {/* KPI Detail Drawer */}
-      <KPIDetailDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        title={drawerTitle}
-        subtitle={drawerSubtitle}
-        data={drawerData}
-        type="table"
-        color="primary"
-        showTopCount={10}
+      {/* Summary Footer */}
+      <Alert
+        severity={avgQualityScore >= 70 ? 'success' : avgQualityScore >= 50 ? 'info' : 'warning'}
+        sx={{ mt: 3 }}
+      >
+        <Typography variant="body2">
+          <strong>Overall Assessment:</strong>{' '}
+          {avgQualityScore >= 70
+            ? `Excellent! Your keywords have an average quality score of ${avgQualityScore.toFixed(1)}/100. Traffic is highly engaged with low bounce rates. Consider increasing bids for top performers.`
+            : avgQualityScore >= 50
+            ? `Good performance with average quality score of ${avgQualityScore.toFixed(1)}/100. Some keywords show room for improvement in user engagement. Focus on landing page optimization.`
+            : `Average quality score is ${avgQualityScore.toFixed(1)}/100, indicating opportunities for improvement. High bounce rates suggest landing page or targeting issues. Review low-quality keywords and pause if needed.`}
+        </Typography>
+      </Alert>
+
+      {/* Decision Intelligence Floating Button */}
+      {keywords.length > 0 && (
+        <Tooltip title="Open Decision Intelligence" placement="left">
+          <Fab
+            color="primary"
+            onClick={() => setDecisionIntelligenceOpen(true)}
+            sx={{
+              position: 'fixed',
+              bottom: 100, // Above chatbot button (typically at bottom: 24)
+              right: 24,
+              background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+              boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.4)}`,
+              animation: 'breathe 3s ease-in-out infinite',
+              '@keyframes breathe': {
+                '0%, 100%': {
+                  transform: 'scale(1)',
+                  boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.4)}`,
+                },
+                '50%': {
+                  transform: 'scale(1.05)',
+                  boxShadow: `0 8px 30px ${alpha(theme.palette.primary.main, 0.6)}`,
+                },
+              },
+              '&:hover': {
+                transform: 'scale(1.15) rotate(5deg)',
+                boxShadow: `0 12px 40px ${alpha(theme.palette.primary.main, 0.7)}`,
+              },
+              '&:active': {
+                transform: 'scale(1.05)',
+              },
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              zIndex: 1200,
+            }}
+          >
+            <Psychology sx={{ animation: 'spin 10s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }} />
+          </Fab>
+        </Tooltip>
+      )}
+
+      {/* Decision Intelligence Modal */}
+      <DecisionIntelligence
+        open={decisionIntelligenceOpen}
+        onClose={() => setDecisionIntelligenceOpen(false)}
+        keywordData={data}
       />
-    </DashboardTemplate>
+    </Box>
   );
 };
 

@@ -3,7 +3,7 @@ Configuration management for the API
 """
 from typing import List, Optional
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, ConfigDict
 import os
 from pathlib import Path
 
@@ -40,8 +40,10 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra='ignore'  # Ignore extra fields from .env file
+    )
 
 settings = Settings()

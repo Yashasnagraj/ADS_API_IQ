@@ -1,13 +1,12 @@
 """
-Search Terms endpoints
+Search Terms endpoints - Real-time Google Ads API queries
 """
 from typing import Optional
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
-from app.db.database import get_db
-from app.db.models import SearchTerm
+from fastapi import APIRouter, HTTPException, Query
+from app.services.google_ads_service import get_google_ads_service
 from app.schemas.search_term import SearchTermListResponse, SearchTermDetail, SearchTermMetrics
 from app.core.config import settings
+from loguru import logger
 
 router = APIRouter(prefix="/search-terms", tags=["search_terms"])
 
@@ -20,63 +19,103 @@ def get_search_terms(
     ad_group_id: Optional[int] = None,
     search_term: Optional[str] = None,
     min_impressions: Optional[int] = None,
-    db: Session = Depends(get_db)
 ):
     """
     Get all search terms with performance data
-    Filter by customer_id to show only specific customer's search terms
+    Real-time query from Google Ads API
     """
-    query = db.query(SearchTerm)
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="customer_id is required")
 
-    if customer_id:
-        query = query.filter(SearchTerm.customer_id == customer_id)
-    if campaign_id:
-        query = query.filter(SearchTerm.campaign_id == campaign_id)
-    if ad_group_id:
-        query = query.filter(SearchTerm.ad_group_id == ad_group_id)
-    if search_term:
-        query = query.filter(SearchTerm.search_term.ilike(f"%{search_term}%"))
-    if min_impressions:
-        query = query.filter(SearchTerm.impressions >= min_impressions)
+    try:
+        ads_service = get_google_ads_service()
+        customer_id_str = str(customer_id)
 
-    # Order by impressions descending for relevance
-    query = query.order_by(SearchTerm.impressions.desc())
-
-    total = query.count()
-    search_terms = query.offset(offset).limit(limit).all()
-
-    search_term_details = []
-    for st in search_terms:
-        st_metrics = SearchTermMetrics(
-            date=st.date,
-            clicks=st.clicks or 0,
-            impressions=st.impressions or 0,
-            cost=(st.cost_micros / 1_000_000) if st.cost_micros else 0,
-            conversions=st.conversions or 0,
-            conversion_value=st.conversion_value or 0,
-            ctr=st.ctr or 0,
-            avg_cpc=(st.avg_cpc_micros / 1_000_000) if st.avg_cpc_micros else 0
+        # Get search terms from Google Ads API
+        search_terms_data = ads_service.get_search_terms(
+            customer_id_str,
+            campaign_id=campaign_id,
+            date_range="LAST_30_DAYS"
         )
 
-        detail = SearchTermDetail(
-            search_term_id=st.search_term_id,
-            keyword_id=st.keyword_id,
-            ad_group_id=st.ad_group_id,
-            campaign_id=st.campaign_id,
-            customer_id=st.customer_id,
-            search_term=st.search_term,
-            keyword_text=st.keyword_text,
-            match_type=st.match_type,
-            search_term_match_type=st.search_term_match_type,
-            metrics=st_metrics,
-            created_at=st.created_at
-        )
-        search_term_details.append(detail)
+        # Apply filters
+        filtered_search_terms = search_terms_data
 
-    return SearchTermListResponse(
-        search_terms=search_term_details,
-        total=total,
-        limit=limit,
-        offset=offset,
-        has_more=(offset + limit) < total
-    )
+        if ad_group_id:
+            filtered_search_terms = [
+                st for st in filtered_search_terms
+                if st.get("ad_group", {}).get("id") == ad_group_id
+            ]
+
+        if search_term:
+            search_term_lower = search_term.lower()
+            filtered_search_terms = [
+                st for st in filtered_search_terms
+                if search_term_lower in st.get("search_term_view", {}).get("search_term", "").lower()
+            ]
+
+        if min_impressions:
+            filtered_search_terms = [
+                st for st in filtered_search_terms
+                if st.get("metrics", {}).get("impressions", 0) >= min_impressions
+            ]
+
+        # Sort by impressions descending
+        filtered_search_terms.sort(
+            key=lambda x: x.get("metrics", {}).get("impressions", 0),
+            reverse=True
+        )
+
+        # Apply pagination
+        total = len(filtered_search_terms)
+        paginated_search_terms = filtered_search_terms[offset:offset + limit]
+
+        search_term_details = []
+        for idx, st_row in enumerate(paginated_search_terms):
+            search_term_view = st_row.get("search_term_view", {})
+            segments = st_row.get("segments", {})
+            keyword_segment = segments.get("keyword", {}).get("info", {})
+            metrics = st_row.get("metrics", {})
+            ad_group = st_row.get("ad_group", {})
+            campaign = st_row.get("campaign", {})
+
+            st_metrics = SearchTermMetrics(
+                date=segments.get("date", ""),
+                clicks=metrics.get("clicks", 0),
+                impressions=metrics.get("impressions", 0),
+                cost=metrics.get("cost", 0),
+                conversions=metrics.get("conversions", 0),
+                conversion_value=metrics.get("conversions_value", 0),
+                ctr=metrics.get("ctr", 0),
+                avg_cpc=metrics.get("average_cpc", 0)
+            )
+
+            # Create a unique ID for search term
+            search_term_id = idx + offset
+
+            detail = SearchTermDetail(
+                search_term_id=search_term_id,
+                keyword_id=None,  # Would need to match with keyword
+                ad_group_id=ad_group.get("id", 0),
+                campaign_id=campaign.get("id", 0),
+                customer_id=customer_id,
+                search_term=search_term_view.get("search_term", ""),
+                keyword_text=keyword_segment.get("text", ""),
+                match_type=keyword_segment.get("match_type", ""),
+                search_term_match_type=search_term_view.get("search_term_match_type", ""),
+                metrics=st_metrics,
+                created_at=None
+            )
+            search_term_details.append(detail)
+
+        return SearchTermListResponse(
+            search_terms=search_term_details,
+            total=total,
+            limit=limit,
+            offset=offset,
+            has_more=(offset + limit) < total
+        )
+
+    except Exception as e:
+        logger.error(f"Error fetching search terms: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch search terms: {str(e)}")
