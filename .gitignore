@@ -94,6 +94,7 @@ ab
 nul
 pip_cache/
 .pids
+node_modules
 
 # ========================================
 # Database (comment out if you want to share sample data)
