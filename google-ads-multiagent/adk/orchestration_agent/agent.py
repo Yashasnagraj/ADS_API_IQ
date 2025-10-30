@@ -1,18 +1,29 @@
 """
 Orchestration Agent for Google Ads Multi-Agent System
-Following ADK Multi-Agent Pattern with Real API Integration
+Following ADK Multi-Agent Pattern with Warehouse Database Integration
 """
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import logging
-import requests
+import sys
+from pathlib import Path
 from google.adk.agents import Agent
+
+# Add warehouse client to path
+warehouse_path = Path(__file__).parent / "sub_agents" / "data_agent"
+sys.path.insert(0, str(warehouse_path))
+
+from warehouse_client import WarehouseClient
 
 logger = logging.getLogger(__name__)
 
-# API Configuration
-# Use port 8000 for main MarketingIQ API (runs on port 8000)
-API_BASE_URL = "http://localhost:8000/api/v1"
+# Initialize Warehouse Client
+try:
+    warehouse_client = WarehouseClient()
+    logger.info("Warehouse client initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize warehouse client: {e}")
+    warehouse_client = None
 
 
 # Helper function for API calls
@@ -40,40 +51,53 @@ def make_api_request(endpoint: str, params: Optional[Dict] = None) -> Dict[str, 
 # Tool functions for Data Agent
 def get_campaign_performance(customer_id: Optional[str] = None, campaign_type: Optional[str] = None) -> Dict[str, Any]:
     """
-    Retrieve campaign performance data from Google Ads API.
+    Retrieve campaign performance data from marketing warehouse.
 
     Args:
-        customer_id: Google Ads customer ID (optional for now as API doesn't filter by customer)
+        customer_id: Customer ID filter (integer)
+        campaign_type: Campaign type filter (SEARCH, DISPLAY, etc.)
 
     Returns:
         Campaign performance metrics including impressions, clicks, conversions
     """
-    params = {}
-    if customer_id:
-        params["customer_id"] = customer_id
-    if campaign_type:
-        params["channel_type"] = campaign_type
+    if not warehouse_client:
+        return {"error": "Warehouse client not initialized", "status": "failed"}
 
-    response = make_api_request("/campaigns", params=params)
-    if "error" not in response:
-        # Extract campaigns array from response
-        campaigns_list = response.get("campaigns", [])
+    try:
+        # Convert customer_id to integer if provided
+        cust_id = int(customer_id) if customer_id and str(customer_id).isdigit() else None
+
+        # Fetch campaigns from warehouse
+        campaigns_response = warehouse_client.fetch_campaigns(
+            customer_id=cust_id,
+            status=None,
+            limit=100
+        )
+
+        if "error" in campaigns_response:
+            return campaigns_response
 
         # Get summary metrics
-        summary = make_api_request("/metrics/summary")
+        summary_response = warehouse_client.fetch_metrics_summary(
+            customer_id=cust_id,
+            days=30
+        )
+
         return {
             "status": "success",
             "customer_id": customer_id or "all",
-            "campaigns": campaigns_list,  # Return just the array
-            "summary": summary,
-            "total": response.get("total", len(campaigns_list))
+            "campaigns": campaigns_response.get("campaigns", []),
+            "summary": summary_response.get("summary", {}),
+            "total": campaigns_response.get("total", 0)
         }
-    return response
+    except Exception as e:
+        logger.error(f"Error fetching campaigns from warehouse: {e}")
+        return {"error": str(e), "status": "failed"}
 
 
 def get_campaign_details(campaign_id: str) -> Dict[str, Any]:
     """
-    Get detailed information about a specific campaign.
+    Get detailed information about a specific campaign from warehouse.
 
     Args:
         campaign_id: Campaign ID
@@ -81,17 +105,41 @@ def get_campaign_details(campaign_id: str) -> Dict[str, Any]:
     Returns:
         Detailed campaign information including performance over time
     """
-    campaign = make_api_request(f"/campaigns/{campaign_id}")
-    if "error" not in campaign:
-        performance = make_api_request(f"/campaigns/{campaign_id}/performance")
-        ads = make_api_request(f"/campaigns/{campaign_id}/ads")
+    if not warehouse_client:
+        return {"error": "Warehouse client not initialized", "status": "failed"}
+
+    try:
+        # Get all campaigns and filter by ID
+        campaigns_response = warehouse_client.fetch_campaigns(limit=100)
+
+        if "error" in campaigns_response:
+            return campaigns_response
+
+        # Find the specific campaign
+        campaign = None
+        for c in campaigns_response.get("campaigns", []):
+            if str(c.get("id")) == str(campaign_id):
+                campaign = c
+                break
+
+        if not campaign:
+            return {"error": f"Campaign {campaign_id} not found", "status": "failed"}
+
+        # Get performance history for this campaign
+        performance = warehouse_client.fetch_campaign_performance(
+            campaign_id=campaign_id,
+            days=30
+        )
+
         return {
             "status": "success",
             "campaign": campaign,
-            "performance_history": performance,
-            "ads": ads
+            "performance_history": performance.get("performance", []),
+            "data_points": performance.get("data_points", 0)
         }
-    return campaign
+    except Exception as e:
+        logger.error(f"Error fetching campaign details: {e}")
+        return {"error": str(e), "status": "failed"}
 
 
 def get_ad_group_performance(customer_id: Optional[str] = None) -> Dict[str, Any]:
@@ -181,15 +229,51 @@ def get_search_terms_data(customer_id: Optional[str] = None) -> Dict[str, Any]:
 
 def get_top_performers(metric: str = "roas") -> Dict[str, Any]:
     """
-    Get top performing campaigns by specified metric.
+    Get top performing campaigns by specified metric from warehouse.
 
     Args:
-        metric: Metric to sort by (roas, conversions, ctr)
+        metric: Metric to sort by (roas, conversions, ctr, cost)
 
     Returns:
         Top performing campaigns
     """
-    return make_api_request("/campaigns/top-performers", params={"metric": metric})
+    if not warehouse_client:
+        return {"error": "Warehouse client not initialized", "status": "failed"}
+
+    try:
+        # Fetch all campaigns
+        campaigns_response = warehouse_client.fetch_campaigns(limit=100)
+
+        if "error" in campaigns_response:
+            return campaigns_response
+
+        campaigns = campaigns_response.get("campaigns", [])
+
+        # Sort by the specified metric (descending)
+        metric_lower = metric.lower()
+        valid_metrics = ["roas", "conversions", "ctr", "cost", "clicks", "impressions"]
+
+        if metric_lower not in valid_metrics:
+            metric_lower = "roas"  # Default to ROAS
+
+        sorted_campaigns = sorted(
+            campaigns,
+            key=lambda x: float(x.get(metric_lower, 0)),
+            reverse=True
+        )
+
+        # Return top 10
+        top_campaigns = sorted_campaigns[:10]
+
+        return {
+            "status": "success",
+            "metric": metric_lower,
+            "top_performers": top_campaigns,
+            "total": len(top_campaigns)
+        }
+    except Exception as e:
+        logger.error(f"Error getting top performers: {e}")
+        return {"error": str(e), "status": "failed"}
 
 
 # Tool functions for Insight Agent
@@ -611,73 +695,331 @@ def analyze_scenarios(budget_change_percent: int = 0) -> Dict[str, Any]:
     return {"status": "error", "message": "Failed to analyze scenarios"}
 
 
+# GA4 Tool Functions for Data Agent
+def get_ga4_session_behavior(
+    customer_id: int = 1,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    source: Optional[str] = None,
+    campaign: Optional[str] = None,
+    device: Optional[str] = None,
+    limit: int = 100
+) -> Dict[str, Any]:
+    """
+    Get GA4 traffic source data from warehouse.
+
+    Args:
+        customer_id: Customer ID (default: 1)
+        start_date: Start date (optional, warehouse uses days parameter)
+        end_date: End date (optional)
+        source: Filter by traffic source (optional)
+        campaign: Filter by campaign name (optional)
+        device: Filter by device category (optional)
+        limit: Maximum number of records to return (default: 100)
+
+    Returns:
+        Traffic source data with sessions, page views, conversions
+    """
+    if not warehouse_client:
+        return {"error": "Warehouse client not initialized", "status": "failed"}
+
+    try:
+        # Warehouse uses days parameter, default to 30 days
+        days = 30
+
+        # Fetch traffic sources from warehouse
+        response = warehouse_client.fetch_traffic_sources(
+            customer_id=customer_id,
+            days=days,
+            limit=limit
+        )
+
+        if "error" in response:
+            return response
+
+        traffic_sources = response.get("traffic_sources", [])
+
+        # Filter by source if specified
+        if source:
+            traffic_sources = [ts for ts in traffic_sources if ts.get("source") == source]
+
+        # Filter by campaign if specified
+        if campaign:
+            traffic_sources = [ts for ts in traffic_sources if ts.get("campaign") == campaign]
+
+        return {
+            "status": "success",
+            "data": traffic_sources,
+            "total_sessions": sum(ts.get("sessions", 0) for ts in traffic_sources),
+            "total_records": len(traffic_sources)
+        }
+    except Exception as e:
+        logger.error(f"Error fetching GA4 session behavior: {e}")
+        return {"error": str(e), "status": "failed"}
+
+
+def get_ga4_campaign_quality(
+    customer_id: int = 1,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Get GA4 metrics summary from warehouse.
+
+    Args:
+        customer_id: Customer ID (default: 1)
+        start_date: Start date (optional)
+        end_date: End date (optional)
+
+    Returns:
+        GA4 metrics summary
+    """
+    if not warehouse_client:
+        return {"error": "Warehouse client not initialized", "status": "failed"}
+
+    try:
+        summary = warehouse_client.fetch_metrics_summary(customer_id=customer_id, days=30)
+        return {
+            "status": "success",
+            "summary": summary.get("summary", {}),
+            "note": "Data from marketing warehouse (last 30 days)"
+        }
+    except Exception as e:
+        logger.error(f"Error fetching GA4 quality: {e}")
+        return {"error": str(e), "status": "failed"}
+
+
+def get_ga4_behavior_by_campaign(
+    customer_id: int = 1,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Get aggregated GA4 traffic data grouped by campaign from warehouse.
+
+    Args:
+        customer_id: Customer ID (default: 1)
+        start_date: Start date (optional)
+        end_date: End date (optional)
+
+    Returns:
+        Campaign-level traffic data
+    """
+    if not warehouse_client:
+        return {"error": "Warehouse client not initialized", "status": "failed"}
+
+    try:
+        traffic_sources = warehouse_client.fetch_traffic_sources(
+            customer_id=customer_id,
+            days=30,
+            limit=100
+        )
+        return {
+            "status": "success",
+            "traffic_sources": traffic_sources.get("traffic_sources", []),
+            "total": traffic_sources.get("total", 0)
+        }
+    except Exception as e:
+        logger.error(f"Error fetching GA4 behavior by campaign: {e}")
+        return {"error": str(e), "status": "failed"}
+
+
+def get_ga4_conversion_paths(
+    customer_id: int = 1,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    min_touchpoints: int = 2,
+    limit: int = 50
+) -> Dict[str, Any]:
+    """
+    Get conversion data from warehouse.
+
+    Args:
+        customer_id: Customer ID (default: 1)
+        start_date: Start date (optional)
+        end_date: End date (optional)
+        min_touchpoints: Minimum touchpoints (not used in current schema)
+        limit: Maximum results
+
+    Returns:
+        Conversion data from warehouse
+    """
+    if not warehouse_client:
+        return {"error": "Warehouse client not initialized", "status": "failed"}
+
+    try:
+        summary = warehouse_client.fetch_metrics_summary(customer_id=customer_id, days=30)
+        return {
+            "status": "success",
+            "conversions_summary": summary.get("summary", {}),
+            "note": "Multi-touch attribution paths not available in current warehouse schema"
+        }
+    except Exception as e:
+        logger.error(f"Error fetching conversion paths: {e}")
+        return {"error": str(e), "status": "failed"}
+
+
+def get_ga4_device_performance(
+    customer_id: int = 1,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Get device performance data (not available in current warehouse schema).
+
+    Args:
+        customer_id: Customer ID (default: 1)
+        start_date: Start date (optional)
+        end_date: End date (optional)
+
+    Returns:
+        Note about data availability
+    """
+    return {
+        "status": "info",
+        "message": "Device performance data not available in current warehouse schema. Available data: traffic sources, sessions, conversions by source/medium.",
+        "suggestion": "Use get_ga4_session_behavior to view traffic sources"
+    }
+
+
+def get_ga4_audience_insights(
+    customer_id: int = 1,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    segment_type: str = "country"
+) -> Dict[str, Any]:
+    """
+    Get audience insights (not available in current warehouse schema).
+
+    Args:
+        customer_id: Customer ID (default: 1)
+        start_date: Start date (optional)
+        end_date: End date (optional)
+        segment_type: Segmentation type (not used in current schema)
+
+    Returns:
+        Note about data availability
+    """
+    return {
+        "status": "info",
+        "message": "Audience insights (demographics, geography) not available in current warehouse schema. Available data: traffic sources by source/medium.",
+        "suggestion": "Use get_ga4_session_behavior to view traffic sources and campaigns"
+    }
+
+
 # Create specialized sub-agents following ADK pattern
 data_agent = Agent(
     name="DataAgent",
     model="gemini-2.0-flash",
-    description="Retrieves and processes real Google Ads campaign data, ad groups, keywords, and search terms from the API.",
-    instruction="""You are responsible for collecting and organizing Google Ads data from the API.
-    Use the available tools to retrieve campaign, ad group, keyword, and search term performance metrics.
+    description="Retrieves and processes real Google Ads campaign data and GA4 analytics data from marketing warehouse database.",
+    instruction="""You are responsible for collecting and organizing Google Ads and GA4 analytics data from the marketing warehouse.
+    Use the available tools to retrieve campaign performance metrics and GA4 traffic source data.
+    The warehouse contains:
+    - 19 Google Ads campaigns across 3 customers
+    - 84 performance records (29 Google Ads + 55 GA4)
+    - Traffic sources with sessions, page views, and conversions
     Always ensure data is properly formatted and includes relevant metrics.
-    The API is available at http://localhost:8004 with various endpoints for different data types.""",
-    tools=[get_campaign_performance, get_campaign_details, get_ad_group_performance,
-           get_keyword_performance, get_search_terms_data, get_top_performers]
+    Data is retrieved directly from the marketing_warehouse.db SQLite database.""",
+    tools=[
+        # Google Ads tools
+        get_campaign_performance, get_campaign_details, get_ad_group_performance,
+        get_keyword_performance, get_search_terms_data, get_top_performers,
+        # GA4 tools
+        get_ga4_session_behavior, get_ga4_campaign_quality, get_ga4_behavior_by_campaign,
+        get_ga4_conversion_paths, get_ga4_device_performance, get_ga4_audience_insights
+    ]
 )
 
 insight_agent = Agent(
     name="InsightAgent",
     model="gemini-2.0-flash",
-    description="Analyzes real campaign performance data, detects trends, anomalies, and calculates ROI metrics using API data.",
-    instruction="""You analyze real Google Ads data from the API to provide actionable insights.
+    description="Analyzes real campaign performance data, detects trends, anomalies, calculates ROI metrics, and evaluates campaign quality using Google Ads and GA4 data.",
+    instruction="""You analyze real Google Ads and GA4 analytics data from the API to provide actionable insights.
     Use your tools to identify trends, detect anomalies, calculate ROI, and compare time periods.
+    Use GA4 tools to get campaign quality scores, session behavior, and audience insights.
+    Combine Google Ads metrics with GA4 behavior data to provide comprehensive campaign analysis.
     Focus on providing clear, data-driven insights that help improve campaign performance.
     All analysis should be based on actual data from the API, not mock data.""",
-    tools=[analyze_performance_trends, detect_anomalies, calculate_roi, compare_time_periods]
+    tools=[
+        # Google Ads analysis tools
+        analyze_performance_trends, detect_anomalies, calculate_roi, compare_time_periods,
+        # GA4 tools for quality insights
+        get_ga4_campaign_quality, get_ga4_behavior_by_campaign, get_ga4_device_performance,
+        get_ga4_audience_insights
+    ]
 )
 
 optimization_agent = Agent(
     name="OptimizationAgent",
     model="gemini-2.0-flash",
-    description="Provides data-driven optimization recommendations for bids, budgets, and keywords based on real performance data.",
-    instruction="""You are an optimization specialist for Google Ads campaigns using real data.
+    description="Provides data-driven optimization recommendations for bids, budgets, and keywords based on real Google Ads and GA4 performance data.",
+    instruction="""You are an optimization specialist for Google Ads campaigns using real data from both Google Ads and GA4.
     Analyze actual performance data from the API and provide specific recommendations for:
-    - Bid adjustments based on conversion rates and CPC
-    - Budget reallocation based on ROAS and performance
+    - Bid adjustments based on conversion rates, CPC, and GA4 quality scores
+    - Budget reallocation based on ROAS, performance, and GA4 engagement metrics
     - Keyword optimization including additions, removals, and negative keywords
+    - Use GA4 campaign quality scores to prioritize high-quality traffic sources
+    - Consider GA4 device performance when making device bid adjustments
     Always base recommendations on actual performance metrics from the API.""",
-    tools=[optimize_bids, optimize_budgets, optimize_keywords]
+    tools=[
+        # Google Ads optimization tools
+        optimize_bids, optimize_budgets, optimize_keywords,
+        # GA4 tools for quality-based optimization
+        get_ga4_campaign_quality, get_ga4_behavior_by_campaign, get_ga4_device_performance
+    ]
 )
 
 forecasting_agent = Agent(
     name="ForecastingAgent",
     model="gemini-2.0-flash",
-    description="Forecasts future campaign performance and analyzes scenarios based on historical API data.",
-    instruction="""You provide performance forecasts and scenario analysis using real Google Ads data.
+    description="Forecasts future campaign performance and analyzes scenarios based on historical Google Ads and GA4 data.",
+    instruction="""You provide performance forecasts and scenario analysis using real Google Ads and GA4 data.
     Use historical data from the API to predict future performance.
     Analyze different budget and bid scenarios to help with strategic planning.
+    Use GA4 conversion paths for multi-touch attribution modeling.
+    Use GA4 session behavior trends to improve forecast accuracy.
     Base all forecasts on actual trends and patterns in the data.
     Include confidence levels and assumptions in your forecasts.""",
-    tools=[forecast_performance, analyze_scenarios]
+    tools=[
+        # Google Ads forecasting tools
+        forecast_performance, analyze_scenarios,
+        # GA4 tools for attribution and trend analysis
+        get_ga4_conversion_paths, get_ga4_session_behavior, get_ga4_behavior_by_campaign
+    ]
 )
 
 # Create the root orchestrator agent with sub-agents
 root_agent = Agent(
     name="GoogleAdsOrchestrator",
     model="gemini-2.0-flash",
-    description="Orchestrates multiple specialized agents for comprehensive Google Ads management using real API data.",
-    instruction="""You are the main orchestrator for Google Ads campaign management using real data from the API at http://localhost:8004.
+    description="Orchestrates multiple specialized agents for comprehensive Google Ads and GA4 analytics management using marketing warehouse data.",
+    instruction="""You are the main orchestrator for Google Ads campaign management using real data from the marketing warehouse database (marketing_warehouse.db).
+
+    The warehouse contains:
+    - 19 Google Ads campaigns across 3 customers (Emcee Sons, VANAVASI KALYANA, Communn.io)
+    - 84 performance records (29 Google Ads + 55 GA4)
+    - Multi-platform data (Google Ads + Google Analytics 4)
 
     You coordinate between four specialized agents:
-    1. DataAgent - For retrieving real campaign data from the API
-    2. InsightAgent - For analyzing actual performance and trends
+    1. DataAgent - For retrieving Google Ads campaigns and GA4 traffic source data from warehouse
+       - Campaign performance metrics (impressions, clicks, conversions, ROAS)
+       - Traffic sources with sessions and page views
+    2. InsightAgent - For analyzing performance trends and campaign quality
+       - Combines Google Ads metrics with GA4 behavior data
+       - Evaluates campaign quality scores (bounce rate, engagement, pages/session)
     3. OptimizationAgent - For data-driven optimization recommendations
+       - Uses GA4 quality scores for bid and budget optimization
+       - Considers GA4 device performance for device bid adjustments
     4. ForecastingAgent - For performance predictions based on historical data
+       - Uses GA4 conversion paths for multi-touch attribution
+       - Analyzes GA4 session behavior trends for improved forecasts
 
     Based on user requests:
-    - If they ask for data or metrics, delegate to DataAgent to fetch from API
+    - If they ask for data or metrics, delegate to DataAgent to fetch from API (Google Ads or GA4)
+    - If they want campaign quality analysis, use GA4 tools to get quality scores and behavior metrics
     - If they want analysis or insights, use DataAgent first to get real data, then InsightAgent
-    - If they need optimization advice, gather actual data first, then use OptimizationAgent
-    - If they want forecasts, collect historical data from API, then use ForecastingAgent
+    - If they need optimization advice, gather actual data first (including GA4 quality), then use OptimizationAgent
+    - If they want forecasts, collect historical data from API (including GA4 attribution), then use ForecastingAgent
     - For comprehensive analysis, coordinate all agents to provide complete insights from real data
 
     Always provide clear, structured responses with actionable recommendations based on actual data.

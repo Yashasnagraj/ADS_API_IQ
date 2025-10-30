@@ -1,0 +1,96 @@
+# This file specifies files that should NOT be uploaded to Google Cloud.
+# Syntax is the same as .gitignore
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+env/
+ENV/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Data files (don't upload to Cloud Build)
+*.db
+*.sqlite
+*.sqlite3
+*.csv
+extracted_data/
+
+# Logs
+*.log
+logs/
+
+# Documentation (not needed for build)
+*.md
+!README.md
+
+# Frontend (not needed for ETL build)
+marketingiq-platform/
+
+# Google Ads multiagent (not needed for ETL build)
+google-ads-multiagent/
+
+# API folder (not needed for ETL build)
+api/
+
+# Test files
+test_*.py
+*_test.py
+tests/
+pytest_cache/
+
+# Deployment docs (not needed for build)
+DEPLOYMENT.md
+STUDENT_QUICKSTART.md
+GEMINI_DEPLOY.md
+DEPLOY_COMMANDS.txt
+WHEN_READY_RUN_THIS.txt
+PRE_DEPLOYMENT_CHECKLIST.md
+GOOGLE_CLOUD_CONSOLE_STEPS.md
+CONSOLE_QUICK_CHECKLIST.txt
+README_DEPLOYMENT.md
+deployment_summary.txt
+
+# Other scripts not needed
+etl_pipeline_sqlserver.py
+setup.sh
+start-backend.sh
+start-frontend.sh
+render.yaml
+
+# Terraform (not needed for Cloud Build)
+terraform/

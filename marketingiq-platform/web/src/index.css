@@ -1,0 +1,94 @@
+/* Global Styles - Minimal for MUI compatibility */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ========================================
+   Performance Optimizations
+   ======================================== */
+
+/* Optimize animations for better performance */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* GPU acceleration for transforms */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Optimize canvas rendering */
+canvas {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Force hardware acceleration on animated elements */
+[class*="motion-"] {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Optimize text rendering during animations */
+.animating {
+  text-rendering: optimizeSpeed;
+}
+
+/* Prevent layout shifts during animations */
+.animated-section {
+  contain: layout style paint;
+}
+
+/* Optimize opacity transitions */
+.fade-in,
+.fade-out {
+  will-change: opacity;
+  transform: translateZ(0);
+}
+
+/* Performance hint for frequently animated properties */
+.animated-card {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* Remove will-change after animation completes to free up resources */
+.animation-complete {
+  will-change: auto;
+}

@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data files
+*.db
+*.sqlite
+*.sqlite3
+extracted_data/
+*.csv
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Platform specific
+marketingiq-platform/
+google-ads-multiagent/
+api/
+
+# Test files
+test_*.py
+*_test.py
+tests/

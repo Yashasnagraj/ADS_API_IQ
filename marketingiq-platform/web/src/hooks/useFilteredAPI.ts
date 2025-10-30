@@ -87,11 +87,11 @@ export const useFilteredAPI = <T = any>({
   };
 };
 
-// Helper hooks for common API endpoints
+// Helper hooks for common API endpoints (using warehouse data)
 
 export const useCampaigns = (additionalParams?: Record<string, any>) => {
   return useFilteredAPI<any>({
-    endpoint: '/campaigns',
+    endpoint: '/warehouse/campaigns', // Read from warehouse database
     params: additionalParams,
     autoFetch: true
   });
@@ -99,7 +99,7 @@ export const useCampaigns = (additionalParams?: Record<string, any>) => {
 
 export const useKeywords = (additionalParams?: Record<string, any>) => {
   return useFilteredAPI<any>({
-    endpoint: '/keywords',
+    endpoint: '/warehouse/keywords', // Read from warehouse database
     params: additionalParams,
     autoFetch: true
   });
@@ -107,7 +107,7 @@ export const useKeywords = (additionalParams?: Record<string, any>) => {
 
 export const useSearchTerms = (additionalParams?: Record<string, any>) => {
   return useFilteredAPI<any>({
-    endpoint: '/search-terms',
+    endpoint: '/search-terms', // TODO: Create /warehouse/search-terms endpoint
     params: additionalParams,
     autoFetch: true
   });
@@ -115,14 +115,16 @@ export const useSearchTerms = (additionalParams?: Record<string, any>) => {
 
 export const useMetricsSummary = () => {
   return useFilteredAPI<any>({
-    endpoint: '/metrics/summary',
+    endpoint: '/warehouse/metrics/summary', // Read from warehouse database
     autoFetch: true
   });
 };
 
-export const useAdGroups = (campaignId?: number) => {
+export const useAdGroups = (campaignId?: string, additionalParams?: Record<string, any>) => {
+  const params = campaignId ? { campaign_id: campaignId, ...additionalParams } : additionalParams;
   return useFilteredAPI<any>({
-    endpoint: campaignId ? `/campaigns/${campaignId}/adgroups` : '/adgroups',
+    endpoint: '/warehouse/ad-groups', // Read from warehouse database
+    params,
     autoFetch: true,
     dependencies: [campaignId]
   });
@@ -252,6 +254,146 @@ export const useEcommerceAnomalies = () => {
   return useFilteredAPI<any>({
     endpoint: '/ecommerce/anomalies',
     autoFetch: true
+  });
+};
+
+// ==============================================================================
+// GA4 HOOKS (Google Analytics 4 Integration)
+// ==============================================================================
+
+// GA4 Integration Status
+export const useGA4Status = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/integration/status',
+    autoFetch: true
+  });
+};
+
+// GA4 Properties
+export const useGA4Properties = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/properties',
+    autoFetch: true
+  });
+};
+
+// GA4 Sessions
+export const useGA4Sessions = (additionalParams?: Record<string, any>) => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/sessions',
+    params: additionalParams,
+    autoFetch: true
+  });
+};
+
+// GA4 Behavior by Source
+export const useGA4BehaviorBySource = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/sessions/by-source',
+    autoFetch: true
+  });
+};
+
+// GA4 Behavior by Campaign
+export const useGA4BehaviorByCampaign = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/sessions/by-campaign',
+    autoFetch: true
+  });
+};
+
+// GA4 Events
+export const useGA4Events = (additionalParams?: Record<string, any>) => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/events',
+    params: additionalParams,
+    autoFetch: true
+  });
+};
+
+// GA4 Top Events
+export const useGA4TopEvents = (limit: number = 10) => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/events/top',
+    params: { limit },
+    autoFetch: true
+  });
+};
+
+// GA4 Conversion Paths (Multi-Touch Attribution)
+export const useGA4ConversionPaths = (additionalParams?: Record<string, any>) => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/conversion-paths',
+    params: additionalParams,
+    autoFetch: true
+  });
+};
+
+// GA4 Attribution Models
+export const useGA4Attribution = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/attribution',
+    autoFetch: true
+  });
+};
+
+// GA4 Audience Insights
+export const useGA4AudienceInsights = (additionalParams?: Record<string, any>) => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/audience-insights',
+    params: additionalParams,
+    autoFetch: true
+  });
+};
+
+// GA4 Device Performance
+export const useGA4DevicePerformance = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/audience-insights/devices',
+    autoFetch: true
+  });
+};
+
+// GA4 Country Breakdown
+export const useGA4CountryBreakdown = (limit: number = 10) => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/audience-insights/countries',
+    params: { limit },
+    autoFetch: true
+  });
+};
+
+// ⭐ MOST IMPORTANT: Campaign Enrichment (Google Ads + GA4 Combined)
+export const useGA4CampaignEnrichment = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/campaign-enrichment',
+    autoFetch: true
+  });
+};
+
+// Keyword Enrichment (Google Ads + GA4 Combined)
+export const useGA4KeywordEnrichment = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/keyword-enrichment',
+    autoFetch: true
+  });
+};
+
+// Ad Group Enrichment (Google Ads + GA4 Combined)
+export const useGA4AdGroupEnrichment = () => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/adgroup-enrichment',
+    autoFetch: true
+  });
+};
+
+// GA4 User Behavior by Campaign
+export const useGA4UserBehaviorByCampaign = (campaignId?: number) => {
+  return useFilteredAPI<any>({
+    endpoint: '/ga4/user-behavior',
+    params: campaignId ? { campaign_id: campaignId } : {},
+    autoFetch: !!campaignId,
+    dependencies: [campaignId]
   });
 };
 

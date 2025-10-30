@@ -1,6 +1,7 @@
 /**
  * Global Filter Bar Component
  * Provides customer, date range, and campaign type filtering across all dashboards
+ * Integrated with FilterContext for global state management
  */
 import React, { useState, useEffect } from 'react';
 import {
@@ -16,51 +17,32 @@ import {
   Stack,
   Divider,
   IconButton,
-  Collapse
+  Collapse,
 } from '@mui/material';
 import {
   FilterList as FilterIcon,
   ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon
+  ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
-import axios from 'axios';
-import API_CONFIG from '../../config/api';
-
-// Filter state interface
-export interface FilterState {
-  customerId: number | null;
-  dateRange: string;
-  campaignType: string;
-}
-
-// Customer interface
-interface Customer {
-  customer_id: number;
-  customer_name: string;
-  campaigns_count: number;
-}
+import { useFilters } from '../../context/FilterContext';
+import { customerService } from '../../services/customerService';
+import { Customer } from '../../types';
 
 interface GlobalFilterBarProps {
-  onFilterChange: (filters: FilterState) => void;
-  initialFilters?: Partial<FilterState>;
   compact?: boolean;
+  showPlatformFilter?: boolean;
+  showCampaignTypeFilter?: boolean;
 }
 
-
-const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
-  onFilterChange,
-  initialFilters,
-  compact = false
+export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
+  compact = false,
+  showPlatformFilter = false,
+  showCampaignTypeFilter = true,
 }) => {
+  const { filters, setFilters } = useFilters();
   const [expanded, setExpanded] = useState(!compact);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const [filters, setFilters] = useState<FilterState>({
-    customerId: initialFilters?.customerId || null,
-    dateRange: initialFilters?.dateRange || 'LAST_30_DAYS',
-    campaignType: initialFilters?.campaignType || 'ALL'
-  });
 
   // Fetch customers on mount
   useEffect(() => {
@@ -69,21 +51,18 @@ const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
 
   // Set default customer if none selected
   useEffect(() => {
-    if (customers.length > 0 && filters.customerId === null) {
+    if (customers.length > 0 && !filters.customerId) {
       const defaultCustomer = customers[0];
-      const newFilters = { ...filters, customerId: defaultCustomer.customer_id };
-      setFilters(newFilters);
-      onFilterChange(newFilters);
+      console.log('Setting default customer:', defaultCustomer.customer_name, defaultCustomer.customer_id);
+      setFilters({ customerId: String(defaultCustomer.customer_id) });
     }
-  }, [customers]);
+  }, [customers, filters.customerId, setFilters]);
 
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/customers`);
-      if (response.data && response.data.customers) {
-        setCustomers(response.data.customers);
-      }
+      const data = await customerService.getCustomers();
+      setCustomers(data);
     } catch (error) {
       console.error('Failed to fetch customers:', error);
     } finally {
@@ -91,34 +70,33 @@ const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
     }
   };
 
-  const handleCustomerChange = (event: SelectChangeEvent<number>) => {
-    const newFilters = { ...filters, customerId: Number(event.target.value) };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
+  const handleCustomerChange = (event: SelectChangeEvent<string>) => {
+    setFilters({ customerId: event.target.value });
   };
 
   const handleDateRangeChange = (event: SelectChangeEvent<string>) => {
-    const newFilters = { ...filters, dateRange: event.target.value };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
+    setFilters({ dateRange: event.target.value });
   };
 
   const handleCampaignTypeChange = (event: SelectChangeEvent<string>) => {
-    const newFilters = { ...filters, campaignType: event.target.value };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
+    setFilters({ campaignType: event.target.value });
+  };
+
+  const handlePlatformChange = (event: SelectChangeEvent<string>) => {
+    setFilters({ platform: event.target.value });
   };
 
   const getSelectedCustomerName = () => {
-    const customer = customers.find(c => c.customer_id === filters.customerId);
+    const customer = customers.find((c) => String(c.customer_id) === filters.customerId);
     return customer ? customer.customer_name : 'Select Customer';
   };
 
   const getActiveFiltersCount = () => {
     let count = 0;
     if (filters.customerId) count++;
-    if (filters.dateRange !== 'ALL_TIME') count++;
+    if (filters.dateRange !== 'LAST_30_DAYS') count++;
     if (filters.campaignType !== 'ALL') count++;
+    if (filters.platform !== 'ALL') count++;
     return count;
   };
 
@@ -132,7 +110,7 @@ const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
         backgroundColor: 'background.paper',
         borderRadius: 2,
         overflow: 'hidden',
-        mb: 3
+        mb: 3,
       }}
     >
       {/* Header */}
@@ -143,7 +121,7 @@ const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
           justifyContent: 'space-between',
           p: 2,
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white'
+          color: 'white',
         }}
       >
         <Stack direction="row" spacing={2} alignItems="center">
@@ -158,7 +136,7 @@ const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
               sx={{
                 backgroundColor: 'rgba(255,255,255,0.2)',
                 color: 'white',
-                fontWeight: 600
+                fontWeight: 600,
               }}
             />
           )}
@@ -188,25 +166,17 @@ const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
               <Select
                 labelId="customer-select-label"
                 id="customer-select"
-                value={filters.customerId && customers.some(c => c.customer_id === filters.customerId) ? filters.customerId : ''}
+                value={filters.customerId || ''}
                 label="Customer"
                 onChange={handleCustomerChange}
                 disabled={loading}
               >
                 {customers.map((customer) => (
-                  <MenuItem
-                    key={customer.customer_id}
-                    value={customer.customer_id}
-                  >
+                  <MenuItem key={customer.customer_id} value={String(customer.customer_id)}>
                     <Stack direction="row" spacing={1} alignItems="center" width="100%">
                       <Typography variant="body2" flex={1}>
                         {customer.customer_name}
                       </Typography>
-                      <Chip
-                        label={`${customer.campaigns_count} campaigns`}
-                        size="small"
-                        variant="outlined"
-                      />
                     </Stack>
                   </MenuItem>
                 ))}
@@ -229,41 +199,63 @@ const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
                 <MenuItem value="THIS_MONTH">This Month</MenuItem>
                 <MenuItem value="LAST_MONTH">Last Month</MenuItem>
                 <MenuItem value="THIS_YEAR">This Year</MenuItem>
-                <MenuItem value="ALL_TIME">All Time</MenuItem>
               </Select>
             </FormControl>
 
             {/* Campaign Type Filter */}
-            <FormControl fullWidth size="small">
-              <InputLabel id="campaign-type-label">Campaign Type</InputLabel>
-              <Select
-                labelId="campaign-type-label"
-                id="campaign-type-select"
-                value={filters.campaignType}
-                label="Campaign Type"
-                onChange={handleCampaignTypeChange}
-              >
-                <MenuItem value="ALL">All Campaigns</MenuItem>
-                <MenuItem value="SEARCH">Search</MenuItem>
-                <MenuItem value="DISPLAY">Display</MenuItem>
-                <MenuItem value="SHOPPING">Shopping</MenuItem>
-                <MenuItem value="VIDEO">Video</MenuItem>
-                <MenuItem value="PERFORMANCE_MAX">Performance Max</MenuItem>
-              </Select>
-            </FormControl>
+            {showCampaignTypeFilter && (
+              <FormControl fullWidth size="small">
+                <InputLabel id="campaign-type-label">Campaign Type</InputLabel>
+                <Select
+                  labelId="campaign-type-label"
+                  id="campaign-type-select"
+                  value={filters.campaignType}
+                  label="Campaign Type"
+                  onChange={handleCampaignTypeChange}
+                >
+                  <MenuItem value="ALL">All Campaigns</MenuItem>
+                  <MenuItem value="SEARCH">Search</MenuItem>
+                  <MenuItem value="DISPLAY">Display</MenuItem>
+                  <MenuItem value="SHOPPING">Shopping</MenuItem>
+                  <MenuItem value="VIDEO">Video</MenuItem>
+                  <MenuItem value="PERFORMANCE_MAX">Performance Max</MenuItem>
+                </Select>
+              </FormControl>
+            )}
+
+            {/* Platform Filter */}
+            {showPlatformFilter && (
+              <FormControl fullWidth size="small">
+                <InputLabel id="platform-label">Platform</InputLabel>
+                <Select
+                  labelId="platform-label"
+                  id="platform-select"
+                  value={filters.platform}
+                  label="Platform"
+                  onChange={handlePlatformChange}
+                >
+                  <MenuItem value="ALL">All Platforms</MenuItem>
+                  <MenuItem value="google_ads">Google Ads</MenuItem>
+                  <MenuItem value="meta_ads">Meta Ads</MenuItem>
+                  <MenuItem value="ga4">Google Analytics 4</MenuItem>
+                </Select>
+              </FormControl>
+            )}
           </Stack>
 
           {/* Active Filters Summary */}
           {filters.customerId && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="caption" color="text.secondary">
-                Viewing data for{' '}
-                <strong>{getSelectedCustomerName()}</strong>
-                {filters.dateRange !== 'ALL_TIME' && (
+                Viewing data for <strong>{getSelectedCustomerName()}</strong>
+                {filters.dateRange !== 'LAST_30_DAYS' && (
                   <>, {filters.dateRange.replace(/_/g, ' ').toLowerCase()}</>
                 )}
                 {filters.campaignType !== 'ALL' && (
                   <>, {filters.campaignType.toLowerCase()} campaigns only</>
+                )}
+                {filters.platform !== 'ALL' && (
+                  <>, {filters.platform.replace(/_/g, ' ')} only</>
                 )}
               </Typography>
             </Box>
@@ -273,5 +265,3 @@ const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
     </Paper>
   );
 };
-
-export default GlobalFilterBar;

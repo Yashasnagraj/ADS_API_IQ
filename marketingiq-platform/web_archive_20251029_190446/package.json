@@ -1,0 +1,40 @@
+{
+  "name": "marketingiq-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "webpack serve --config webpack.config.js --mode development",
+    "build": "webpack --config webpack.config.js --mode production",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^5.18.0",
+    "@mui/material": "^5.18.0",
+    "@mui/x-data-grid": "^8.12.1",
+    "axios": "^1.12.2",
+    "chart.js": "^4.5.0",
+    "date-fns": "^4.1.0",
+    "react": "^19.1.1",
+    "react-chartjs-2": "^5.3.0",
+    "react-countup": "^6.5.3",
+    "react-dom": "^19.1.1",
+    "react-markdown": "^9.1.0",
+    "react-router-dom": "^7.9.3",
+    "recharts": "^3.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@types/react": "^19.1.14",
+    "@types/react-dom": "^19.1.9",
+    "css-loader": "^7.1.2",
+    "html-webpack-plugin": "^5.6.4",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.4",
+    "typescript": "^5.9.2",
+    "webpack": "^5.101.3",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.2"
+  }
+}

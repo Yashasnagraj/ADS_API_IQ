@@ -93,6 +93,7 @@ htmlcov/
 ab
 nul
 pip_cache/
+.pids
 
 # ========================================
 # Database (comment out if you want to share sample data)
@@ -106,6 +107,7 @@ pip_cache/
 # ========================================
 .key
 secrets/
+credentials/
 *.encrypted
 config.encrypted
 *.pem
