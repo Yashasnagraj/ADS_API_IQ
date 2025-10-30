@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "MarketingIQ Google Ads API"
     DEBUG: bool = Field(default=False, env="DEBUG")
 
-    # Database
+    # Database - Connected to marketing_warehouse.db
     DATABASE_URL: str = Field(
-        default=f"sqlite:///{Path(__file__).parent.parent.parent.parent / 'google_ads_data.db'}",
+        default=f"sqlite:///{Path(__file__).parent.parent.parent.parent / 'marketing_warehouse.db'}",
         env="DATABASE_URL"
     )
 

@@ -633,7 +633,7 @@ def get_ad_details(
 # INSIGHTS (PERFORMANCE METRICS)
 # ==============================================================================
 
-@router.get("/insights", response_model=schemas.MetaInsightsResponse)
+@router.get("/insights")  # response_model=schemas.MetaInsightsResponse
 def get_insights(
     customer_id: int = Query(..., description="Customer ID"),
     account_id: Optional[str] = Query(None, description="Meta Ad Account ID"),

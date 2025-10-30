@@ -87,11 +87,11 @@ export const useFilteredAPI = <T = any>({
   };
 };
 
-// Helper hooks for common API endpoints
+// Helper hooks for common API endpoints (using warehouse data)
 
 export const useCampaigns = (additionalParams?: Record<string, any>) => {
   return useFilteredAPI<any>({
-    endpoint: '/campaigns',
+    endpoint: '/warehouse/campaigns', // Read from warehouse database
     params: additionalParams,
     autoFetch: true
   });
@@ -99,7 +99,7 @@ export const useCampaigns = (additionalParams?: Record<string, any>) => {
 
 export const useKeywords = (additionalParams?: Record<string, any>) => {
   return useFilteredAPI<any>({
-    endpoint: '/keywords',
+    endpoint: '/warehouse/keywords', // Read from warehouse database
     params: additionalParams,
     autoFetch: true
   });
@@ -107,7 +107,7 @@ export const useKeywords = (additionalParams?: Record<string, any>) => {
 
 export const useSearchTerms = (additionalParams?: Record<string, any>) => {
   return useFilteredAPI<any>({
-    endpoint: '/search-terms',
+    endpoint: '/search-terms', // TODO: Create /warehouse/search-terms endpoint
     params: additionalParams,
     autoFetch: true
   });
@@ -115,14 +115,16 @@ export const useSearchTerms = (additionalParams?: Record<string, any>) => {
 
 export const useMetricsSummary = () => {
   return useFilteredAPI<any>({
-    endpoint: '/metrics/summary',
+    endpoint: '/warehouse/metrics/summary', // Read from warehouse database
     autoFetch: true
   });
 };
 
-export const useAdGroups = (campaignId?: number) => {
+export const useAdGroups = (campaignId?: string, additionalParams?: Record<string, any>) => {
+  const params = campaignId ? { campaign_id: campaignId, ...additionalParams } : additionalParams;
   return useFilteredAPI<any>({
-    endpoint: campaignId ? `/campaigns/${campaignId}/adgroups` : '/adgroups',
+    endpoint: '/warehouse/ad-groups', // Read from warehouse database
+    params,
     autoFetch: true,
     dependencies: [campaignId]
   });

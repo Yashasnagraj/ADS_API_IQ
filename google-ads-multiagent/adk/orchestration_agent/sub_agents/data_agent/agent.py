@@ -11,6 +11,7 @@ from .tools.adgroup_tools import AdGroupTools
 from .tools.ga4_tools import GA4Tools
 from .db_client import DatabaseClient
 from .api_client import APIClient
+from .warehouse_client import WarehouseClient
 
 
 class DataAgent:
@@ -18,17 +19,31 @@ class DataAgent:
     Agent responsible for collecting data from MarketingIQ API and Google Ads
     """
 
-    def __init__(self, google_ads_manager=None):
+    def __init__(self, google_ads_manager=None, use_warehouse=True):
         """
         Initialize Data Agent with all tools
 
         Args:
             google_ads_manager: Google Ads manager instance (optional)
+            use_warehouse: Use new warehouse (default True)
         """
         self.gam = google_ads_manager
         self.name = "DataAgent"
         self.db_client = DatabaseClient()
         self.api_client = APIClient(base_url="http://localhost:8000")
+
+        # Initialize warehouse client (new)
+        self.use_warehouse = use_warehouse
+        if use_warehouse:
+            try:
+                self.warehouse_client = WarehouseClient()
+                logger.info("Data Agent initialized with warehouse client")
+            except Exception as e:
+                logger.warning(f"Could not initialize warehouse client: {e}. Falling back to old DB.")
+                self.use_warehouse = False
+                self.warehouse_client = None
+        else:
+            self.warehouse_client = None
 
         # Initialize tools
         self.search_term_tools = SearchTermTools(google_ads_manager)
@@ -534,8 +549,147 @@ class DataAgent:
             logger.error(f"Error fetching GA4 audience insights: {str(e)}")
             return {"error": str(e), "segments": []}
 
+    # ===== Warehouse Methods (New Multi-Platform) =====
+
+    def fetch_campaigns_warehouse(
+        self,
+        customer_id: Optional[int] = None,
+        status: Optional[str] = None,
+        limit: int = 100
+    ) -> Dict[str, Any]:
+        """
+        Fetch campaigns from warehouse (multi-platform)
+
+        Args:
+            customer_id: Filter by customer ID
+            status: Campaign status filter
+            limit: Maximum results
+
+        Returns:
+            Campaigns data from warehouse
+        """
+        if not self.use_warehouse or not self.warehouse_client:
+            logger.warning("Warehouse not available, falling back to old DB")
+            return self.db_client.fetch_campaigns(status=status, limit=limit)
+
+        try:
+            result = self.warehouse_client.fetch_campaigns(
+                customer_id=customer_id,
+                status=status,
+                limit=limit
+            )
+
+            if "error" not in result:
+                logger.info(f"Fetched {result.get('total', 0)} campaigns from warehouse")
+            else:
+                logger.error(f"Warehouse fetch failed: {result.get('error')}")
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error fetching campaigns from warehouse: {str(e)}")
+            # Fallback to old DB
+            return self.db_client.fetch_campaigns(status=status, limit=limit)
+
+    def fetch_traffic_sources_warehouse(
+        self,
+        customer_id: Optional[int] = None,
+        days: int = 30,
+        limit: int = 100
+    ) -> Dict[str, Any]:
+        """
+        Fetch GA4 traffic sources from warehouse
+
+        Args:
+            customer_id: Filter by customer ID
+            days: Number of days
+            limit: Maximum results
+
+        Returns:
+            Traffic sources data
+        """
+        if not self.use_warehouse or not self.warehouse_client:
+            logger.warning("Warehouse not available")
+            return {'error': 'Warehouse not initialized', 'traffic_sources': []}
+
+        try:
+            result = self.warehouse_client.fetch_traffic_sources(
+                customer_id=customer_id,
+                days=days,
+                limit=limit
+            )
+
+            if "error" not in result:
+                logger.info(f"Fetched {result.get('total', 0)} traffic sources from warehouse")
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error fetching traffic sources: {str(e)}")
+            return {'error': str(e), 'traffic_sources': []}
+
+    def fetch_metrics_summary_warehouse(
+        self,
+        customer_id: Optional[int] = None,
+        days: int = 30
+    ) -> Dict[str, Any]:
+        """
+        Fetch overall metrics summary from warehouse (cross-platform)
+
+        Args:
+            customer_id: Filter by customer ID
+            days: Number of days
+
+        Returns:
+            Metrics summary across all platforms
+        """
+        if not self.use_warehouse or not self.warehouse_client:
+            logger.warning("Warehouse not available, falling back to old DB")
+            return self.db_client.fetch_metrics_summary()
+
+        try:
+            result = self.warehouse_client.fetch_metrics_summary(
+                customer_id=customer_id,
+                days=days
+            )
+
+            if "error" not in result:
+                logger.info("Fetched metrics summary from warehouse")
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error fetching metrics summary: {str(e)}")
+            # Fallback to old DB
+            return self.db_client.fetch_metrics_summary()
+
+    def get_warehouse_customers(self) -> List[Dict[str, Any]]:
+        """
+        Get list of all customers in warehouse
+
+        Returns:
+            List of customers with their configurations
+        """
+        if not self.use_warehouse or not self.warehouse_client:
+            logger.warning("Warehouse not available")
+            return []
+
+        try:
+            customers = self.warehouse_client.get_customers()
+            logger.info(f"Found {len(customers)} customers in warehouse")
+            return customers
+
+        except Exception as e:
+            logger.error(f"Error getting customers: {str(e)}")
+            return []
+
     def clear_cache(self):
         """Clear all cached data"""
         self.db_client.clear_cache()
         self.ga4_tools.clear_cache()
-        logger.info("Data cache cleared (Google Ads + GA4)")
+
+        if self.use_warehouse and self.warehouse_client:
+            self.warehouse_client.clear_cache()
+            logger.info("Data cache cleared (old DB + warehouse + GA4)")
+        else:
+            logger.info("Data cache cleared (old DB + GA4)")

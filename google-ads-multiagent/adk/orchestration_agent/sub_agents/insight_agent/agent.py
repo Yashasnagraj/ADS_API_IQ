@@ -10,6 +10,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from data_agent.db_client import DatabaseClient
+from data_agent.warehouse_client import WarehouseClient
 
 
 class InsightAgent:
@@ -17,16 +18,30 @@ class InsightAgent:
     Agent responsible for analyzing data and generating insights
     """
 
-    def __init__(self, data_agent=None):
+    def __init__(self, data_agent=None, use_warehouse=True):
         """
         Initialize Insight Agent
 
         Args:
             data_agent: DataAgent instance for fetching data
+            use_warehouse: Use new warehouse (default True)
         """
         self.data_agent = data_agent
         self.name = "InsightAgent"
         self.db_client = DatabaseClient()
+
+        # Initialize warehouse client (new)
+        self.use_warehouse = use_warehouse
+        if use_warehouse:
+            try:
+                self.warehouse_client = WarehouseClient()
+                logger.info("Insight Agent initialized with warehouse client")
+            except Exception as e:
+                logger.warning(f"Could not initialize warehouse client: {e}. Falling back to old DB.")
+                self.use_warehouse = False
+                self.warehouse_client = None
+        else:
+            self.warehouse_client = None
 
         # Performance thresholds
         self.thresholds = {
@@ -53,8 +68,15 @@ class InsightAgent:
             Campaign performance analysis report
         """
         try:
-            # Fetch campaign data
-            campaigns_data = self.db_client.fetch_campaigns()
+            # Fetch campaign data - use warehouse if available
+            if self.use_warehouse and self.warehouse_client:
+                # Convert customer_id to int if string
+                cust_id = int(customer_id) if customer_id and customer_id.isdigit() else None
+                campaigns_data = self.warehouse_client.fetch_campaigns(customer_id=cust_id)
+                logger.info("Using warehouse for campaign analysis")
+            else:
+                campaigns_data = self.db_client.fetch_campaigns()
+                logger.info("Using old DB for campaign analysis")
 
             if "error" in campaigns_data:
                 return {
