@@ -69,33 +69,88 @@ export const apiClient = new ApiClient();
 const api = apiClient;
 
 export const campaignService = {
-  getCampaigns: () => api.get('/campaigns'),
-  getCampaignById: (id: string) => api.get(`/campaigns/${id}`),
-  getCampaignMetrics: () => api.get('/metrics/campaigns'),
+  getCampaigns: (customerId: string, dateRange: string = 'LAST_30_DAYS', limit: number = 100) =>
+    api.get('/warehouse/campaigns', {
+      params: { customer_id: customerId, date_range: dateRange, limit }
+    }),
+  getCampaignById: (id: string, customerId: string) =>
+    api.get(`/warehouse/campaigns/${id}`, {
+      params: { customer_id: customerId }
+    }),
+  getCampaignMetrics: (customerId: string, dateRange: string = 'LAST_30_DAYS') =>
+    api.get('/warehouse/metrics/summary', {
+      params: { customer_id: customerId, date_range: dateRange }
+    }),
 };
 
 export const insightService = {
-  getCampaignInsights: () => api.get('/insights/campaigns'),
-  getKeywordInsights: () => api.get('/insights/keywords'),
-  getAnomalies: () => api.get('/insights/anomalies'),
-  getSummary: () => api.get('/insights/summary'),
+  getCampaignInsights: (customerId: string, dateRange: string = 'last_30d') =>
+    api.get('/warehouse/insights/campaign-insights', {
+      params: { customer_id: customerId, date_range: dateRange }
+    }),
+  getKeywordInsights: (customerId: string, dateRange: string = 'last_30d') =>
+    api.get('/warehouse/insights/keyword-insights', {
+      params: { customer_id: customerId, date_range: dateRange }
+    }),
+  getAnomalies: (customerId: string, dateRange: string = 'last_30d') =>
+    api.get('/warehouse/insights/anomalies', {
+      params: { customer_id: customerId, date_range: dateRange }
+    }),
+  getSummary: (customerId: string, dateRange: string = 'last_30d') =>
+    api.get('/warehouse/insights/campaign-insights', {
+      params: { customer_id: customerId, date_range: dateRange }
+    }),
 };
 
 export const forecastService = {
-  getCTRForecast: () => api.get('/forecasts/ctr'),
-  getSpendForecast: () => api.get('/forecasts/spend'),
-  getScenarios: () => api.get('/forecasts/scenarios'),
+  getCTRForecast: (customerId: string, forecastDays: number = 7) =>
+    api.get('/warehouse/forecasting/ctr-forecast', {
+      params: { customer_id: customerId, forecast_days: forecastDays }
+    }),
+  getSpendForecast: (customerId: string, forecastDays: number = 7) =>
+    api.get('/warehouse/forecasting/spend-forecast', {
+      params: { customer_id: customerId, forecast_days: forecastDays }
+    }),
+  getScenarios: (customerId: string) =>
+    api.get('/warehouse/forecasting/scenarios', {
+      params: { customer_id: customerId }
+    }),
+  runScenario: (customerId: string, data: any) =>
+    api.post('/warehouse/forecasting/scenarios', data, {
+      params: { customer_id: customerId }
+    }),
 };
 
 export const alertService = {
-  getAlerts: () => api.get('/alerts'),
-  getThresholds: () => api.get('/alerts/thresholds'),
-  createAlert: (data: any) => api.post('/alerts', data),
-  updateThreshold: (id: string, data: any) => api.put(`/alerts/thresholds/${id}`, data),
+  getAlerts: (customerId: string) =>
+    api.get('/warehouse/alerts/active', {
+      params: { customer_id: customerId }
+    }),
+  getThresholds: (customerId: string) =>
+    api.get('/warehouse/alerts/thresholds', {
+      params: { customer_id: customerId }
+    }),
+  createAlert: (customerId: string, data: any) =>
+    api.post('/warehouse/alerts/active', data, {
+      params: { customer_id: customerId }
+    }),
+  updateThreshold: (customerId: string, id: string, data: any) =>
+    api.put(`/warehouse/alerts/thresholds/${id}`, data, {
+      params: { customer_id: customerId }
+    }),
 };
 
 export const optimizationService = {
-  getBudgetRecommendations: () => api.get('/optimization/budget'),
-  getKeywordRecommendations: () => api.get('/optimization/keywords'),
-  runSimulation: (data: any) => api.post('/optimization/simulator', data),
+  getBudgetRecommendations: (customerId: string, dateRange: string = 'last_30d') =>
+    api.get('/warehouse/optimization/budget-recommendations', {
+      params: { customer_id: customerId, date_range: dateRange }
+    }),
+  getKeywordRecommendations: (customerId: string, dateRange: string = 'last_30d') =>
+    api.get('/warehouse/optimization/keyword-recommendations', {
+      params: { customer_id: customerId, date_range: dateRange }
+    }),
+  getCampaignSimulations: (customerId: string, scenarioType: string = 'budget_increase') =>
+    api.get('/warehouse/optimization/campaign-simulator', {
+      params: { customer_id: customerId, scenario_type: scenarioType }
+    }),
 };

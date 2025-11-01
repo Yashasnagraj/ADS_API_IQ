@@ -13,7 +13,7 @@ const getEnvVar = (value: string | undefined, fallback: string): string => {
 };
 
 export const API_CONFIG = {
-  // Backend REST API (SQLite)
+  // Backend REST API (SQLite) - All warehouse endpoints use /api/v1 prefix
   BASE_URL: getEnvVar(
     import.meta.env.VITE_API_BASE_URL,
     isProduction
@@ -47,14 +47,14 @@ export const API_CONFIG = {
 } as const;
 
 export const API_ENDPOINTS = {
-  // Customers
-  CUSTOMERS: '/customers',
+  // Customers (using warehouse database)
+  CUSTOMERS: '/warehouse/customers',
 
   // Google Ads - Data Agent endpoints (using warehouse)
   GOOGLE_ADS_CAMPAIGNS: '/warehouse/campaigns',
   GOOGLE_ADS_KEYWORDS: '/warehouse/keywords',
   GOOGLE_ADS_ADGROUPS: '/warehouse/ad-groups',
-  GOOGLE_ADS_SEARCH_TERMS: '/warehouse/search-terms',
+  GOOGLE_ADS_SEARCH_TERMS: '/warehouse/data/search-terms',
   GOOGLE_ADS_ML_FEATURES: '/warehouse/ml-features',
   GOOGLE_ADS_ENRICHED_CAMPAIGNS: '/warehouse/campaigns/enriched',
 
@@ -80,25 +80,25 @@ export const API_ENDPOINTS = {
   UNIFIED_PLATFORM_COMPARISON: '/unified/platform-comparison',
   UNIFIED_DAILY_PERFORMANCE: '/unified/performance/daily',
 
-  // Insight Agent endpoints
-  INSIGHTS_SUMMARY: '/insights/summary',
-  INSIGHTS_CAMPAIGN: '/insights/campaigns',
-  INSIGHTS_KEYWORD: '/insights/keywords',
-  INSIGHTS_ANOMALIES: '/insights/anomalies',
+  // Insight Agent endpoints (using warehouse)
+  INSIGHTS_SUMMARY: '/warehouse/insights/summary',
+  INSIGHTS_CAMPAIGN: '/warehouse/insights/campaign-insights',
+  INSIGHTS_KEYWORD: '/warehouse/insights/keyword-insights',
+  INSIGHTS_ANOMALIES: '/warehouse/insights/anomalies',
 
-  // Optimization Agent endpoints
-  OPTIMIZATION_BUDGET: '/optimization/budget',
-  OPTIMIZATION_KEYWORDS: '/optimization/keywords',
-  OPTIMIZATION_SIMULATOR: '/optimization/simulator',
+  // Optimization Agent endpoints (using warehouse)
+  OPTIMIZATION_BUDGET: '/warehouse/optimization/budget-recommendations',
+  OPTIMIZATION_KEYWORDS: '/warehouse/optimization/keyword-recommendations',
+  OPTIMIZATION_SIMULATOR: '/warehouse/optimization/campaign-simulator',
 
-  // Forecasting Agent endpoints
-  FORECASTS_CTR: '/forecasts/ctr',
-  FORECASTS_SPEND: '/forecasts/spend',
-  FORECASTS_SCENARIOS: '/forecasts/scenarios',
+  // Forecasting Agent endpoints (using warehouse)
+  FORECASTS_CTR: '/warehouse/forecasting/ctr-forecast',
+  FORECASTS_SPEND: '/warehouse/forecasting/spend-forecast',
+  FORECASTS_SCENARIOS: '/warehouse/forecasting/scenarios',
 
-  // Alert Agent endpoints
-  ALERTS: '/alerts',
-  ALERTS_THRESHOLDS: '/alerts/thresholds',
+  // Alert Agent endpoints (using warehouse)
+  ALERTS: '/warehouse/alerts/active',
+  ALERTS_THRESHOLDS: '/warehouse/alerts/thresholds',
 };
 
 export const DEFAULT_DATE_RANGES = {

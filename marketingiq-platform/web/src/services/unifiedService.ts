@@ -29,22 +29,35 @@ export const unifiedService = {
       const blendedROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
       const totalConversions = (googleAdsData?.conversions || 0) + (metaAdsData?.conversions || 0) + (ga4Data?.conversions || 0);
 
-      // Determine best platform
+      // Determine best platform by ROAS
       const platformROAS = {
         google_ads: googleAdsData?.roas || 0,
         meta_ads: metaAdsData?.roas || 0,
       };
-      const bestPlatform = Object.entries(platformROAS).reduce((best, [name, roas]) =>
+      const bestPlatformByROAS = Object.entries(platformROAS).reduce((best, [name, roas]) =>
         roas > best.roas ? { name, roas } : best
       , { name: 'google_ads', roas: 0 });
+
+      // Determine best platform by Conversions
+      const platformConversions = {
+        google_ads: googleAdsData?.conversions || 0,
+        meta_ads: metaAdsData?.conversions || 0,
+      };
+      const bestPlatformByConv = Object.entries(platformConversions).reduce((best, [name, conversions]) =>
+        conversions > best.conversions ? { name, conversions } : best
+      , { name: 'google_ads', conversions: 0 });
 
       return {
         total_spend: totalSpend,
         blended_roas: blendedROAS,
         total_conversions: totalConversions,
         best_platform: {
-          name: bestPlatform.name === 'google_ads' ? 'Google Ads' : 'Meta Ads',
-          roas: bestPlatform.roas,
+          name: bestPlatformByROAS.name === 'google_ads' ? 'Google Ads' : 'Meta Ads',
+          roas: bestPlatformByROAS.roas,
+        },
+        best_platform_by_conversions: {
+          name: bestPlatformByConv.name === 'google_ads' ? 'Google Ads' : 'Meta Ads',
+          conversions: bestPlatformByConv.conversions,
         },
         platforms: {
           google_ads: googleAdsData || undefined,

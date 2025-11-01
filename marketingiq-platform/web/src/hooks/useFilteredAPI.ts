@@ -107,7 +107,7 @@ export const useKeywords = (additionalParams?: Record<string, any>) => {
 
 export const useSearchTerms = (additionalParams?: Record<string, any>) => {
   return useFilteredAPI<any>({
-    endpoint: '/search-terms', // TODO: Create /warehouse/search-terms endpoint
+    endpoint: '/warehouse/data/search-terms', // Matches backend route
     params: additionalParams,
     autoFetch: true
   });

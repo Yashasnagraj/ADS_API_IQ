@@ -9,23 +9,19 @@ import { Layout } from './components/common/Layout';
 import { LandingPage } from './components/landing/LandingPage';
 
 // Platform Dashboards
-import { UnifiedDashboard } from './components/dashboard/UnifiedDashboard';
-import { GoogleAdsDashboard } from './components/dashboard/GoogleAdsDashboard';
-import { MetaAdsDashboard } from './components/dashboard/MetaAdsDashboard';
-import { GA4Dashboard } from './components/dashboard/GA4Dashboard';
-import { EcommerceDashboard } from './components/dashboard/EcommerceDashboard';
+import { UnifiedDashboard } from './components/dashboards/platform/UnifiedDashboard';
+import { GoogleAdsDashboard } from './components/dashboards/platform/GoogleAdsDashboard';
+import { MetaAdsDashboard } from './components/dashboards/platform/MetaAdsDashboard';
+import { GA4Dashboard } from './components/dashboards/platform/GA4Dashboard';
+import { EcommerceDashboard } from './components/dashboards/platform/EcommerceDashboard';
 
 // Data Agent Dashboards
 import CampaignsDashboard from './components/dashboards/agents/data_agent/CampaignsDashboard';
 import KeywordsDashboard from './components/dashboards/agents/data_agent/KeywordsDashboard';
 import AdGroupsDashboard from './components/dashboards/agents/data_agent/AdGroupsDashboard';
-import SearchTermsDashboard from './components/dashboards/agents/data_agent/SearchTermsDashboard';
-import MLFeaturesDashboard from './components/dashboards/agents/data_agent/MLFeaturesDashboard';
-import EnrichedCampaignsDashboard from './components/dashboards/agents/data_agent/EnrichedCampaignsDashboard';
 
 // Insight Agent Dashboards
 import CampaignInsights from './components/dashboards/agents/insight_agent/CampaignInsights';
-import KeywordInsights from './components/dashboards/agents/insight_agent/KeywordInsights';
 import AnomalyDetection from './components/dashboards/agents/insight_agent/AnomalyDetection';
 import InsightsSummary from './components/dashboards/agents/insight_agent/InsightsSummary';
 
@@ -73,15 +69,11 @@ function App() {
                     <Route path="data/campaigns" element={<CampaignsDashboard />} />
                     <Route path="data/keywords" element={<KeywordsDashboard />} />
                     <Route path="data/adgroups" element={<AdGroupsDashboard />} />
-                    <Route path="data/search-terms" element={<SearchTermsDashboard />} />
-                    <Route path="data/ml-features" element={<MLFeaturesDashboard />} />
-                    <Route path="data/enriched-campaigns" element={<EnrichedCampaignsDashboard />} />
 
                     {/* Insight Agent Dashboards */}
-                    <Route path="insights/campaigns" element={<CampaignInsights />} />
-                    <Route path="insights/keywords" element={<KeywordInsights />} />
-                    <Route path="insights/anomalies" element={<AnomalyDetection />} />
                     <Route path="insights/summary" element={<InsightsSummary />} />
+                    <Route path="insights/anomalies" element={<AnomalyDetection />} />
+                    <Route path="insights/campaigns" element={<CampaignInsights />} />
 
                     {/* Optimization Agent Dashboards */}
                     <Route path="optimization/budget" element={<BudgetOptimizer />} />

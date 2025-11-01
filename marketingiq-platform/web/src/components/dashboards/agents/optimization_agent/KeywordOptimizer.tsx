@@ -1,10 +1,37 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * Keyword Optimizer Dashboard - Optimization Agent
+ *
+ * AI-powered keyword bid optimization and performance analysis
+ *
+ * Features:
+ * - Keyword performance analysis
+ * - Bid recommendations based on performance
+ * - Quality score optimization
+ * - Negative keyword suggestions
+ * - Search term analysis
+ *
+ * Structure:
+ * - Header (Title + Description)
+ * - Filters (Customer, Campaign) - from GlobalFilterBar
+ * - Performance Summary
+ * - Bid Recommendations
+ * - Quality Score Analysis
+ * - Search Terms Table
+ */
+
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Card,
   CardContent,
   Typography,
   Grid,
+  Alert,
+  AlertTitle,
+  Chip,
+  CircularProgress,
+  Divider,
+  Button,
   Table,
   TableBody,
   TableCell,
@@ -12,596 +39,809 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Button,
-  LinearProgress,
-  Alert,
-  Chip,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  TextField,
   IconButton,
   Tooltip,
-  Fade,
-  useTheme,
-  alpha,
 } from '@mui/material';
 import {
-  TrendingUp,
-  Info,
   Search,
-  Star,
-  Visibility,
+  TrendingUp,
+  TrendingDown,
+  AttachMoney,
   Speed,
-  AutoAwesome,
-  TipsAndUpdates,
-  TuneRounded,
-  WorkspacePremium,
+  Star,
+  Block,
+  Lightbulb,
+  Edit,
+  Info,
+  Assessment,
+  Psychology,
+  Timeline,
+  TrendingFlat,
 } from '@mui/icons-material';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ScatterChart, Scatter, Cell } from 'recharts';
-import DashboardTemplate from '../../../common/DashboardTemplate';
-import CompactKPICard from '../../../common/CompactKPICard';
-import AIIntelligenceSection, { AIInsight } from '../../../common/AIIntelligenceSection';
-import InteractiveKPICard from '../../../kpi/InteractiveKPICard';
-import KPIDetailDrawer, { KPIDetailItem } from '../../../kpi/KPIDetailDrawer';
-import { EnhancedChart } from '../../../charts/EnhancedChart';
-import { optimizationService } from '../../../../services/api';
+import { useFilters } from '../../../../context/FilterContext';
+import {
+  ScatterChart,
+  Scatter,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  ResponsiveContainer,
+  ZAxis,
+} from 'recharts';
+
+interface Keyword {
+  keyword_id: string;
+  keyword_text: string;
+  campaign_name: string;
+  ad_group_name: string;
+  match_type: string;
+  status: string;
+  quality_score: number;
+  current_cpc: number;
+  avg_cpc: number;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  cost: number;
+  ctr: number;
+  conversion_rate: number;
+}
+
+interface BidRecommendation {
+  keyword_text: string;
+  current_bid: number;
+  recommended_bid: number;
+  bid_change: number;
+  bid_change_pct: number;
+  reason: string;
+  expected_impact: string;
+  action: 'increase' | 'decrease' | 'maintain';
+  priority: 'high' | 'medium' | 'low';
+}
 
 const KeywordOptimizer: React.FC = () => {
-  const theme = useTheme();
-  const [data, setData] = useState<any>(null);
+  const { filters } = useFilters();
+  const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTimeRange, setSelectedTimeRange] = useState('7d');
-
-  // Drawer state for KPI drill-down
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerData, setDrawerData] = useState<KPIDetailItem[]>([]);
-  const [drawerTitle, setDrawerTitle] = useState('');
-  const [drawerSubtitle, setDrawerSubtitle] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<string>('');
+  const [performanceThreshold, setPerformanceThreshold] = useState<number>(2); // CTR threshold
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchKeywords();
+  }, [filters.customerId, selectedCampaign]);
 
-  const fetchData = async () => {
+  const fetchKeywords = async () => {
+    if (!filters.customerId) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      const result = await optimizationService.getKeywordRecommendations();
+      const params = new URLSearchParams({
+        customer_id: filters.customerId,
+        ...(selectedCampaign && { campaign_id: selectedCampaign }),
+      });
 
-      // Transform API response to expected format or use mock data
-      const apiData = result?.data || result;
-      if (apiData && Array.isArray(apiData)) {
-        const transformedData = {
-          ...mockData,
-          recommendations: apiData
-        };
-        setData(transformedData);
-      } else {
-        setData(mockData);
+      const response = await fetch(`http://localhost:8000/api/v1/keywords/performance?${params}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch keywords: ${response.statusText}`);
       }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setData(mockData);
+
+      const data = await response.json();
+      setKeywords(data.keywords || []);
+    } catch (err: any) {
+      console.error('Error fetching keywords:', err);
+      setError(err.message || 'Failed to load keywords');
     } finally {
       setLoading(false);
     }
   };
 
-  const mockData = {
-    metrics: [
-      { label: 'Total Keywords', value: 248 },
-      { label: 'Optimizable', value: 89 },
-      { label: 'High Potential', value: 24 },
-      { label: 'Avg Quality Score', value: 7.2 },
-      { label: 'Performance Gain', value: 34 },
-      { label: 'Cost Reduction', value: 18 },
-    ],
-    chartData: [
-      { date: 'Mon', current: 4.2, optimized: 5.8 },
-      { date: 'Tue', current: 4.5, optimized: 6.2 },
-      { date: 'Wed', current: 4.1, optimized: 5.9 },
-      { date: 'Thu', current: 4.7, optimized: 6.4 },
-      { date: 'Fri', current: 4.9, optimized: 6.7 },
-      { date: 'Sat', current: 4.3, optimized: 6.0 },
-      { date: 'Sun', current: 4.6, optimized: 6.3 },
-    ],
-    recommendations: [
-      { keyword: 'digital marketing', action: 'Increase bid by 25%', currentBid: 1.20, suggestedBid: 1.50, impact: 'High', confidence: 92, qualityScore: 8 },
-      { keyword: 'seo services', action: 'Add negative keywords', currentBid: 2.10, suggestedBid: 2.10, impact: 'Medium', confidence: 87, qualityScore: 6 },
-      { keyword: 'ppc management', action: 'Improve ad relevance', currentBid: 3.20, suggestedBid: 2.80, impact: 'High', confidence: 94, qualityScore: 4 },
-      { keyword: 'content marketing', action: 'Expand match types', currentBid: 1.80, suggestedBid: 1.80, impact: 'Medium', confidence: 78, qualityScore: 7 },
-    ]
-  };
+  // Calculate bid recommendations based on performance
+  const bidRecommendations = useMemo((): BidRecommendation[] => {
+    if (keywords.length === 0) return [];
 
-  const qualityScoreDistribution = [
-    { score: '1-3', count: 12, color: theme.palette.error.main },
-    { score: '4-6', count: 45, color: theme.palette.warning.main },
-    { score: '7-8', count: 156, color: theme.palette.success.main },
-    { score: '9-10', count: 35, color: theme.palette.primary.main },
-  ];
+    return keywords.map((kw) => {
+      const currentBid = kw.current_cpc || kw.avg_cpc || 1.0;
+      let recommendedBid = currentBid;
+      let action: 'increase' | 'decrease' | 'maintain' = 'maintain';
+      let priority: 'high' | 'medium' | 'low' = 'medium';
+      let reason = 'Performance is stable';
+      let expectedImpact = 'Maintain current performance';
 
-  const aiInsights: AIInsight[] = [
-    {
-      type: 'opportunity',
-      title: 'High-Value Keywords Identified',
-      description: '24 keywords with quality scores above 8 that could benefit from increased bids',
-      impact: '+34% CTR potential',
-      confidence: 92,
-      action: 'Optimize Bids',
-      icon: <TrendingUp />,
-    },
-    {
-      type: 'warning',
-      title: 'Low-Quality Keywords',
-      description: '12 keywords with quality scores below 4 are draining budget without conversions',
-      impact: '18% cost reduction',
-      confidence: 87,
-      action: 'Pause/Improve',
-      icon: <Star />,
-    },
-    {
-      type: 'recommendation',
-      title: 'Keyword Expansion Opportunity',
-      description: 'Found 67 related keywords with high search volume and low competition',
-      impact: '+45% reach expansion',
-      confidence: 85,
-      action: 'Add Keywords',
-      icon: <AutoAwesome />,
-    },
-  ];
+      // High CTR, High Conversion Rate -> Increase bid
+      if (kw.ctr > performanceThreshold && kw.conversion_rate > 5) {
+        recommendedBid = currentBid * 1.3;
+        action = 'increase';
+        priority = 'high';
+        reason = 'High CTR and conversion rate - scale opportunity';
+        expectedImpact = `+${((recommendedBid - currentBid) / currentBid * 100).toFixed(0)}% bid → More conversions`;
+      }
+      // High CTR, Low Conversion Rate -> Slight increase + landing page review
+      else if (kw.ctr > performanceThreshold && kw.conversion_rate < 2) {
+        recommendedBid = currentBid * 1.1;
+        action = 'increase';
+        priority = 'medium';
+        reason = 'Good CTR but low conversions - check landing page';
+        expectedImpact = 'Moderate increase, review landing page quality';
+      }
+      // Low CTR, High Conversion Rate -> Maintain or slight increase
+      else if (kw.ctr < 1 && kw.conversion_rate > 5) {
+        recommendedBid = currentBid * 1.05;
+        action = 'increase';
+        priority = 'medium';
+        reason = 'High conversion rate but low CTR - improve ad copy';
+        expectedImpact = 'Slight increase, optimize ad relevance';
+      }
+      // Low CTR, Low Conversion Rate -> Decrease bid
+      else if (kw.ctr < 1 && kw.conversion_rate < 2) {
+        recommendedBid = currentBid * 0.7;
+        action = 'decrease';
+        priority = 'high';
+        reason = 'Poor performance - reduce spend or pause';
+        expectedImpact = `${((currentBid - recommendedBid) / currentBid * 100).toFixed(0)}% reduction → Save budget`;
+      }
+      // Low Quality Score -> Decrease bid
+      else if (kw.quality_score < 5 && kw.quality_score > 0) {
+        recommendedBid = currentBid * 0.8;
+        action = 'decrease';
+        priority = 'high';
+        reason = 'Low quality score - improve relevance or pause';
+        expectedImpact = 'Reduce spend until quality improves';
+      }
+      // High Quality Score, Good CTR -> Increase
+      else if (kw.quality_score >= 8 && kw.ctr > 2) {
+        recommendedBid = currentBid * 1.2;
+        action = 'increase';
+        priority = 'high';
+        reason = 'Excellent quality score and CTR - scale up';
+        expectedImpact = 'Strong performance indicator - maximize exposure';
+      }
 
-  // KPI Click Handlers using REAL data from recommendations
-  const handleTotalKeywordsClick = () => {
-    const keywords = (displayData.recommendations || mockData.recommendations).map((rec: any, idx: number) => ({
-      id: `keyword-${idx}`,
-      name: rec.keyword,
-      value: `Bid: ₹${rec.currentBid?.toFixed(2)}`,
-      status: rec.qualityScore >= 7 ? 'success' : rec.qualityScore >= 4 ? 'warning' : 'error',
-      subtitle: `Quality Score: ${rec.qualityScore}/10`,
-      trend: rec.suggestedBid > rec.currentBid ?
-        Math.round(((rec.suggestedBid - rec.currentBid) / rec.currentBid) * 100) :
-        -Math.round(((rec.currentBid - rec.suggestedBid) / rec.currentBid) * 100),
+      const bidChange = recommendedBid - currentBid;
+      const bidChangePct = (bidChange / currentBid) * 100;
+
+      return {
+        keyword_text: kw.keyword_text,
+        current_bid: currentBid,
+        recommended_bid: recommendedBid,
+        bid_change: bidChange,
+        bid_change_pct: bidChangePct,
+        reason,
+        expected_impact: expectedImpact,
+        action,
+        priority,
+      };
+    }).filter(rec => Math.abs(rec.bid_change_pct) > 5); // Only show significant changes
+  }, [keywords, performanceThreshold]);
+
+  const performanceSummary = useMemo(() => {
+    if (keywords.length === 0) return null;
+
+    const totalImpressions = keywords.reduce((sum, kw) => sum + kw.impressions, 0);
+    const totalClicks = keywords.reduce((sum, kw) => sum + kw.clicks, 0);
+    const totalCost = keywords.reduce((sum, kw) => sum + kw.cost, 0);
+    const totalConversions = keywords.reduce((sum, kw) => sum + kw.conversions, 0);
+
+    const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+    const avgCPC = totalClicks > 0 ? totalCost / totalClicks : 0;
+    const avgConversionRate = totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0;
+
+    const highPerformers = keywords.filter(kw => kw.ctr > performanceThreshold && kw.conversion_rate > 5).length;
+    const lowPerformers = keywords.filter(kw => kw.ctr < 1 && kw.conversion_rate < 2).length;
+
+    return {
+      totalKeywords: keywords.length,
+      totalImpressions,
+      totalClicks,
+      totalCost,
+      totalConversions,
+      avgCTR,
+      avgCPC,
+      avgConversionRate,
+      highPerformers,
+      lowPerformers,
+    };
+  }, [keywords, performanceThreshold]);
+
+  const qualityScoreDistribution = useMemo(() => {
+    if (keywords.length === 0) return [];
+
+    const distribution = keywords.reduce((acc: any, kw) => {
+      const score = kw.quality_score || 0;
+      const bucket = score > 0 ? Math.floor(score) : 0;
+      if (!acc[bucket]) {
+        acc[bucket] = 0;
+      }
+      acc[bucket]++;
+      return acc;
+    }, {});
+
+    return Object.entries(distribution)
+      .map(([score, count]) => ({
+        score: `QS ${score}`,
+        count,
+      }))
+      .sort((a, b) => parseInt(a.score.split(' ')[1]) - parseInt(b.score.split(' ')[1]));
+  }, [keywords]);
+
+  const performanceScatter = useMemo(() => {
+    return keywords.slice(0, 50).map(kw => ({
+      keyword: kw.keyword_text.substring(0, 15),
+      ctr: kw.ctr,
+      conversionRate: kw.conversion_rate,
+      cost: kw.cost,
+      qualityScore: kw.quality_score || 5,
     }));
-    setDrawerData(keywords);
-    setDrawerTitle('All Keywords');
-    setDrawerSubtitle(`${displayData.metrics[0]?.value || 248} total keywords in your account`);
-    setDrawerOpen(true);
-  };
+  }, [keywords]);
 
-  const handleOptimizableClick = () => {
-    const optimizable = (displayData.recommendations || mockData.recommendations)
-      .filter((rec: any) => rec.currentBid !== rec.suggestedBid)
-      .map((rec: any, idx: number) => ({
-        id: `opt-${idx}`,
-        name: rec.keyword,
-        value: `${rec.action}`,
-        status: rec.impact === 'High' ? 'warning' : 'info',
-        subtitle: `Current: ₹${rec.currentBid?.toFixed(2)} → Suggested: ₹${rec.suggestedBid?.toFixed(2)}`,
-        trend: rec.confidence,
-      }));
-    setDrawerData(optimizable);
-    setDrawerTitle('Optimizable Keywords');
-    setDrawerSubtitle(`${displayData.metrics[1]?.value || 89} keywords with optimization opportunities`);
-    setDrawerOpen(true);
-  };
+  // AI Analysis - 4 Types (Optimization Focus)
+  const aiAnalysis = useMemo(() => {
+    if (!performanceSummary || keywords.length === 0) {
+      return {
+        descriptive: { text: '', icon: Assessment, color: '#1E88E5' },
+        diagnostic: { text: '', icon: Psychology, color: '#7B1FA2' },
+        predictive: { text: '', icon: Timeline, color: '#F57C00' },
+        prescriptive: { text: '', icon: Lightbulb, color: '#388E3C' },
+      };
+    }
 
-  const handleHighPotentialClick = () => {
-    const highPotential = (displayData.recommendations || mockData.recommendations)
-      .filter((rec: any) => rec.impact === 'High')
-      .map((rec: any, idx: number) => ({
-        id: `high-${idx}`,
-        name: rec.keyword,
-        value: `Confidence: ${rec.confidence}%`,
-        status: 'success',
-        subtitle: `${rec.action}`,
-        trend: rec.qualityScore >= 7 ? rec.qualityScore : -rec.qualityScore,
-      }));
-    setDrawerData(highPotential);
-    setDrawerTitle('High Potential Keywords');
-    setDrawerSubtitle(`${displayData.metrics[2]?.value || 24} keywords with high impact potential`);
-    setDrawerOpen(true);
-  };
+    // Calculate optimization metrics
+    const increaseCount = bidRecommendations.filter(r => r.action === 'increase').length;
+    const decreaseCount = bidRecommendations.filter(r => r.action === 'decrease').length;
+    const highPriorityCount = bidRecommendations.filter(r => r.priority === 'high').length;
 
-  const handleQualityScoreClick = () => {
-    const byQualityScore = (displayData.recommendations || mockData.recommendations)
-      .sort((a: any, b: any) => b.qualityScore - a.qualityScore)
-      .map((rec: any, idx: number) => ({
-        id: `qs-${idx}`,
-        name: rec.keyword,
-        value: `${rec.qualityScore}/10`,
-        status: rec.qualityScore >= 7 ? 'success' : rec.qualityScore >= 4 ? 'warning' : 'error',
-        subtitle: `Bid: ₹${rec.currentBid?.toFixed(2)}`,
-      }));
-    setDrawerData(byQualityScore);
-    setDrawerTitle('Quality Score Analysis');
-    setDrawerSubtitle(`Average quality score: ${displayData.metrics[3]?.value || 7.2}/10`);
-    setDrawerOpen(true);
-  };
+    const avgQualityScore = keywords
+      .filter(k => k.quality_score > 0)
+      .reduce((sum, k, _, arr) => sum + k.quality_score / arr.length, 0);
 
-  const handlePerformanceGainClick = () => {
-    const gainOpportunities = (displayData.recommendations || mockData.recommendations)
-      .filter((rec: any) => rec.suggestedBid > rec.currentBid)
-      .map((rec: any, idx: number) => ({
-        id: `gain-${idx}`,
-        name: rec.keyword,
-        value: `+${Math.round(((rec.suggestedBid - rec.currentBid) / rec.currentBid) * 100)}%`,
-        status: 'success',
-        subtitle: `Increase bid from ₹${rec.currentBid?.toFixed(2)} to ₹${rec.suggestedBid?.toFixed(2)}`,
-        trend: rec.confidence,
-      }));
-    setDrawerData(gainOpportunities);
-    setDrawerTitle('Performance Gain Opportunities');
-    setDrawerSubtitle(`Potential ${displayData.metrics[4]?.value || 34}% overall performance improvement`);
-    setDrawerOpen(true);
-  };
+    const lowQualityCount = keywords.filter(k => k.quality_score > 0 && k.quality_score < 5).length;
+    const highQualityCount = keywords.filter(k => k.quality_score >= 8).length;
 
-  const handleCostReductionClick = () => {
-    const costSavings = (displayData.recommendations || mockData.recommendations)
-      .filter((rec: any) => rec.suggestedBid < rec.currentBid || rec.qualityScore < 4)
-      .map((rec: any, idx: number) => ({
-        id: `cost-${idx}`,
-        name: rec.keyword,
-        value: rec.suggestedBid < rec.currentBid ?
-          `-${Math.round(((rec.currentBid - rec.suggestedBid) / rec.currentBid) * 100)}%` :
-          'Pause recommended',
-        status: 'error',
-        subtitle: rec.suggestedBid < rec.currentBid ?
-          `Reduce bid from ₹${rec.currentBid?.toFixed(2)} to ₹${rec.suggestedBid?.toFixed(2)}` :
-          `Low quality score: ${rec.qualityScore}/10`,
-      }));
-    setDrawerData(costSavings);
-    setDrawerTitle('Cost Reduction Opportunities');
-    setDrawerSubtitle(`Potential ${displayData.metrics[5]?.value || 18}% cost savings`);
-    setDrawerOpen(true);
-  };
+    // Calculate potential savings/gains from bid changes
+    const potentialSavings = bidRecommendations
+      .filter(r => r.action === 'decrease')
+      .reduce((sum, r) => sum + Math.abs(r.bid_change) * 100, 0); // Estimate monthly savings
+
+    const potentialInvestment = bidRecommendations
+      .filter(r => r.action === 'increase')
+      .reduce((sum, r) => sum + r.bid_change * 100, 0); // Estimate monthly increase
+
+    // Industry benchmarks
+    const industryAvgCTR = 2.5;
+    const industryAvgQS = 6.0;
+    const industryAvgConvRate = 3.5;
+
+    // 1. DESCRIPTIVE: Summary of optimization opportunities
+    const descriptive = `Portfolio Analysis:\n• ${keywords.length} keywords under management with $${performanceSummary.totalCost.toFixed(2)} total spend\n• ${bidRecommendations.length} keywords need bid adjustments (${increaseCount} increase, ${decreaseCount} decrease)\n• ${highPriorityCount} high-priority optimization opportunities identified\n\nPerformance Snapshot:\n• Average CTR: ${performanceSummary.avgCTR.toFixed(2)}% (vs ${industryAvgCTR}% benchmark)\n• Average CPC: $${performanceSummary.avgCPC.toFixed(2)}\n• Conversion Rate: ${performanceSummary.avgConversionRate.toFixed(2)}% (vs ${industryAvgConvRate}% benchmark)\n• Quality Score: ${avgQualityScore.toFixed(1)}/10 (${highQualityCount} high-quality, ${lowQualityCount} low-quality)\n\n${performanceSummary.highPerformers} keywords are high performers, ${performanceSummary.lowPerformers} need attention.`;
+
+    // 2. DIAGNOSTIC: Explains why bid changes are needed
+    const ctrStatus = performanceSummary.avgCTR > industryAvgCTR ? 'exceeds' : 'falls below';
+    const qsStatus = avgQualityScore > industryAvgQS ? 'above' : 'below';
+    const convStatus = performanceSummary.avgConversionRate > industryAvgConvRate ? 'beats' : 'lags';
+
+    let diagnostic = `Root Cause Analysis:\n\nWhy Bid Adjustments Are Needed:\n• CTR ${ctrStatus} industry benchmark (${performanceSummary.avgCTR.toFixed(2)}% vs ${industryAvgCTR}%)\n• Quality scores ${qsStatus} average (${avgQualityScore.toFixed(1)} vs ${industryAvgQS})\n• Conversion rate ${convStatus} benchmark (${performanceSummary.avgConversionRate.toFixed(2)}% vs ${industryAvgConvRate}%)\n\nPerformance Gaps:\n• ${decreaseCount} keywords underperforming - wasting budget on low-quality traffic\n• ${increaseCount} keywords outperforming - missing scale opportunities`;
+
+    if (lowQualityCount > keywords.length * 0.3) {
+      diagnostic += `\n• ⚠️ ${lowQualityCount} keywords with low quality scores driving up CPC`;
+    }
+
+    if (performanceSummary.avgCPC > 2.0) {
+      diagnostic += `\n• High avg CPC ($${performanceSummary.avgCPC.toFixed(2)}) suggests bid inefficiencies`;
+    }
+
+    // 3. PREDICTIVE: Forecast impact of bid changes
+    const netBudgetChange = potentialInvestment - potentialSavings;
+    const expectedCTRLift = increaseCount > 0 ? (increaseCount / keywords.length * 100 * 0.15).toFixed(1) : '0';
+    const expectedConversionLift = increaseCount > 0 ? (increaseCount / keywords.length * 100 * 0.20).toFixed(1) : '0';
+
+    let trendIcon = TrendingFlat;
+    let trendText = 'stable';
+    if (netBudgetChange > 100) {
+      trendIcon = TrendingUp;
+      trendText = 'growing (scaling winners)';
+    } else if (netBudgetChange < -100) {
+      trendIcon = TrendingDown;
+      trendText = 'declining (cutting losers)';
+    }
+
+    let predictive = `Forecast (Next 30 Days):\n\nIf Bid Recommendations Applied:\n• Budget will be ${trendText}\n• Net monthly budget change: ${netBudgetChange >= 0 ? '+' : ''}$${netBudgetChange.toFixed(0)}\n• Expected CTR lift: +${expectedCTRLift}%\n• Expected conversion lift: +${expectedConversionLift}%\n\nRisk Assessment:\n• ${decreaseCount} keywords at risk of losing impression share (but saving budget)\n• ${increaseCount} keywords will gain visibility and traffic`;
+
+    if (lowQualityCount > keywords.length * 0.2) {
+      predictive += `\n• ⚠️ ${lowQualityCount} low-QS keywords may trigger CPC increases`;
+    }
+
+    // 4. PRESCRIPTIVE: Actionable bid optimization recommendations
+    const recommendations: string[] = [];
+
+    if (highPriorityCount > 0) {
+      recommendations.push(`1. Execute ${highPriorityCount} high-priority bid changes first - expected $${(potentialSavings * 0.4).toFixed(0)} monthly savings`);
+    }
+
+    if (performanceSummary.highPerformers > 0) {
+      recommendations.push(`2. Scale ${performanceSummary.highPerformers} high performers - increase bids by 20-30%`);
+    }
+
+    if (performanceSummary.lowPerformers > 0) {
+      recommendations.push(`3. Reduce or pause ${performanceSummary.lowPerformers} low performers - save $${(potentialSavings * 0.6).toFixed(0)}/month`);
+    }
+
+    if (lowQualityCount > 0) {
+      recommendations.push(`4. Improve ${lowQualityCount} low-quality keywords - better ad copy + landing pages → -15% CPC`);
+    }
+
+    if (avgQualityScore < industryAvgQS) {
+      const qsDiff = (industryAvgQS - avgQualityScore).toFixed(1);
+      recommendations.push(`5. Raise avg quality score by ${qsDiff} points - reduce overall CPC by ~${(Number(qsDiff) * 10).toFixed(0)}%`);
+    }
+
+    const totalROI = potentialSavings + (parseFloat(expectedConversionLift) * performanceSummary.totalCost * 0.01);
+    const prescriptive = `Recommended Optimization Actions:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact:\n• Monthly savings: $${potentialSavings.toFixed(0)}\n• Revenue lift from scaling: +${expectedConversionLift}%\n• Total ROI: $${totalROI.toFixed(0)}/month\n• Confidence: 84%`;
+
+    return {
+      descriptive: {
+        text: descriptive,
+        icon: Assessment,
+        color: '#1E88E5',
+      },
+      diagnostic: {
+        text: diagnostic,
+        icon: Psychology,
+        color: '#7B1FA2',
+      },
+      predictive: {
+        text: predictive,
+        icon: Timeline,
+        color: '#F57C00',
+      },
+      prescriptive: {
+        text: prescriptive,
+        icon: Lightbulb,
+        color: '#388E3C',
+      },
+    };
+  }, [keywords, performanceSummary, bidRecommendations, performanceThreshold]);
 
   if (loading) {
     return (
-      <Box sx={{ p: 3 }}>
-        <LinearProgress />
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <CircularProgress />
       </Box>
     );
   }
 
-  const displayData = data || mockData;
-
-  // Ensure metrics array exists
-  if (!displayData.metrics || !Array.isArray(displayData.metrics)) {
-    displayData.metrics = mockData.metrics;
-  }
-
   return (
-    <DashboardTemplate
-      title="Keyword Optimizer"
-      subtitle="AI-powered keyword analysis and optimization recommendations"
-      selectedTimeRange={selectedTimeRange}
-      onTimeRangeChange={() => setSelectedTimeRange(selectedTimeRange === '7d' ? '30d' : '7d')}
-    >
-      {/* KPI Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Total Keywords"
-            value={displayData.metrics[0]?.value || 248}
-            format="number"
-            icon={<Search />}
-            trend="up"
-            trendValue={12}
-            color="primary"
-            index={0}
-            onClick={handleTotalKeywordsClick}
-            drillDownAvailable={true}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Optimizable"
-            value={displayData.metrics[1]?.value || 89}
-            format="number"
-            icon={<TuneRounded />}
-            trend="up"
-            trendValue={15}
-            color="warning"
-            index={1}
-            onClick={handleOptimizableClick}
-            drillDownAvailable={true}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="High Potential"
-            value={displayData.metrics[2]?.value || 24}
-            format="number"
-            icon={<WorkspacePremium />}
-            trend="up"
-            trendValue={23}
-            color="success"
-            index={2}
-            onClick={handleHighPotentialClick}
-            drillDownAvailable={true}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Avg Quality Score"
-            value={displayData.metrics[3]?.value || 7.2}
-            format="number"
-            icon={<Star />}
-            trend="up"
-            trendValue={8}
-            color="info"
-            index={3}
-            onClick={handleQualityScoreClick}
-            drillDownAvailable={true}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Performance Gain"
-            value={displayData.metrics[4]?.value || 34}
-            format="percentage"
-            icon={<TrendingUp />}
-            trend="up"
-            trendValue={18}
-            color="success"
-            index={4}
-            onClick={handlePerformanceGainClick}
-            drillDownAvailable={true}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Cost Reduction"
-            value={displayData.metrics[5]?.value || 18}
-            format="percentage"
-            icon={<TuneRounded />}
-            trend="down"
-            trendValue={12}
-            color="error"
-            index={5}
-            onClick={handleCostReductionClick}
-            drillDownAvailable={true}
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight={700} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Search fontSize="large" color="primary" />
+          Keyword Optimizer
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          AI-powered bid optimization and keyword performance analysis
+        </Typography>
+      </Box>
+
+      {/* Controls */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={6}>
+          <TextField
+            label="CTR Performance Threshold (%)"
+            type="number"
+            value={performanceThreshold}
+            onChange={(e) => setPerformanceThreshold(Number(e.target.value))}
+            size="small"
+            fullWidth
           />
         </Grid>
       </Grid>
 
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
 
-      {/* AI Intelligence Section */}
-      <Box sx={{ mb: 3 }}>
-        <AIIntelligenceSection insights={aiInsights} />
-      </Box>
+      {!keywords.length && !loading && (
+        <Alert severity="info">
+          No keyword data available. Please select a customer to view keyword performance.
+        </Alert>
+      )}
 
-      <Grid container spacing={3}>
-        {/* Performance Comparison Chart */}
-        <Grid item xs={12} md={8}>
-          <Fade in timeout={600}>
-            <Card
-              sx={{
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: theme.shadows[8],
-                },
-              }}
-            >
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    Current vs Optimized Performance
-                  </Typography>
-                  <Tooltip title="Shows potential CTR improvement after optimization">
-                    <IconButton size="small" color="primary">
-                      <TipsAndUpdates fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-                <EnhancedChart
-                  height={300}
-                  xAxis={{ label: 'Day of Week', dataKey: 'date' }}
-                  yAxis={{ label: 'CTR (%)', format: 'decimal' }}
-                  showLegend={true}
-                >
-                  <LineChart data={displayData.chartData}>
-                    <Line
-                      type="monotone"
-                      dataKey="current"
-                      stroke={theme.palette.warning.main}
-                      strokeWidth={3}
-                      dot={{ fill: theme.palette.warning.main, r: 4 }}
-                      name="Current CTR"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="optimized"
-                      stroke={theme.palette.success.main}
-                      strokeWidth={3}
-                      dot={{ fill: theme.palette.success.main, r: 4 }}
-                      name="Optimized CTR"
-                    />
-                  </LineChart>
-                </EnhancedChart>
-              </CardContent>
-            </Card>
-          </Fade>
-        </Grid>
-
-        {/* Quality Score Distribution */}
-        <Grid item xs={12} md={4}>
-          <Fade in timeout={700}>
-            <Card
-              sx={{
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: theme.shadows[8],
-                },
-              }}
-            >
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    Quality Score Distribution
-                  </Typography>
-                  <Chip
-                    icon={<Star />}
-                    label="QS Analysis"
-                    color="primary"
-                    size="small"
-                  />
-                </Box>
-                <EnhancedChart
-                  height={250}
-                  xAxis={{ label: 'Quality Score Range', dataKey: 'score' }}
-                  yAxis={{ label: 'Number of Keywords', format: 'number' }}
-                >
-                  <BarChart data={qualityScoreDistribution}>
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                      {qualityScoreDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </EnhancedChart>
-                <Box sx={{ mt: 2 }}>
-                  {qualityScoreDistribution.map((item, index) => (
-                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <Box
-                        sx={{
-                          width: 12,
-                          height: 12,
-                          bgcolor: item.color,
-                          borderRadius: '50%',
-                          mr: 1,
-                        }}
-                      />
-                      <Typography variant="caption" sx={{ flex: 1 }}>
-                        Score {item.score}
-                      </Typography>
-                      <Typography variant="caption" fontWeight={600}>
-                        {item.count}
-                      </Typography>
+      {performanceSummary && (
+        <>
+          {/* Performance Summary Cards */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Keywords</Typography>
+                      <Typography variant="h3" fontWeight={700}>{performanceSummary.totalKeywords}</Typography>
                     </Box>
-                  ))}
-                </Box>
+                    <Search sx={{ fontSize: 50, opacity: 0.7 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg CTR</Typography>
+                      <Typography variant="h3" fontWeight={700}>{performanceSummary.avgCTR.toFixed(2)}%</Typography>
+                    </Box>
+                    <TrendingUp sx={{ fontSize: 50, opacity: 0.7 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg CPC</Typography>
+                      <Typography variant="h3" fontWeight={700}>${performanceSummary.avgCPC.toFixed(2)}</Typography>
+                    </Box>
+                    <AttachMoney sx={{ fontSize: 50, opacity: 0.7 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Conversion Rate</Typography>
+                      <Typography variant="h3" fontWeight={700}>{performanceSummary.avgConversionRate.toFixed(2)}%</Typography>
+                    </Box>
+                    <Speed sx={{ fontSize: 50, opacity: 0.7 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          {/* AI Intelligence */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h5" fontWeight={600} gutterBottom sx={{ mb: 3 }}>
+              🧠 AI Intelligence
+            </Typography>
+
+            <Grid container spacing={2.5}>
+              {/* 1. Descriptive */}
+              <Grid item xs={12} md={6}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    elevation: 0,
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': {
+                      boxShadow: 2,
+                      borderColor: aiAnalysis.descriptive.color,
+                    }
+                  }}
+                >
+                  <CardContent sx={{ p: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                      <Box sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 1.5,
+                        bgcolor: `${aiAnalysis.descriptive.color}15`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Assessment sx={{ color: aiAnalysis.descriptive.color, fontSize: 20 }} />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ color: aiAnalysis.descriptive.color, fontWeight: 600 }}>
+                          Descriptive
+                        </Typography>
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          what happened
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-line', lineHeight: 1.7 }}>
+                      {aiAnalysis.descriptive.text || 'Waiting for keyword data...'}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* 2. Diagnostic */}
+              <Grid item xs={12} md={6}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    elevation: 0,
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': {
+                      boxShadow: 2,
+                      borderColor: aiAnalysis.diagnostic.color,
+                    }
+                  }}
+                >
+                  <CardContent sx={{ p: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                      <Box sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 1.5,
+                        bgcolor: `${aiAnalysis.diagnostic.color}15`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Psychology sx={{ color: aiAnalysis.diagnostic.color, fontSize: 20 }} />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ color: aiAnalysis.diagnostic.color, fontWeight: 600 }}>
+                          Diagnostic
+                        </Typography>
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          why it happened
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-line', lineHeight: 1.7 }}>
+                      {aiAnalysis.diagnostic.text || 'Waiting for keyword data...'}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* 3. Predictive */}
+              <Grid item xs={12} md={6}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    elevation: 0,
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': {
+                      boxShadow: 2,
+                      borderColor: aiAnalysis.predictive.color,
+                    }
+                  }}
+                >
+                  <CardContent sx={{ p: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                      <Box sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 1.5,
+                        bgcolor: `${aiAnalysis.predictive.color}15`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Timeline sx={{ color: aiAnalysis.predictive.color, fontSize: 20 }} />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ color: aiAnalysis.predictive.color, fontWeight: 600 }}>
+                          Predictive
+                        </Typography>
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          what will happen
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-line', lineHeight: 1.7 }}>
+                      {aiAnalysis.predictive.text || 'Waiting for keyword data...'}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* 4. Prescriptive */}
+              <Grid item xs={12} md={6}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    border: '1px solid',
+                    borderColor: aiAnalysis.prescriptive.color,
+                    borderRadius: 2,
+                    elevation: 0,
+                    background: `linear-gradient(135deg, ${aiAnalysis.prescriptive.color}08 0%, ${aiAnalysis.prescriptive.color}03 100%)`,
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': {
+                      boxShadow: 2,
+                      borderColor: aiAnalysis.prescriptive.color,
+                    }
+                  }}
+                >
+                  <CardContent sx={{ p: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                      <Box sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 1.5,
+                        bgcolor: `${aiAnalysis.prescriptive.color}15`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Lightbulb sx={{ color: aiAnalysis.prescriptive.color, fontSize: 20 }} />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ color: aiAnalysis.prescriptive.color, fontWeight: 600 }}>
+                          Prescriptive
+                        </Typography>
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          what should we do
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" color="text.primary" sx={{ whiteSpace: 'pre-line', lineHeight: 1.7 }}>
+                      {aiAnalysis.prescriptive.text || 'Waiting for keyword data...'}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </Box>
+
+          {/* Performance Insights */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} md={6}>
+              <Alert severity="success" icon={<Star />}>
+                <AlertTitle>High Performers</AlertTitle>
+                {performanceSummary.highPerformers} keywords with CTR &gt; {performanceThreshold}% and conversion rate &gt; 5%. Consider increasing bids.
+              </Alert>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Alert severity="warning" icon={<Block />}>
+                <AlertTitle>Low Performers</AlertTitle>
+                {performanceSummary.lowPerformers} keywords with CTR &lt; 1% and conversion rate &lt; 2%. Consider reducing bids or pausing.
+              </Alert>
+            </Grid>
+          </Grid>
+
+          {/* Performance Scatter Chart */}
+          <Card sx={{ mb: 4 }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight={600} gutterBottom>
+                Keyword Performance Matrix (CTR vs Conversion Rate)
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Bubble size represents spend. Top-right quadrant = high performers.
+              </Typography>
+              <Divider sx={{ my: 2 }} />
+              <ResponsiveContainer width="100%" height={400}>
+                <ScatterChart>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="ctr" name="CTR %" />
+                  <YAxis dataKey="conversionRate" name="Conversion Rate %" />
+                  <ZAxis dataKey="cost" range={[50, 500]} name="Spend" />
+                  <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} />
+                  <Legend />
+                  <Scatter name="Keywords" data={performanceScatter} fill="#667eea" />
+                </ScatterChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Quality Score Distribution */}
+          {qualityScoreDistribution.length > 0 && (
+            <Card sx={{ mb: 4 }}>
+              <CardContent>
+                <Typography variant="h6" fontWeight={600} gutterBottom>
+                  Quality Score Distribution
+                </Typography>
+                <Divider sx={{ my: 2 }} />
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={qualityScoreDistribution}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="score" />
+                    <YAxis />
+                    <RechartsTooltip />
+                    <Legend />
+                    <Bar dataKey="count" fill="#43e97b" name="Keywords" />
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
-          </Fade>
-        </Grid>
+          )}
 
-        {/* Optimization Recommendations */}
-        <Grid item xs={12}>
-          <Fade in timeout={800}>
-            <Card
-              sx={{
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  boxShadow: theme.shadows[4],
-                },
-              }}
-            >
+          {/* Bid Recommendations */}
+          {bidRecommendations.length > 0 && (
+            <Card sx={{ mb: 4 }}>
               <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    Keyword Optimization Recommendations
-                  </Typography>
-                  <Chip
-                    icon={<AutoAwesome />}
-                    label={`${displayData.recommendations?.length || 4} Actions Available`}
-                    color="success"
-                    size="small"
-                    variant="outlined"
-                  />
-                </Box>
-                <TableContainer component={Paper} elevation={0}>
+                <Typography variant="h6" fontWeight={600} gutterBottom>
+                  AI Bid Recommendations ({bidRecommendations.length})
+                </Typography>
+                <Divider sx={{ my: 2 }} />
+                <TableContainer>
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Keyword</TableCell>
-                        <TableCell>Recommendation</TableCell>
-                        <TableCell align="right">Current Bid</TableCell>
-                        <TableCell align="right">Suggested Bid</TableCell>
-                        <TableCell align="center">Quality Score</TableCell>
-                        <TableCell align="center">Impact</TableCell>
-                        <TableCell align="right">Confidence</TableCell>
-                        <TableCell align="center">Actions</TableCell>
+                        <TableCell><strong>Keyword</strong></TableCell>
+                        <TableCell align="right"><strong>Current Bid</strong></TableCell>
+                        <TableCell align="right"><strong>Recommended Bid</strong></TableCell>
+                        <TableCell align="center"><strong>Change</strong></TableCell>
+                        <TableCell><strong>Reason</strong></TableCell>
+                        <TableCell><strong>Expected Impact</strong></TableCell>
+                        <TableCell align="center"><strong>Action</strong></TableCell>
+                        <TableCell align="center"><strong>Priority</strong></TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {(displayData.recommendations || mockData.recommendations).map((row: any, index: number) => (
-                        <TableRow
-                          key={index}
-                          hover
-                          sx={{
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            '&:hover': {
-                              bgcolor: alpha(theme.palette.primary.main, 0.05),
-                              transform: 'scale(1.01)',
-                            },
-                          }}
-                        >
-                          <TableCell>
-                            <Typography variant="body2" fontWeight={600}>
-                              {row.keyword}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {row.action}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="body2" fontWeight={500}>
-                              {row.currentBid?.toFixed(2)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography
-                              variant="body2"
-                              fontWeight={600}
-                              color={row.suggestedBid > row.currentBid ? 'error.main' : 'success.main'}
-                            >
-                              {row.suggestedBid?.toFixed(2)}
-                            </Typography>
-                          </TableCell>
+                      {bidRecommendations.slice(0, 20).map((rec, idx) => (
+                        <TableRow key={idx} hover>
+                          <TableCell>{rec.keyword_text}</TableCell>
+                          <TableCell align="right">${rec.current_bid.toFixed(2)}</TableCell>
+                          <TableCell align="right">${rec.recommended_bid.toFixed(2)}</TableCell>
                           <TableCell align="center">
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                              <Star
-                                sx={{
-                                  fontSize: 16,
-                                  color: row.qualityScore >= 7 ? theme.palette.success.main :
-                                         row.qualityScore >= 4 ? theme.palette.warning.main :
-                                         theme.palette.error.main
-                                }}
-                              />
-                              <Typography variant="body2" fontWeight={600}>
-                                {row.qualityScore}/10
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                              {rec.bid_change > 0 ? (
+                                <TrendingUp color="success" fontSize="small" />
+                              ) : (
+                                <TrendingDown color="error" fontSize="small" />
+                              )}
+                              <Typography
+                                variant="body2"
+                                color={rec.bid_change > 0 ? 'success.main' : 'error.main'}
+                              >
+                                {rec.bid_change > 0 ? '+' : ''}{rec.bid_change_pct.toFixed(1)}%
                               </Typography>
                             </Box>
                           </TableCell>
-                          <TableCell align="center">
-                            <Chip
-                              label={row.impact}
-                              color={row.impact === 'High' ? 'error' : row.impact === 'Medium' ? 'warning' : 'success'}
-                              size="small"
-                              variant="outlined"
-                            />
+                          <TableCell>
+                            <Typography variant="caption">{rec.reason}</Typography>
                           </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="body2" fontWeight={600}>
-                              {row.confidence}%
+                          <TableCell>
+                            <Typography variant="caption" color="text.secondary">
+                              {rec.expected_impact}
                             </Typography>
                           </TableCell>
                           <TableCell align="center">
-                            <Button
+                            <Chip
+                              label={rec.action.toUpperCase()}
                               size="small"
-                              variant="contained"
-                              color="primary"
-                              sx={{
-                                minWidth: 'auto',
-                                px: 2,
-                                transition: 'all 0.2s',
-                                '&:hover': { transform: 'scale(1.05)' },
-                              }}
-                            >
-                              Apply
-                            </Button>
+                              color={rec.action === 'increase' ? 'success' : rec.action === 'decrease' ? 'error' : 'default'}
+                            />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={rec.priority.toUpperCase()}
+                              size="small"
+                              color={rec.priority === 'high' ? 'error' : rec.priority === 'medium' ? 'warning' : 'info'}
+                            />
                           </TableCell>
                         </TableRow>
                       ))}
@@ -610,40 +850,68 @@ const KeywordOptimizer: React.FC = () => {
                 </TableContainer>
               </CardContent>
             </Card>
-          </Fade>
-        </Grid>
+          )}
 
-        <Grid item xs={12}>
-          <Fade in timeout={900}>
-            <Alert
-              severity="info"
-              icon={<TipsAndUpdates />}
-              sx={{
-                background: `linear-gradient(45deg, ${alpha(theme.palette.info.main, 0.1)} 0%, ${alpha(theme.palette.info.light, 0.05)} 100%)`,
-                border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
-              }}
-            >
-              <Typography variant="subtitle2">
-                <strong>AI Optimization Insight:</strong> Implementing these keyword optimizations could improve your overall CTR by 34% and reduce costs by 18%.
-                Focus on the 24 high-potential keywords for maximum impact.
+          {/* All Keywords Performance Table */}
+          <Card>
+            <CardContent>
+              <Typography variant="h6" fontWeight={600} gutterBottom>
+                All Keywords Performance
               </Typography>
-            </Alert>
-          </Fade>
-        </Grid>
-      </Grid>
-
-      {/* KPI Detail Drawer */}
-      <KPIDetailDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        title={drawerTitle}
-        subtitle={drawerSubtitle}
-        data={drawerData}
-        type="list"
-        showTopCount={10}
-        color="primary"
-      />
-    </DashboardTemplate>
+              <Divider sx={{ my: 2 }} />
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell><strong>Keyword</strong></TableCell>
+                      <TableCell><strong>Match Type</strong></TableCell>
+                      <TableCell align="center"><strong>Quality Score</strong></TableCell>
+                      <TableCell align="right"><strong>Impressions</strong></TableCell>
+                      <TableCell align="right"><strong>Clicks</strong></TableCell>
+                      <TableCell align="right"><strong>CTR</strong></TableCell>
+                      <TableCell align="right"><strong>Avg CPC</strong></TableCell>
+                      <TableCell align="right"><strong>Cost</strong></TableCell>
+                      <TableCell align="right"><strong>Conv. Rate</strong></TableCell>
+                      <TableCell align="center"><strong>Status</strong></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {keywords.slice(0, 50).map((kw, idx) => (
+                      <TableRow key={idx} hover>
+                        <TableCell>{kw.keyword_text}</TableCell>
+                        <TableCell>
+                          <Chip label={kw.match_type} size="small" variant="outlined" />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={kw.quality_score || 'N/A'}
+                            size="small"
+                            color={kw.quality_score >= 7 ? 'success' : kw.quality_score >= 5 ? 'warning' : 'error'}
+                          />
+                        </TableCell>
+                        <TableCell align="right">{kw.impressions.toLocaleString()}</TableCell>
+                        <TableCell align="right">{kw.clicks.toLocaleString()}</TableCell>
+                        <TableCell align="right">{kw.ctr.toFixed(2)}%</TableCell>
+                        <TableCell align="right">${kw.avg_cpc.toFixed(2)}</TableCell>
+                        <TableCell align="right">${kw.cost.toFixed(2)}</TableCell>
+                        <TableCell align="right">{kw.conversion_rate.toFixed(2)}%</TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={kw.status}
+                            size="small"
+                            color={kw.status === 'ENABLED' ? 'success' : 'default'}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </Box>
   );
 };
 

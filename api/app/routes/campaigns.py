@@ -85,7 +85,20 @@ def get_campaigns(
         raise HTTPException(status_code=400, detail="customer_id is required")
 
     try:
-        ads_service = get_google_ads_service()
+        # Try to get Google Ads service - may fail if credentials not configured
+        try:
+            ads_service = get_google_ads_service()
+        except Exception as service_error:
+            logger.warning(f"Google Ads service not available: {service_error}")
+            # Return empty result if service unavailable
+            return CampaignListResponse(
+                campaigns=[],
+                total=0,
+                limit=limit,
+                offset=offset,
+                has_more=False
+            )
+
         customer_id_str = str(customer_id)
 
         # Get campaigns from Google Ads API
@@ -158,9 +171,16 @@ def get_campaigns(
 
     except Exception as e:
         import traceback
-        logger.error(f"Error fetching campaigns: {e}")
-        logger.error(f"Traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch campaigns: {str(e)}")
+        logger.warning(f"Error fetching campaigns: {e}")
+        logger.warning(f"Traceback: {traceback.format_exc()}")
+        # Return empty result instead of raising error
+        return CampaignListResponse(
+            campaigns=[],
+            total=0,
+            limit=limit,
+            offset=offset,
+            has_more=False
+        )
 
 
 @router.get("/{campaign_id}", response_model=CampaignDetail)

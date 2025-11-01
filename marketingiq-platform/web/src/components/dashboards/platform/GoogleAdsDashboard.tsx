@@ -1,11 +1,11 @@
 // Google Ads Performance Dashboard
 import React, { useState, useEffect } from 'react';
 import { Grid, Stack, Paper, Typography, Box } from '@mui/material';
-import DashboardTemplate from '../common/DashboardTemplate';
-import { KPICard } from '../common/KPICard';
-import InsightCard from '../common/InsightCard';
-import { FilterState, KPIData, InsightData } from '../../types';
-import { googleAdsService } from '../../services/googleAdsService';
+import DashboardTemplate from '../../common/DashboardTemplate';
+import { KPICard } from '../../common/KPICard';
+import InsightCard from '../../common/InsightCard';
+import { FilterState, KPIData, InsightData } from '../../../types';
+import { googleAdsService } from '../../../services/googleAdsService';
 import {
   BarChart,
   Bar,

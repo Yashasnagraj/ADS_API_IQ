@@ -16,6 +16,9 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { GlobalFilterBar } from './GlobalFilterBar';
+import { useFilters } from '../../context/FilterContext';
+import { FloatingChatButton } from '../chat/FloatingChatButton';
 
 const drawerWidth = 260;
 
@@ -27,6 +30,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { filters } = useFilters();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -49,18 +53,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         { text: 'Campaigns', path: '/dashboard/data/campaigns' },
         { text: 'Keywords', path: '/dashboard/data/keywords' },
         { text: 'Ad Groups', path: '/dashboard/data/adgroups' },
-        { text: 'Search Terms', path: '/dashboard/data/search-terms' },
-        { text: 'ML Features', path: '/dashboard/data/ml-features' },
-        { text: 'Enriched Campaigns', path: '/dashboard/data/enriched-campaigns' },
       ],
     },
     {
       title: 'Insight Agent',
       items: [
-        { text: 'Campaign Insights', path: '/dashboard/insights/campaigns' },
-        { text: 'Keyword Insights', path: '/dashboard/insights/keywords' },
-        { text: 'Anomaly Detection', path: '/dashboard/insights/anomalies' },
         { text: 'Insights Summary', path: '/dashboard/insights/summary' },
+        { text: 'Anomaly Detection', path: '/dashboard/insights/anomalies' },
+        { text: 'Campaign Insights', path: '/dashboard/insights/campaigns' },
       ],
     },
     {
@@ -217,8 +217,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         }}
       >
         <Toolbar />
-        {children}
+        <Box sx={{ p: 3 }}>
+          <GlobalFilterBar
+            compact={false}
+            showPlatformFilter={false}
+            showCampaignTypeFilter={true}
+          />
+          {children}
+        </Box>
       </Box>
+
+      {/* Floating Chat Button - AI Assistant */}
+      <FloatingChatButton />
     </Box>
   );
 };

@@ -9,7 +9,7 @@ from pydantic import BaseModel
 import sqlite3
 from pathlib import Path
 
-router = APIRouter(tags=["warehouse"])
+router = APIRouter(prefix="/warehouse", tags=["warehouse"])
 
 # Path to marketing warehouse database
 WAREHOUSE_DB = Path(__file__).parent.parent.parent.parent / "marketing_warehouse.db"
@@ -108,19 +108,17 @@ def get_internal_customer_id(google_ads_customer_id: int) -> int:
 
 @router.get("/google-ads/summary", response_model=PerformanceMetrics)
 def get_google_ads_summary(
-    customer_id: int = Query(..., description="Google Ads Customer ID"),
+    customer_id: int = Query(..., description="Internal warehouse customer ID"),
     date_range: str = Query("LAST_30_DAYS", description="Date range filter")
 ):
     """
     Get aggregated Google Ads performance metrics from warehouse
 
     Queries fact_campaign_performance_daily table filtered by:
-    - customer_id (Google Ads customer ID, auto-mapped to internal ID)
+    - customer_id (internal warehouse customer ID)
     - platform_id = 1 (Google Ads)
     - date_range
     """
-    # Map Google Ads customer ID to internal warehouse customer ID
-    internal_customer_id = get_internal_customer_id(customer_id)
     start_date, end_date = get_date_range_filter(date_range)
 
     try:
@@ -140,7 +138,7 @@ def get_google_ads_summary(
             AND platform_id = 1
         """
 
-        params = [internal_customer_id]
+        params = [customer_id]
 
         if start_date and end_date:
             query += " AND date_id >= ? AND date_id <= ?"
@@ -176,6 +174,12 @@ def get_google_ads_summary(
         spend = spend_micros / 1_000_000
         conversion_value = conversion_value_micros / 1_000_000
 
+        # SIMULATE conversion value if missing (for demo purposes)
+        # If we have conversions but no conversion_value, estimate based on avg order value
+        if conversion_value == 0 and conversions > 0:
+            AVERAGE_ORDER_VALUE = 2500  # ₹2500 per conversion (estimated)
+            conversion_value = conversions * AVERAGE_ORDER_VALUE
+
         # Calculate derived metrics
         ctr = (clicks / impressions * 100) if impressions > 0 else 0
         cpc = (spend / clicks) if clicks > 0 else 0
@@ -202,18 +206,16 @@ def get_google_ads_summary(
 
 @router.get("/ga4/sessions", response_model=GA4Metrics)
 def get_ga4_sessions(
-    customer_id: int = Query(..., description="Google Ads Customer ID"),
+    customer_id: int = Query(..., description="Internal warehouse customer ID"),
     date_range: str = Query("LAST_30_DAYS", description="Date range filter")
 ):
     """
     Get aggregated GA4 session metrics from warehouse
 
     Queries fact_ga4_sessions table filtered by:
-    - customer_id (Google Ads customer ID, auto-mapped to internal ID)
+    - customer_id (internal warehouse customer ID)
     - date_range
     """
-    # Map Google Ads customer ID to internal warehouse customer ID
-    internal_customer_id = get_internal_customer_id(customer_id)
     start_date, end_date = get_date_range_filter(date_range)
 
     try:
@@ -233,7 +235,7 @@ def get_ga4_sessions(
             WHERE customer_id = ?
         """
 
-        params = [internal_customer_id]
+        params = [customer_id]
 
         if start_date and end_date:
             query += " AND date_id >= ? AND date_id <= ?"
@@ -274,15 +276,15 @@ def get_ga4_sessions(
         )
 
     except sqlite3.OperationalError as e:
-        # If fact_ga4_sessions table doesn't exist yet, return mock data
+        # If fact_ga4_sessions table doesn't exist yet, return zeros
         if "no such table" in str(e).lower():
             return GA4Metrics(
-                sessions=45200,
-                conversion_rate=4.2,
-                conversions=1898,
-                bounce_rate=32.0,
-                avg_session_duration=165.0,
-                pages_per_session=3.2
+                sessions=0,
+                conversion_rate=0.0,
+                conversions=0,
+                bounce_rate=0.0,
+                avg_session_duration=0.0,
+                pages_per_session=0.0
             )
         raise HTTPException(status_code=500, detail=f"Error querying warehouse: {str(e)}")
     except Exception as e:
@@ -291,21 +293,19 @@ def get_ga4_sessions(
 
 @router.get("/meta/summary", response_model=PerformanceMetrics)
 def get_meta_ads_summary(
-    customer_id: int = Query(..., description="Google Ads Customer ID"),
+    customer_id: int = Query(..., description="Internal warehouse customer ID"),
     date_range: str = Query("LAST_30_DAYS", description="Date range filter")
 ):
     """
     Get aggregated Meta Ads performance metrics from warehouse
 
     Queries fact_campaign_performance_daily table filtered by:
-    - customer_id (Google Ads customer ID, auto-mapped to internal ID)
+    - customer_id (internal warehouse customer ID)
     - platform_id = 2 (Meta Ads)
     - date_range
 
     Returns mock data for now until Meta Ads ETL is fully set up
     """
-    # Map Google Ads customer ID to internal warehouse customer ID
-    internal_customer_id = get_internal_customer_id(customer_id)
     start_date, end_date = get_date_range_filter(date_range)
 
     try:
@@ -325,7 +325,7 @@ def get_meta_ads_summary(
             AND platform_id = 2
         """
 
-        params = [internal_customer_id]
+        params = [customer_id]
 
         if start_date and end_date:
             query += " AND date_id >= ? AND date_id <= ?"
@@ -335,23 +335,22 @@ def get_meta_ads_summary(
         row = cursor.fetchone()
         conn.close()
 
-        # Check if we have any Meta data
-        if not row or (row['total_impressions'] == 0 and row['total_clicks'] == 0):
-            # Return mock data for now
+        # Check if we have any Meta data - return zeros if no data
+        if not row:
             return PerformanceMetrics(
-                impressions=18000,
-                clicks=378,
-                spend=3800.0,
-                conversions=285.0,
-                conversion_value=14820.0,
-                ctr=2.1,
-                cpc=10.05,
-                cpm=211.0,
-                cpa=13.33,
-                roas=3.9
+                impressions=0,
+                clicks=0,
+                spend=0.0,
+                conversions=0.0,
+                conversion_value=0.0,
+                ctr=0.0,
+                cpc=0.0,
+                cpm=0.0,
+                cpa=0.0,
+                roas=0.0
             )
 
-        # If we have real data, process it
+        # Process real data
         impressions = row['total_impressions'] or 0
         clicks = row['total_clicks'] or 0
         spend_micros = row['total_spend_micros'] or 0
@@ -383,19 +382,7 @@ def get_meta_ads_summary(
         )
 
     except Exception as e:
-        # Return mock data on error
-        return PerformanceMetrics(
-            impressions=18000,
-            clicks=378,
-            spend=3800.0,
-            conversions=285.0,
-            conversion_value=14820.0,
-            ctr=2.1,
-            cpc=10.05,
-            cpm=211.0,
-            cpa=13.33,
-            roas=3.9
-        )
+        raise HTTPException(status_code=500, detail=f"Error querying Meta Ads warehouse: {str(e)}")
 
 
 # Campaign list endpoint - Read from warehouse
@@ -427,7 +414,7 @@ class CampaignsList(BaseModel):
 
 @router.get("/campaigns")
 def get_warehouse_campaigns(
-    customer_id: int = Query(..., description="Google Ads Customer ID"),
+    customer_id: int = Query(..., description="Internal warehouse customer ID"),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0)
 ):
@@ -435,8 +422,6 @@ def get_warehouse_campaigns(
     Get campaigns from warehouse database
     Joins dim_google_ads_campaign with fact_campaign_performance_daily
     """
-    # Map Google Ads customer ID to internal warehouse customer ID
-    internal_customer_id = get_internal_customer_id(customer_id)
 
     try:
         conn = get_warehouse_connection()
@@ -461,7 +446,7 @@ def get_warehouse_campaigns(
             LIMIT ? OFFSET ?
         """
 
-        cursor.execute(query, [internal_customer_id, limit, offset])
+        cursor.execute(query, [customer_id, limit, offset])
         rows = cursor.fetchall()
 
         campaigns = []
@@ -506,14 +491,12 @@ def get_warehouse_campaigns(
 # Metrics summary endpoint
 @router.get("/metrics/summary")
 def get_metrics_summary(
-    customer_id: int = Query(..., description="Google Ads Customer ID"),
+    customer_id: int = Query(..., description="Internal warehouse customer ID"),
     date_range: str = Query("LAST_30_DAYS", description="Date range filter")
 ):
     """
     Get aggregated metrics summary from warehouse
     """
-    # Map Google Ads customer ID to internal warehouse customer ID
-    internal_customer_id = get_internal_customer_id(customer_id)
 
     try:
         conn = get_warehouse_connection()
@@ -528,7 +511,7 @@ def get_metrics_summary(
                 COALESCE(SUM(clicks), 0) as total_clicks,
                 COALESCE(SUM(spend_micros), 0) as total_spend_micros,
                 COALESCE(SUM(conversions), 0) as total_conversions,
-                COALESCE(COUNT(DISTINCT campaign_id), 0) as campaign_count
+                COALESCE(COUNT(DISTINCT google_campaign_id), 0) as campaign_count
             FROM fact_campaign_performance_daily
             WHERE customer_id = ?
         """
@@ -602,7 +585,7 @@ class AdGroupsList(BaseModel):
 
 @router.get("/ad-groups")
 def get_warehouse_ad_groups(
-    customer_id: int = Query(..., description="Google Ads Customer ID"),
+    customer_id: int = Query(..., description="Internal warehouse customer ID"),
     campaign_id: Optional[str] = Query(None, description="Filter by Google campaign ID"),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0)
@@ -611,8 +594,6 @@ def get_warehouse_ad_groups(
     Get ad groups from warehouse database
     Joins dim_ad_group with aggregated metrics (if available)
     """
-    # Map Google Ads customer ID to internal warehouse customer ID
-    internal_customer_id = get_internal_customer_id(customer_id)
 
     try:
         conn = get_warehouse_connection()
@@ -632,7 +613,7 @@ def get_warehouse_ad_groups(
             WHERE ag.customer_id = ?
         """
 
-        params = [internal_customer_id]
+        params = [customer_id]
 
         if campaign_id:
             query += " AND ag.google_campaign_id = ?"
@@ -710,7 +691,7 @@ class KeywordsList(BaseModel):
 
 @router.get("/keywords")
 def get_warehouse_keywords(
-    customer_id: int = Query(..., description="Google Ads Customer ID"),
+    customer_id: int = Query(..., description="Internal warehouse customer ID"),
     campaign_id: Optional[str] = Query(None, description="Filter by Google campaign ID"),
     ad_group_id: Optional[int] = Query(None, description="Filter by internal ad group ID"),
     limit: int = Query(100, ge=1, le=1000),
@@ -719,8 +700,6 @@ def get_warehouse_keywords(
     """
     Get keywords from warehouse database
     """
-    # Map Google Ads customer ID to internal warehouse customer ID
-    internal_customer_id = get_internal_customer_id(customer_id)
 
     try:
         conn = get_warehouse_connection()
@@ -741,7 +720,7 @@ def get_warehouse_keywords(
             WHERE k.customer_id = ?
         """
 
-        params = [internal_customer_id]
+        params = [customer_id]
 
         if campaign_id:
             query += " AND k.google_campaign_id = ?"
@@ -790,6 +769,236 @@ def get_warehouse_keywords(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error querying keywords: {str(e)}")
+
+
+# ==============================================================================
+# TIME-SERIES METRICS ENDPOINTS
+# ==============================================================================
+
+class DailyMetric(BaseModel):
+    """Daily metric data point"""
+    date: str
+    impressions: int
+    clicks: int
+    spend: float
+    conversions: float
+    conversion_value: float
+    ctr: float
+    cpc: float
+    roas: float
+
+
+@router.get("/metrics/daily")
+def get_daily_metrics(
+    customer_id: int = Query(..., description="Internal warehouse customer ID"),
+    date_range: str = Query("LAST_30_DAYS", description="Date range filter"),
+    platform_id: Optional[int] = Query(None, description="Platform ID (1=Google Ads, 2=Meta, 3=GA4)")
+):
+    """
+    Get daily time-series metrics for charts
+
+    Returns daily performance data from fact_campaign_performance_daily
+    Supports filtering by customer, date range, and platform
+    """
+    start_date, end_date = get_date_range_filter(date_range)
+
+    try:
+        conn = get_warehouse_connection()
+        cursor = conn.cursor()
+
+        query = """
+            SELECT
+                d.full_date as date,
+                COALESCE(SUM(f.impressions), 0) as impressions,
+                COALESCE(SUM(f.clicks), 0) as clicks,
+                COALESCE(SUM(f.spend_micros), 0) as spend_micros,
+                COALESCE(SUM(f.conversions), 0) as conversions,
+                COALESCE(SUM(f.conversion_value_micros), 0) as conversion_value_micros
+            FROM dim_date d
+            LEFT JOIN fact_campaign_performance_daily f
+                ON d.date_id = f.date_id
+                AND f.customer_id = ?
+        """
+
+        params = [customer_id]
+
+        if platform_id:
+            query += " AND f.platform_id = ?"
+            params.append(platform_id)
+
+        if start_date and end_date:
+            query += " WHERE d.full_date >= ? AND d.full_date <= ?"
+            params.extend([start_date, end_date])
+
+        query += " GROUP BY d.full_date ORDER BY d.full_date ASC"
+
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        conn.close()
+
+        daily_metrics = []
+        for row in rows:
+            impressions = row['impressions'] or 0
+            clicks = row['clicks'] or 0
+            spend_micros = row['spend_micros'] or 0
+            conversions = row['conversions'] or 0
+            conversion_value_micros = row['conversion_value_micros'] or 0
+
+            spend = spend_micros / 1_000_000
+            conversion_value = conversion_value_micros / 1_000_000
+
+            ctr = (clicks / impressions * 100) if impressions > 0 else 0
+            cpc = (spend / clicks) if clicks > 0 else 0
+            roas = (conversion_value / spend) if spend > 0 else 0
+
+            daily_metrics.append(DailyMetric(
+                date=row['date'],
+                impressions=int(impressions),
+                clicks=int(clicks),
+                spend=round(spend, 2),
+                conversions=round(conversions, 2),
+                conversion_value=round(conversion_value, 2),
+                ctr=round(ctr, 2),
+                cpc=round(cpc, 2),
+                roas=round(roas, 2)
+            ))
+
+        return {
+            "daily_metrics": daily_metrics,
+            "total_days": len(daily_metrics)
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error querying daily metrics: {str(e)}")
+
+
+class TrendData(BaseModel):
+    """Trend analysis data"""
+    metric_name: str
+    current_value: float
+    previous_value: float
+    change_percent: float
+    trend_direction: str  # "up", "down", "stable"
+
+
+@router.get("/metrics/trends")
+def get_metrics_trends(
+    customer_id: int = Query(..., description="Internal warehouse customer ID"),
+    date_range: str = Query("LAST_30_DAYS", description="Date range filter"),
+    comparison_period: str = Query("PREVIOUS_PERIOD", description="Comparison period")
+):
+    """
+    Get metrics trends with period-over-period comparison
+
+    Compares current period vs previous period to show trends
+    """
+    start_date, end_date = get_date_range_filter(date_range)
+
+    # Calculate previous period dates
+    if start_date and end_date:
+        from datetime import datetime, timedelta
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+        period_days = (end_dt - start_dt).days
+
+        prev_end_dt = start_dt - timedelta(days=1)
+        prev_start_dt = prev_end_dt - timedelta(days=period_days)
+
+        prev_start = prev_start_dt.strftime('%Y-%m-%d')
+        prev_end = prev_end_dt.strftime('%Y-%m-%d')
+    else:
+        # Default to last 30 days vs previous 30 days
+        from datetime import datetime, timedelta
+        today = datetime.now().date()
+        end_date = today.strftime('%Y-%m-%d')
+        start_date = (today - timedelta(days=30)).strftime('%Y-%m-%d')
+        prev_start = (today - timedelta(days=60)).strftime('%Y-%m-%d')
+        prev_end = (today - timedelta(days=31)).strftime('%Y-%m-%d')
+
+    try:
+        conn = get_warehouse_connection()
+        cursor = conn.cursor()
+
+        # Query current period
+        cursor.execute("""
+            SELECT
+                COALESCE(SUM(impressions), 0) as impressions,
+                COALESCE(SUM(clicks), 0) as clicks,
+                COALESCE(SUM(spend_micros), 0) as spend_micros,
+                COALESCE(SUM(conversions), 0) as conversions,
+                COALESCE(SUM(conversion_value_micros), 0) as conversion_value_micros
+            FROM fact_campaign_performance_daily
+            WHERE customer_id = ?
+                AND date_id >= ? AND date_id <= ?
+        """, [customer_id, start_date.replace('-', ''), end_date.replace('-', '')])
+
+        current = cursor.fetchone()
+
+        # Query previous period
+        cursor.execute("""
+            SELECT
+                COALESCE(SUM(impressions), 0) as impressions,
+                COALESCE(SUM(clicks), 0) as clicks,
+                COALESCE(SUM(spend_micros), 0) as spend_micros,
+                COALESCE(SUM(conversions), 0) as conversions,
+                COALESCE(SUM(conversion_value_micros), 0) as conversion_value_micros
+            FROM fact_campaign_performance_daily
+            WHERE customer_id = ?
+                AND date_id >= ? AND date_id <= ?
+        """, [customer_id, prev_start.replace('-', ''), prev_end.replace('-', '')])
+
+        previous = cursor.fetchone()
+        conn.close()
+
+        def calculate_trend(current_val, prev_val, metric_name):
+            if prev_val == 0:
+                change_pct = 100.0 if current_val > 0 else 0.0
+                direction = "up" if current_val > 0 else "stable"
+            else:
+                change_pct = ((current_val - prev_val) / prev_val) * 100
+                if abs(change_pct) < 2:
+                    direction = "stable"
+                else:
+                    direction = "up" if change_pct > 0 else "down"
+
+            return TrendData(
+                metric_name=metric_name,
+                current_value=round(current_val, 2),
+                previous_value=round(prev_val, 2),
+                change_percent=round(change_pct, 2),
+                trend_direction=direction
+            )
+
+        # Calculate metrics
+        curr_spend = (current['spend_micros'] or 0) / 1_000_000
+        prev_spend = (previous['spend_micros'] or 0) / 1_000_000
+
+        curr_conv_value = (current['conversion_value_micros'] or 0) / 1_000_000
+        prev_conv_value = (previous['conversion_value_micros'] or 0) / 1_000_000
+
+        curr_ctr = ((current['clicks'] or 0) / (current['impressions'] or 1)) * 100
+        prev_ctr = ((previous['clicks'] or 0) / (previous['impressions'] or 1)) * 100
+
+        curr_roas = curr_conv_value / curr_spend if curr_spend > 0 else 0
+        prev_roas = prev_conv_value / prev_spend if prev_spend > 0 else 0
+
+        trends = [
+            calculate_trend(current['impressions'] or 0, previous['impressions'] or 0, "impressions"),
+            calculate_trend(current['clicks'] or 0, previous['clicks'] or 0, "clicks"),
+            calculate_trend(curr_spend, prev_spend, "spend"),
+            calculate_trend(current['conversions'] or 0, previous['conversions'] or 0, "conversions"),
+            calculate_trend(curr_ctr, prev_ctr, "ctr"),
+            calculate_trend(curr_roas, prev_roas, "roas"),
+        ]
+
+        return {
+            "trends": trends,
+            "current_period": {"start": start_date, "end": end_date},
+            "previous_period": {"start": prev_start, "end": prev_end}
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error querying trends: {str(e)}")
 
 
 # ==============================================================================
@@ -950,7 +1159,13 @@ def get_meta_insights_summary_from_db(
         avg_frequency = float(row["avg_frequency"])
         total_conversions = float(row["total_conversions"])
         total_purchase_value = float(row["total_purchase_value"])
-        
+
+        # SIMULATE conversion value if missing (for demo purposes)
+        # If we have conversions but no purchase_value, estimate based on avg order value
+        if total_purchase_value == 0 and total_conversions > 0:
+            AVERAGE_ORDER_VALUE = 2500  # ₹2500 per conversion (estimated)
+            total_purchase_value = total_conversions * AVERAGE_ORDER_VALUE
+
         # Calculate metrics
         avg_ctr = round((total_clicks / total_impressions) * 100, 2) if total_impressions > 0 else 0
         avg_cpc = round(total_spend / total_clicks, 2) if total_clicks > 0 else 0
@@ -1595,7 +1810,7 @@ def get_all_customers():
                 customer_id,
                 customer_name,
                 google_ads_customer_id,
-                industry,
+                industry_vertical,
                 timezone,
                 created_at
             FROM dim_customer

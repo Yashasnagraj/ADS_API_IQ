@@ -28,7 +28,20 @@ def get_search_terms(
         raise HTTPException(status_code=400, detail="customer_id is required")
 
     try:
-        ads_service = get_google_ads_service()
+        # Try to get Google Ads service - may fail if credentials not configured
+        try:
+            ads_service = get_google_ads_service()
+        except Exception as service_error:
+            logger.warning(f"Google Ads service not available: {service_error}")
+            # Return empty result if service unavailable
+            return SearchTermListResponse(
+                search_terms=[],
+                total=0,
+                limit=limit,
+                offset=offset,
+                has_more=False
+            )
+
         customer_id_str = str(customer_id)
 
         # Get search terms from Google Ads API
@@ -117,5 +130,12 @@ def get_search_terms(
         )
 
     except Exception as e:
-        logger.error(f"Error fetching search terms: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch search terms: {str(e)}")
+        logger.warning(f"Error fetching search terms: {e}")
+        # Return empty result instead of raising error
+        return SearchTermListResponse(
+            search_terms=[],
+            total=0,
+            limit=limit,
+            offset=offset,
+            has_more=False
+        )

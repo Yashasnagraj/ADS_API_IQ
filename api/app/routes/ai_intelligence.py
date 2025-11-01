@@ -12,11 +12,19 @@ from app.schemas import ai_intelligence as schemas
 
 # Import AI engines
 from app.services.ai.greeting_generator import get_greeting
-from app.services.ai.anomaly_detector import detect_anomalies
-from app.services.ai.pie_model import predict_incrementality
+from app.services.ai.anomaly_detector import detect_anomalies as detect_anomalies_old
+from app.services.ai.anomaly_detector_warehouse import detect_anomalies_from_warehouse
+from app.services.ai.pie_model import predict_incrementality as predict_incrementality_old
+from app.services.ai.pie_model_warehouse import predict_incrementality_from_warehouse
 from app.services.ai.attribution_analyzer import analyze_attribution
-from app.services.ai.ltv_predictor import predict_ltv, calculate_laroas
+from app.services.ai.ltv_predictor import predict_ltv as predict_ltv_old, calculate_laroas
+from app.services.ai.ltv_predictor_warehouse import predict_ltv_from_warehouse
 from app.services.ai.decision_engine import get_unified_recommendation
+
+# Use warehouse versions for now
+predict_incrementality = predict_incrementality_from_warehouse
+detect_anomalies = detect_anomalies_from_warehouse
+predict_ltv = predict_ltv_from_warehouse
 
 
 router = APIRouter(prefix="/ai", tags=["AI Intelligence"])

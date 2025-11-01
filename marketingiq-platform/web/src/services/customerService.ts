@@ -21,12 +21,12 @@ export const customerService = {
   /**
    * Get customer by ID
    */
-  async getCustomerById(customerId: number): Promise<Customer> {
+  async getCustomerById(customerId: number): Promise<Customer | null> {
     try {
       return await apiClient.get<Customer>(`${API_ENDPOINTS.CUSTOMERS}/${customerId}`);
     } catch (error) {
-      console.error('Error fetching customer:', error);
-      throw error;
+      console.warn('Customer not found or endpoint unavailable:', error);
+      return null;
     }
   },
 };
