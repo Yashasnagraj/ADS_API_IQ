@@ -1,1 +1,1 @@
-web: python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000} --workers 2
+web: cd api && python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000} --workers 2
