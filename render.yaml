@@ -1,0 +1,45 @@
+services:
+  # Backend API Service
+  - type: web
+    name: marketingiq-api
+    runtime: python
+    buildCommand: cd api && pip install -r requirements.txt
+    startCommand: cd api && chmod +x start.sh && ./start.sh
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        sync: false
+      - key: GOOGLE_ADS_DEVELOPER_TOKEN
+        sync: false
+      - key: GOOGLE_ADS_CLIENT_ID
+        sync: false
+      - key: GOOGLE_ADS_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_ADS_REFRESH_TOKEN
+        sync: false
+      - key: GOOGLE_ADS_LOGIN_CUSTOMER_ID
+        sync: false
+      - key: API_VERSION
+        value: v1
+      - key: DEBUG
+        value: false
+      - key: LOG_LEVEL
+        value: INFO
+    healthCheckPath: /health
+
+  # Frontend Web Service
+  - type: web
+    name: marketingiq-frontend
+    runtime: node
+    buildCommand: cd marketingiq-platform/web && npm install && npm run build
+    startCommand: cd marketingiq-platform/web && npm run preview -- --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: VITE_API_URL
+        sync: false
