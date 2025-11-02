@@ -182,6 +182,10 @@ export interface UnifiedMetrics {
     name: string;
     roas: number;
   };
+  best_platform_by_conversions: {
+    name: string;
+    conversions: number;
+  };
   platforms: {
     google_ads?: PerformanceMetrics;
     meta_ads?: PerformanceMetrics;

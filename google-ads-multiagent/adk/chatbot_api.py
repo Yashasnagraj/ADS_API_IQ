@@ -46,7 +46,7 @@ GEMINI_ENABLED = bool(GEMINI_API_KEY)
 if GEMINI_ENABLED:
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+        gemini_model = genai.GenerativeModel('gemini-2.5-flash')
         print("[OK] Gemini API configured for friendly responses")
     except Exception as e:
         print(f"[WARNING] Gemini configuration failed: {e}")

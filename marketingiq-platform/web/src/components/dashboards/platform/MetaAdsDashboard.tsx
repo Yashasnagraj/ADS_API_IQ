@@ -1,11 +1,11 @@
 // Meta Ads Dashboard - Real Data Integration
 import React, { useState, useEffect } from 'react';
 import { Grid, Stack, Paper, Typography, Box, CircularProgress } from '@mui/material';
-import DashboardTemplate from '../common/DashboardTemplate';
-import { KPICard } from '../common/KPICard';
-import InsightCard from '../common/InsightCard';
-import { FilterState, KPIData } from '../../types';
-import { metaAdsService } from '../../services/metaAdsService';
+import DashboardTemplate from '../../common/DashboardTemplate';
+import { KPICard } from '../../common/KPICard';
+import InsightCard from '../../common/InsightCard';
+import { FilterState, KPIData } from '../../../types';
+import { metaAdsService } from '../../../services/metaAdsService';
 import {
   BarChart,
   Bar,

@@ -1,10 +1,10 @@
 // E-Commerce Performance Dashboard
 import React, { useState } from 'react';
 import { Grid, Stack, Paper, Typography, Box } from '@mui/material';
-import DashboardTemplate from '../common/DashboardTemplate';
-import { KPICard } from '../common/KPICard';
-import InsightCard from '../common/InsightCard';
-import { FilterState, KPIData, InsightData } from '../../types';
+import DashboardTemplate from '../../common/DashboardTemplate';
+import { KPICard } from '../../common/KPICard';
+import InsightCard from '../../common/InsightCard';
+import { FilterState, KPIData, InsightData } from '../../../types';
 import {
   BarChart,
   Bar,

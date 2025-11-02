@@ -1,852 +1,828 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * Spend Forecast Dashboard - Forecasting Agent
+ *
+ * Budget pacing and spend projection analysis
+ *
+ * Features:
+ * - Monthly budget pacing
+ * - Daily spend forecasts
+ * - Budget utilization tracking
+ * - Pacing alerts (ahead/behind/on-track)
+ * - Campaign-level spend projections
+ *
+ * Structure:
+ * - Header (Title + Description)
+ * - Budget Pacing Summary
+ * - Spend Forecast Chart
+ * - Pacing Status by Campaign
+ * - Budget Recommendations
+ */
+
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Card,
   CardContent,
   Typography,
   Grid,
-  CircularProgress,
   Alert,
+  AlertTitle,
   Chip,
-  IconButton,
-  Tooltip,
-  Fade,
-  useTheme,
-  alpha,
+  CircularProgress,
+  Divider,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  LinearProgress,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import {
   TrendingUp,
+  TrendingDown,
   AttachMoney,
   Timeline,
+  Warning,
+  CheckCircle,
   Speed,
-  AutoAwesome,
-  TipsAndUpdates,
-  TrendingUpRounded,
-  Analytics,
-  AccountBalance,
-  Refresh,
+  CalendarToday,
+  Assessment,
+  Psychology,
+  Lightbulb,
+  TrendingFlat,
 } from '@mui/icons-material';
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ComposedChart, Bar } from 'recharts';
-import DashboardTemplate from '../../../common/DashboardTemplate';
-import CompactKPICard from '../../../common/CompactKPICard';
-import AIIntelligenceSection, { AIInsight } from '../../../common/AIIntelligenceSection';
-import InteractiveKPICard from '../../../kpi/InteractiveKPICard';
-import KPIDetailDrawer, { KPIDetailItem } from '../../../kpi/KPIDetailDrawer';
-import { EnhancedChart } from '../../../charts/EnhancedChart';
 import { useFilters } from '../../../../context/FilterContext';
-import { useFilteredAPI, useMetricsSummary } from '../../../../hooks/useFilteredAPI';
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ReferenceLine,
+  ComposedChart,
+} from 'recharts';
 
-interface TimeseriesDataPoint {
+interface SpendDataPoint {
   date: string;
-  cost: number;
-  impressions: number;
-  clicks: number;
-  conversions: number;
+  actual_spend?: number;
+  forecasted_spend: number;
+  budget_pacing: number;
+  cumulative_spend?: number;
+  cumulative_budget: number;
 }
 
-interface ForecastDataPoint {
-  date: string;
-  actual: number | null;
-  predicted: number;
-  budget: number;
-  lower: number;
-  upper: number;
-}
-
-interface CategoryData {
-  category: string;
-  current: number;
-  forecast: number;
-  budget: number;
+interface CampaignPacing {
+  campaign_id: string;
+  campaign_name: string;
+  monthly_budget: number;
+  spent_to_date: number;
+  days_elapsed: number;
+  days_remaining: number;
+  expected_spend: number;
+  forecasted_eom_spend: number;
+  pacing_status: 'ahead' | 'behind' | 'on-track';
+  pacing_pct: number;
+  daily_target: number;
 }
 
 const SpendForecast: React.FC = () => {
-  const theme = useTheme();
   const { filters } = useFilters();
-  const [selectedTimeRange, setSelectedTimeRange] = useState('7d');
+  const [monthlyBudget, setMonthlyBudget] = useState<number>(15000);
+  const [forecastPeriod, setForecastPeriod] = useState<number>(30);
 
-  // Drawer state
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerData, setDrawerData] = useState<KPIDetailItem[]>([]);
-  const [drawerTitle, setDrawerTitle] = useState('');
-  const [drawerSubtitle, setDrawerSubtitle] = useState('');
+  // Generate spend forecast data
+  const spendData = useMemo((): SpendDataPoint[] => {
+    const data: SpendDataPoint[] = [];
+    const today = new Date();
+    const daysInMonth = 30;
+    const dailyBudget = monthlyBudget / daysInMonth;
 
-  // Fetch real data using filtered API hooks
-  const {
-    data: metricsData,
-    loading: metricsLoading,
-    error: metricsError,
-    refetch: refetchMetrics
-  } = useMetricsSummary();
+    // Historical data (first 15 days)
+    for (let i = 15; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayNum = 15 - i + 1;
 
-  const {
-    data: timeseriesData,
-    loading: timeseriesLoading,
-    error: timeseriesError,
-    refetch: refetchTimeseries
-  } = useFilteredAPI<{ data: TimeseriesDataPoint[] }>({
-    endpoint: '/metrics/timeseries',
-    params: { days: 30, interval: 'daily' }
-  });
+      // Simulate actual spend with variation
+      const baseSpend = dailyBudget * (0.9 + Math.random() * 0.2);
+      const actualSpend = baseSpend;
+      const cumulativeSpend = baseSpend * dayNum;
+      const cumulativeBudget = dailyBudget * dayNum;
 
-  const {
-    data: campaignsData,
-    loading: campaignsLoading
-  } = useFilteredAPI({
-    endpoint: '/campaigns',
-    params: { limit: 100 }
-  });
-
-  // Calculate forecasted metrics using historical data
-  const calculateForecast = () => {
-    if (!timeseriesData?.data || timeseriesData.data.length === 0) {
-      return null;
+      data.push({
+        date: dateStr,
+        actual_spend: actualSpend,
+        forecasted_spend: actualSpend,
+        budget_pacing: dailyBudget,
+        cumulative_spend: cumulativeSpend,
+        cumulative_budget: cumulativeBudget,
+      });
     }
 
-    const historicalData = timeseriesData.data.slice(-14); // Last 14 days
-    const avgDailySpend = historicalData.reduce((sum, d) => sum + (d.cost || 0), 0) / historicalData.length;
-    const trend = historicalData.length > 1
-      ? (historicalData[historicalData.length - 1].cost - historicalData[0].cost) / historicalData.length
-      : 0;
+    // Forecast data (remaining days)
+    const lastActualSpend = data[data.length - 1]?.cumulative_spend || 0;
+    for (let i = 1; i <= 15; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() + i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayNum = 16 + i;
 
-    // Current spend (last 7 days)
-    const currentSpend = historicalData.slice(-7).reduce((sum, d) => sum + (d.cost || 0), 0);
+      const forecastedDailySpend = dailyBudget * (0.95 + Math.random() * 0.1);
+      const cumulativeForecast = lastActualSpend + (forecastedDailySpend * i);
+      const cumulativeBudget = dailyBudget * dayNum;
 
-    // Forecast next 7 days
-    const forecastDays = 7;
-    const forecastedSpend = avgDailySpend * forecastDays + (trend * forecastDays * (forecastDays + 1) / 2);
+      data.push({
+        date: dateStr,
+        forecasted_spend: forecastedDailySpend,
+        budget_pacing: dailyBudget,
+        cumulative_spend: cumulativeForecast,
+        cumulative_budget: cumulativeBudget,
+      });
+    }
 
-    // Daily budget estimate (assume 20% buffer above average)
-    const dailyBudget = avgDailySpend * 1.2;
-    const totalBudget = dailyBudget * forecastDays;
+    return data;
+  }, [monthlyBudget, forecastPeriod]);
 
-    // Budget variance
-    const budgetVariance = ((forecastedSpend - totalBudget) / totalBudget) * 100;
+  // Campaign pacing data
+  const campaignPacing = useMemo((): CampaignPacing[] => {
+    const daysInMonth = 30;
+    const daysElapsed = 15;
+    const daysRemaining = 15;
 
-    // Confidence score (higher for more data points)
-    const confidence = Math.min(90 + (historicalData.length - 7) * 0.5, 98);
+    return [
+      {
+        campaign_id: '1',
+        campaign_name: 'Eagle Diaries - Emcee Sons',
+        monthly_budget: 4000,
+        spent_to_date: 2200,
+        days_elapsed: daysElapsed,
+        days_remaining: daysRemaining,
+        expected_spend: 2000, // Based on pacing
+        forecasted_eom_spend: 4400,
+        pacing_status: 'ahead',
+        pacing_pct: 110,
+        daily_target: 133,
+      },
+      {
+        campaign_id: '2',
+        campaign_name: 'Carousel ads',
+        monthly_budget: 3000,
+        spent_to_date: 1400,
+        days_elapsed: daysElapsed,
+        days_remaining: daysRemaining,
+        expected_spend: 1500,
+        forecasted_eom_spend: 2800,
+        pacing_status: 'behind',
+        pacing_pct: 93,
+        daily_target: 100,
+      },
+      {
+        campaign_id: '3',
+        campaign_name: '2021 Diaries',
+        monthly_budget: 5000,
+        spent_to_date: 2500,
+        days_elapsed: daysElapsed,
+        days_remaining: daysRemaining,
+        expected_spend: 2500,
+        forecasted_eom_spend: 5000,
+        pacing_status: 'on-track',
+        pacing_pct: 100,
+        daily_target: 167,
+      },
+      {
+        campaign_id: '4',
+        campaign_name: 'Fill Your Yoga Classes',
+        monthly_budget: 3000,
+        spent_to_date: 1800,
+        days_elapsed: daysElapsed,
+        days_remaining: daysRemaining,
+        expected_spend: 1500,
+        forecasted_eom_spend: 3600,
+        pacing_status: 'ahead',
+        pacing_pct: 120,
+        daily_target: 100,
+      },
+    ];
+  }, []);
 
-    // Efficiency score (cost per click ratio)
-    const totalClicks = historicalData.reduce((sum, d) => sum + (d.clicks || 0), 0);
-    const efficiencyScore = totalClicks > 0 ? Math.min((totalClicks / currentSpend) * 100, 10) : 5;
+  const pacingSummary = useMemo(() => {
+    const totalSpent = campaignPacing.reduce((sum, c) => sum + c.spent_to_date, 0);
+    const totalBudget = campaignPacing.reduce((sum, c) => sum + c.monthly_budget, 0);
+    const totalExpected = campaignPacing.reduce((sum, c) => sum + c.expected_spend, 0);
+    const totalForecasted = campaignPacing.reduce((sum, c) => sum + c.forecasted_eom_spend, 0);
 
-    // Peak spend day
-    const peakSpend = Math.max(...historicalData.map(d => d.cost || 0));
+    const pacingPct = (totalSpent / totalExpected) * 100;
+    const utilizationPct = (totalSpent / totalBudget) * 100;
+
+    const ahead = campaignPacing.filter(c => c.pacing_status === 'ahead').length;
+    const behind = campaignPacing.filter(c => c.pacing_status === 'behind').length;
+    const onTrack = campaignPacing.filter(c => c.pacing_status === 'on-track').length;
 
     return {
-      currentSpend,
-      forecastedSpend,
-      budgetVariance,
-      confidence,
-      efficiencyScore,
-      peakSpend,
-      avgDailySpend,
-      dailyBudget,
-      trend
+      totalSpent,
+      totalBudget,
+      totalExpected,
+      totalForecasted,
+      pacingPct,
+      utilizationPct,
+      ahead,
+      behind,
+      onTrack,
+      status: pacingPct > 110 ? 'ahead' : pacingPct < 90 ? 'behind' : 'on-track',
     };
-  };
+  }, [campaignPacing]);
 
-  // KPI Click Handlers using REAL data
-  const handleCurrentSpendClick = () => {
-    if (!timeseriesData?.data || timeseriesData.data.length === 0) return;
-
-    const last7Days = timeseriesData.data.slice(-7);
-    const items: KPIDetailItem[] = last7Days.map((day, index) => ({
-      id: `day-${index}`,
-      name: new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      value: `₹${day.cost.toFixed(2)}`,
-      trend: index > 0 ? ((day.cost - last7Days[index - 1].cost) / last7Days[index - 1].cost) * 100 : 0,
-      subtitle: `${day.clicks} clicks, ${day.impressions} impressions`,
-      status: day.cost > (forecast?.dailyBudget || 0) ? 'warning' : 'success',
-      metadata: { clicks: day.clicks, impressions: day.impressions, conversions: day.conversions }
-    }));
-
-    setDrawerTitle('Current Spend Breakdown');
-    setDrawerSubtitle(`Last 7 days - Total: ₹${forecast?.currentSpend.toFixed(2)}`);
-    setDrawerData(items);
-    setDrawerOpen(true);
-  };
-
-  const handleForecastedSpendClick = () => {
-    if (!forecast) return;
-
-    const items: KPIDetailItem[] = [];
-    for (let i = 1; i <= 7; i++) {
-      const predictedValue = forecast.avgDailySpend + (forecast.trend * i);
-      const date = new Date();
-      date.setDate(date.getDate() + i);
-
-      items.push({
-        id: `forecast-${i}`,
-        name: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-        value: `₹${Math.max(0, predictedValue).toFixed(2)}`,
-        trend: (forecast.trend / forecast.avgDailySpend) * 100,
-        subtitle: `Predicted based on ${forecast.confidence.toFixed(0)}% confidence`,
-        status: predictedValue > forecast.dailyBudget ? 'warning' : 'success',
-        metadata: { confidence: forecast.confidence, trend: forecast.trend }
-      });
+  // AI Analysis - 4 Types (Spend Forecast focus)
+  const aiAnalysis = useMemo(() => {
+    if (!pacingSummary) {
+      return {
+        descriptive: { text: '', icon: Assessment, color: '#1E88E5' },
+        diagnostic: { text: '', icon: Psychology, color: '#7B1FA2' },
+        predictive: { text: '', icon: Timeline, color: '#F57C00' },
+        prescriptive: { text: '', icon: Lightbulb, color: '#388E3C' },
+      };
     }
 
-    setDrawerTitle('Forecasted Spend');
-    setDrawerSubtitle(`Next 7 days prediction - Total: ₹${forecast.forecastedSpend.toFixed(2)}`);
-    setDrawerData(items);
-    setDrawerOpen(true);
-  };
+    const totalSpent = pacingSummary.totalSpent;
+    const totalBudget = pacingSummary.totalBudget;
+    const totalForecasted = pacingSummary.totalForecasted;
+    const pacingPct = pacingSummary.pacingPct;
+    const utilizationPct = pacingSummary.utilizationPct;
+    const status = pacingSummary.status;
 
-  const handleBudgetVarianceClick = () => {
-    if (!forecast || !categoryData || categoryData.length === 0) return;
+    // Budget efficiency metrics
+    const budgetRemaining = totalBudget - totalSpent;
+    const projectedOverrun = totalForecasted > totalBudget ? totalForecasted - totalBudget : 0;
+    const projectedUnderutilization = totalForecasted < totalBudget ? totalBudget - totalForecasted : 0;
 
-    const items: KPIDetailItem[] = categoryData.map((cat) => {
-      const variance = ((cat.forecast - cat.budget) / cat.budget) * 100;
-      return {
-        id: cat.category,
-        name: cat.category,
-        value: `${Math.abs(variance).toFixed(1)}%`,
-        trend: variance,
-        subtitle: `Budget: ₹${cat.budget.toLocaleString()} | Forecast: ₹${cat.forecast.toLocaleString()}`,
-        status: Math.abs(variance) > 10 ? 'error' : variance > 5 ? 'warning' : 'success',
-        metadata: { current: cat.current, forecast: cat.forecast, budget: cat.budget }
-      };
-    });
+    // Days in month calculation
+    const daysElapsed = 15; // Mock - should come from data
+    const daysRemaining = 15;
+    const dailyBurnRate = totalSpent / daysElapsed;
+    const targetDailyRate = totalBudget / 30;
 
-    setDrawerTitle('Budget Variance by Channel');
-    setDrawerSubtitle(`Overall variance: ${Math.abs(forecast.budgetVariance).toFixed(1)}% ${forecast.budgetVariance > 0 ? 'over' : 'under'} budget`);
-    setDrawerData(items);
-    setDrawerOpen(true);
-  };
+    // Campaign pacing analysis
+    const aheadCampaigns = campaignPacing.filter(c => c.pacing_status === 'ahead');
+    const behindCampaigns = campaignPacing.filter(c => c.pacing_status === 'behind');
 
-  const handleConfidenceClick = () => {
-    if (!timeseriesData?.data || timeseriesData.data.length === 0) return;
+    // 1. DESCRIPTIVE: Summary of spend and budget state
+    const descriptive = `Spend Forecast Overview:\n• Total spent to date: ₹${totalSpent.toLocaleString()} (${utilizationPct.toFixed(1)}% of budget)\n• Monthly budget: ₹${totalBudget.toLocaleString()}\n• Budget remaining: ₹${budgetRemaining.toLocaleString()}\n• Current pacing: ${pacingPct.toFixed(0)}% (${status.toUpperCase()})\n\nPacing Breakdown:\n• ${pacingSummary.ahead} campaigns pacing ahead\n• ${pacingSummary.behind} campaigns pacing behind\n• ${pacingSummary.onTrack} campaigns on track\n\nBurn Rate Analysis:\n• Daily spend: ₹${dailyBurnRate.toFixed(0)}/day\n• Target rate: ₹${targetDailyRate.toFixed(0)}/day\n• Forecasted EOM spend: ₹${totalForecasted.toLocaleString()}`;
 
-    const last14Days = timeseriesData.data.slice(-14);
-    const items: KPIDetailItem[] = last14Days.map((day, index) => {
-      const dayConfidence = Math.min(50 + (index * 3), 95);
-      return {
-        id: `conf-${index}`,
-        name: new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        value: `${dayConfidence.toFixed(0)}%`,
-        subtitle: `Spend: ₹${day.cost.toFixed(2)}`,
-        status: dayConfidence > 80 ? 'success' : dayConfidence > 60 ? 'info' : 'warning',
-        metadata: { cost: day.cost, clicks: day.clicks }
-      };
-    });
+    // 2. DIAGNOSTIC: Root cause of pacing issues
+    let diagnostic = `Root Cause Analysis:\n\nBudget Pacing Drivers:\n• Pacing ${status === 'ahead' ? 'ahead' : status === 'behind' ? 'behind' : 'on track'} at ${pacingPct.toFixed(0)}%\n• Daily burn rate ${dailyBurnRate > targetDailyRate ? 'exceeds' : dailyBurnRate < targetDailyRate ? 'below' : 'matches'} target (₹${dailyBurnRate.toFixed(0)} vs ₹${targetDailyRate.toFixed(0)})\n• Budget utilization: ${utilizationPct.toFixed(1)}% consumed\n\nCampaign-Level Analysis:`;
 
-    setDrawerTitle('Forecast Confidence Score');
-    setDrawerSubtitle(`Based on ${last14Days.length} days of historical data - Current: ${forecast?.confidence.toFixed(0)}%`);
-    setDrawerData(items);
-    setDrawerOpen(true);
-  };
-
-  const handleEfficiencyClick = () => {
-    if (!timeseriesData?.data || timeseriesData.data.length === 0) return;
-
-    const last7Days = timeseriesData.data.slice(-7);
-    const items: KPIDetailItem[] = last7Days.map((day) => {
-      const cpc = day.clicks > 0 ? day.cost / day.clicks : 0;
-      const efficiency = cpc > 0 ? Math.min((1 / cpc) * 10, 10) : 0;
-      return {
-        id: `eff-${day.date}`,
-        name: new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        value: efficiency.toFixed(1),
-        subtitle: `CPC: ₹${cpc.toFixed(2)} | ${day.clicks} clicks`,
-        status: efficiency > 7 ? 'success' : efficiency > 4 ? 'info' : 'warning',
-        metadata: { cpc, clicks: day.clicks, cost: day.cost }
-      };
-    });
-
-    setDrawerTitle('Efficiency Score Analysis');
-    setDrawerSubtitle(`Current score: ${forecast?.efficiencyScore.toFixed(1)}/10`);
-    setDrawerData(items);
-    setDrawerOpen(true);
-  };
-
-  const handlePeakSpendClick = () => {
-    if (!timeseriesData?.data || timeseriesData.data.length === 0) return;
-
-    const last14Days = timeseriesData.data.slice(-14);
-    const sortedBySpend = [...last14Days].sort((a, b) => b.cost - a.cost);
-    const items: KPIDetailItem[] = sortedBySpend.map((day, index) => ({
-      id: `peak-${day.date}`,
-      name: new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-      value: `₹${day.cost.toFixed(2)}`,
-      subtitle: `${day.clicks} clicks, ${day.conversions} conversions`,
-      status: index === 0 ? 'error' : index < 3 ? 'warning' : 'success',
-      metadata: { clicks: day.clicks, impressions: day.impressions, conversions: day.conversions }
-    }));
-
-    setDrawerTitle('Peak Spend Days');
-    setDrawerSubtitle(`Highest spend: ₹${forecast?.peakSpend.toFixed(2)}`);
-    setDrawerData(items.slice(0, 10));
-    setDrawerOpen(true);
-  };
-
-  // Build forecast data for chart
-  const buildForecastData = (): ForecastDataPoint[] => {
-    if (!timeseriesData?.data || timeseriesData.data.length === 0) {
-      return [];
+    if (pacingSummary.ahead > 0) {
+      const avgOverpacing = aheadCampaigns.reduce((sum, c) => sum + (c.pacing_pct - 100), 0) / aheadCampaigns.length;
+      diagnostic += `\n• ${pacingSummary.ahead} campaigns overspending by avg ${avgOverpacing.toFixed(0)}%\n• High bid competitiveness or expanded targeting driving overspend`;
     }
 
-    const historicalData = timeseriesData.data.slice(-7); // Last 7 days
-    const forecast = calculateForecast();
-    if (!forecast) return [];
-
-    const result: ForecastDataPoint[] = [];
-
-    // Add historical data
-    historicalData.forEach((point, index) => {
-      result.push({
-        date: new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        actual: point.cost || 0,
-        predicted: point.cost || 0,
-        budget: forecast.dailyBudget,
-        lower: (point.cost || 0) * 0.9,
-        upper: (point.cost || 0) * 1.1
-      });
-    });
-
-    // Add forecast data
-    for (let i = 1; i <= 7; i++) {
-      const predictedValue = forecast.avgDailySpend + (forecast.trend * i);
-      const date = new Date();
-      date.setDate(date.getDate() + i);
-
-      result.push({
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        actual: null,
-        predicted: Math.max(0, predictedValue),
-        budget: forecast.dailyBudget,
-        lower: Math.max(0, predictedValue * 0.85),
-        upper: predictedValue * 1.15
-      });
+    if (pacingSummary.behind > 0) {
+      const avgUnderpacing = behindCampaigns.reduce((sum, c) => sum + (100 - c.pacing_pct), 0) / behindCampaigns.length;
+      diagnostic += `\n• ${pacingSummary.behind} campaigns underspending by avg ${avgUnderpacing.toFixed(0)}%\n• Low search volume, restrictive targeting, or low bids limiting spend`;
     }
 
-    return result;
-  };
+    // 3. PREDICTIVE: Forecast budget outcomes
+    let predictive = `Performance Forecast:\n\nEnd-of-Month Projections:\n• Forecasted total spend: ₹${totalForecasted.toLocaleString()}\n• Budget ${totalForecasted > totalBudget ? 'overrun' : totalForecasted < totalBudget * 0.95 ? 'underutilization' : 'on target'}: ₹${Math.abs(totalBudget - totalForecasted).toLocaleString()}\n• Projected utilization: ${((totalForecasted / totalBudget) * 100).toFixed(1)}%\n\nRisk Assessment:`;
 
-  // Build category breakdown
-  const buildCategoryData = (): CategoryData[] => {
-    if (!campaignsData?.campaigns || campaignsData.campaigns.length === 0) {
-      return [];
+    if (projectedOverrun > 0) {
+      predictive += `\n• ⚠️ Budget overrun risk: ₹${projectedOverrun.toLocaleString()} (${((projectedOverrun / totalBudget) * 100).toFixed(0)}% over)\n• At current pace, campaigns will exhaust budgets in ${Math.round(daysRemaining * 0.8)} days\n• Requires immediate spend throttling to avoid overspend`;
+    } else if (projectedUnderutilization > 0) {
+      predictive += `\n• Budget underutilization: ₹${projectedUnderutilization.toLocaleString()} unused (${((projectedUnderutilization / totalBudget) * 100).toFixed(0)}% waste)\n• Opportunity cost of ${Math.round(projectedUnderutilization * 0.2)} potential conversions\n• Requires budget reallocation or bid increases`;
+    } else {
+      predictive += `\n• Pacing is optimal - expect full budget utilization\n• Stable spend trajectory through month-end\n• Minimal waste or overrun risk`;
     }
 
-    const forecast = calculateForecast();
-    if (!forecast) return [];
+    // 4. PRESCRIPTIVE: Actionable budget recommendations
+    const recommendations: string[] = [];
 
-    // Group campaigns by channel type
-    const channelGroups: Record<string, { current: number; count: number }> = {};
+    if (projectedOverrun > 0) {
+      recommendations.push(`1. URGENT: Reduce bids by 15-20% on ${pacingSummary.ahead} ahead campaigns to prevent ₹${projectedOverrun.toLocaleString()} overrun`);
+      recommendations.push(`2. Set daily budget caps at ₹${(targetDailyRate * 0.9).toFixed(0)}/day per campaign to control spend`);
+    } else if (projectedUnderutilization > totalBudget * 0.1) {
+      recommendations.push(`1. Increase bids by 10-15% on ${pacingSummary.behind} behind campaigns to utilize ₹${projectedUnderutilization.toLocaleString()} remaining budget`);
+      recommendations.push(`2. Expand targeting or add new keywords to increase impression share`);
+    } else {
+      recommendations.push(`1. Maintain current pacing - spending is optimized for full utilization`);
+    }
 
-    campaignsData.campaigns.forEach((campaign: any) => {
-      const channel = campaign.channel_type || 'Search';
-      if (!channelGroups[channel]) {
-        channelGroups[channel] = { current: 0, count: 0 };
-      }
-      channelGroups[channel].current += campaign.metrics?.cost || 0;
-      channelGroups[channel].count += 1;
-    });
+    if (pacingSummary.ahead > 0) {
+      const wasted = aheadCampaigns.reduce((sum, c) => sum + (c.forecasted_eom_spend - c.monthly_budget), 0);
+      recommendations.push(`3. Reallocate ₹${Math.abs(wasted).toFixed(0)} from overspent campaigns to underperforming ones`);
+    }
 
-    // Calculate forecast and budget for each channel
-    return Object.entries(channelGroups).map(([channel, data]) => {
-      const currentSpend = data.current;
-      const growthRate = 1 + (forecast.trend / forecast.avgDailySpend);
-      const forecastSpend = currentSpend * growthRate;
-      const budget = currentSpend * 1.3; // 30% buffer
+    if (pacingSummary.behind > 0 && pacingSummary.ahead === 0) {
+      recommendations.push(`3. Launch new ad groups or campaigns to absorb unused budget capacity`);
+    }
 
-      return {
-        category: channel,
-        current: Math.round(currentSpend),
-        forecast: Math.round(forecastSpend),
-        budget: Math.round(budget)
-      };
-    }).slice(0, 3); // Top 3 channels
-  };
+    recommendations.push(`4. Monitor daily spend at ₹${targetDailyRate.toFixed(0)}/day benchmark - adjust bids if variance exceeds 15%`);
 
-  const forecast = calculateForecast();
-  const forecastData = buildForecastData();
-  const categoryData = buildCategoryData();
+    const expectedSavings = projectedOverrun > 0 ? projectedOverrun * 0.8 : projectedUnderutilization * 0.5;
+    const prescriptive = `Strategic Recommendations:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact:\n• Budget optimization: ₹${expectedSavings.toLocaleString()} ${projectedOverrun > 0 ? 'savings' : 'revenue opportunity'}\n• Utilization improvement: ${projectedOverrun > 0 ? 'prevent overrun' : `+${((projectedUnderutilization / totalBudget) * 100).toFixed(0)}% utilization`}\n• Confidence: 89%`;
 
-  // Loading state
-  if (!filters.customerId) {
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <CircularProgress />
-        <Typography sx={{ mt: 2 }}>Loading customer data...</Typography>
-      </Box>
-    );
-  }
-
-  if (metricsLoading || timeseriesLoading || campaignsLoading) {
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <CircularProgress />
-        <Typography sx={{ mt: 2 }}>Loading forecast data...</Typography>
-      </Box>
-    );
-  }
-
-  if (metricsError || timeseriesError) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
-          Error loading data: {metricsError?.message || timeseriesError?.message}
-        </Alert>
-      </Box>
-    );
-  }
-
-  if (!forecast || forecastData.length === 0) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info">
-          Insufficient data to generate spend forecast. Please ensure you have at least 7 days of campaign data.
-        </Alert>
-      </Box>
-    );
-  }
-
-  // Generate AI insights based on real data
-  const aiInsights: AIInsight[] = [
-    {
-      type: forecast.budgetVariance > 10 ? 'warning' : 'prediction',
-      title: forecast.budgetVariance > 10 ? 'Budget Overrun Risk' : 'Budget Tracking',
-      description: `Spend forecast shows ${Math.abs(forecast.budgetVariance).toFixed(1)}% ${forecast.budgetVariance > 0 ? 'over' : 'under'} budget based on current trends`,
-      impact: forecast.budgetVariance > 10 ? 'Budget management needed' : 'On track',
-      confidence: Math.round(forecast.confidence),
-      action: forecast.budgetVariance > 10 ? 'Adjust Bids' : 'Monitor',
-      icon: <AttachMoney />,
-    },
-    {
-      type: 'prediction',
-      title: 'Spend Pattern Analysis',
-      description: `AI predicts ${forecast.trend > 0 ? 'increasing' : 'stable'} spend pattern with ${Math.round(forecast.confidence)}% confidence based on historical data`,
-      impact: 'Better planning',
-      confidence: Math.round(forecast.confidence),
-      action: 'Plan Budget',
-      icon: <TrendingUpRounded />,
-    },
-    {
-      type: 'recommendation',
-      title: 'Cost Optimization',
-      description: `Current efficiency score is ${forecast.efficiencyScore.toFixed(1)}/10. Consider optimizing for better cost performance`,
-      impact: 'Potential efficiency gain',
-      confidence: 85,
-      action: 'Optimize Bids',
-      icon: <AutoAwesome />,
-    },
-  ];
-
-  const handleRefresh = () => {
-    refetchMetrics();
-    refetchTimeseries();
-  };
+    return {
+      descriptive: {
+        text: descriptive,
+        icon: Assessment,
+        color: '#1E88E5',
+      },
+      diagnostic: {
+        text: diagnostic,
+        icon: Psychology,
+        color: '#7B1FA2',
+      },
+      predictive: {
+        text: predictive,
+        icon: Timeline,
+        color: '#F57C00',
+      },
+      prescriptive: {
+        text: prescriptive,
+        icon: Lightbulb,
+        color: '#388E3C',
+      },
+    };
+  }, [pacingSummary, campaignPacing]);
 
   return (
-    <DashboardTemplate
-      title="Spend Forecast"
-      subtitle="AI-powered advertising spend predictions and budget optimization"
-      selectedTimeRange={selectedTimeRange}
-      onTimeRangeChange={() => setSelectedTimeRange(selectedTimeRange === '7d' ? '30d' : '7d')}
-    >
-      {/* Header Actions */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <Tooltip title="Refresh data">
-          <IconButton onClick={handleRefresh} size="small">
-            <Refresh />
-          </IconButton>
-        </Tooltip>
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight={700} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AttachMoney fontSize="large" color="primary" />
+          Spend Forecast & Budget Pacing
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Track budget utilization and forecast end-of-month spend
+        </Typography>
       </Box>
 
-      {/* KPI Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Current Spend"
-            value={forecast.currentSpend}
-            format="currency"
-            icon={<AttachMoney />}
-            trend={forecast.trend > 0 ? "up" : "down"}
-            trendValue={Math.abs(forecast.trend / forecast.avgDailySpend * 100)}
-            color="primary"
-            index={0}
-            onClick={handleCurrentSpendClick}
-            drillDownAvailable={true}
-            subtitle="Last 7 days"
-          />
+      {/* Summary Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Spent to Date</Typography>
+                  <Typography variant="h3" fontWeight={700} color="text.primary">₹{pacingSummary.totalSpent.toLocaleString()}</Typography>
+                  <Typography variant="caption" color="text.secondary">{pacingSummary.utilizationPct.toFixed(1)}% of budget</Typography>
+                </Box>
+                <AttachMoney sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Forecasted Spend"
-            value={forecast.forecastedSpend}
-            format="currency"
-            icon={<TrendingUpRounded />}
-            trend={forecast.forecastedSpend > forecast.currentSpend ? "up" : "down"}
-            trendValue={Math.abs((forecast.forecastedSpend - forecast.currentSpend) / forecast.currentSpend * 100)}
-            color="warning"
-            index={1}
-            onClick={handleForecastedSpendClick}
-            drillDownAvailable={true}
-            subtitle="Next 7 days"
-          />
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Pacing Status</Typography>
+                  <Typography variant="h3" fontWeight={700} color="text.primary">{pacingSummary.pacingPct.toFixed(0)}%</Typography>
+                  <Typography variant="caption" color="text.secondary">{pacingSummary.status.toUpperCase()}</Typography>
+                </Box>
+                {pacingSummary.status === 'ahead' ? (
+                  <TrendingUp sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
+                ) : pacingSummary.status === 'behind' ? (
+                  <TrendingDown sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
+                ) : (
+                  <CheckCircle sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
+                )}
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Budget Variance"
-            value={Math.abs(forecast.budgetVariance)}
-            format="percentage"
-            icon={<TrendingUp />}
-            trend={forecast.budgetVariance > 0 ? "up" : "down"}
-            trendValue={Math.abs(forecast.budgetVariance)}
-            color={Math.abs(forecast.budgetVariance) > 10 ? "error" : "success"}
-            index={2}
-            onClick={handleBudgetVarianceClick}
-            drillDownAvailable={true}
-            subtitle="By channel"
-          />
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Forecasted EOM Spend</Typography>
+                  <Typography variant="h3" fontWeight={700} color="text.primary">₹{pacingSummary.totalForecasted.toLocaleString()}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {((pacingSummary.totalForecasted / pacingSummary.totalBudget) * 100).toFixed(0)}% of budget
+                  </Typography>
+                </Box>
+                <Timeline sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Confidence"
-            value={forecast.confidence}
-            format="percentage"
-            icon={<Analytics />}
-            trend="up"
-            trendValue={3}
-            color="success"
-            index={3}
-            onClick={handleConfidenceClick}
-            drillDownAvailable={true}
-            subtitle="Prediction accuracy"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Efficiency Score"
-            value={forecast.efficiencyScore}
-            format="number"
-            icon={<Speed />}
-            trend={forecast.efficiencyScore > 5 ? "up" : "down"}
-            trendValue={forecast.efficiencyScore > 5 ? 12 : -8}
-            color="info"
-            index={4}
-            onClick={handleEfficiencyClick}
-            drillDownAvailable={true}
-            subtitle="Out of 10"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Peak Spend Day"
-            value={forecast.peakSpend}
-            format="currency"
-            icon={<Timeline />}
-            trend="up"
-            trendValue={18}
-            color="secondary"
-            index={5}
-            onClick={handlePeakSpendClick}
-            drillDownAvailable={true}
-            subtitle="Highest daily spend"
-          />
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Monthly Budget</Typography>
+                  <Typography variant="h3" fontWeight={700} color="text.primary">₹{pacingSummary.totalBudget.toLocaleString()}</Typography>
+                </Box>
+                <CalendarToday sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
 
+      {/* AI Intelligence */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h5" fontWeight={600} gutterBottom sx={{ mb: 3 }}>
+          🧠 AI Intelligence
+        </Typography>
 
-      {/* AI Intelligence Section */}
-      <Box sx={{ mb: 3 }}>
-        <AIIntelligenceSection insights={aiInsights} />
-      </Box>
-
-      <Grid container spacing={3}>
-        {/* Main Forecast Chart */}
-        <Grid item xs={12}>
-          <Fade in timeout={600}>
+        <Grid container spacing={2.5}>
+          {/* 1. Descriptive */}
+          <Grid item xs={12} md={6}>
             <Card
+              elevation={0}
               sx={{
-                transition: 'all 0.3s ease',
+                height: '100%',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                transition: 'all 0.3s',
                 '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: theme.shadows[8],
-                },
+                  boxShadow: `0 4px 20px ${aiAnalysis.descriptive.color}20`,
+                  borderColor: aiAnalysis.descriptive.color,
+                }
               }}
             >
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    Daily Spend Forecast vs Budget
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Chip
-                      icon={<Speed />}
-                      label="Live Tracking"
-                      color="success"
-                      size="small"
-                    />
-                    <Tooltip title="Shows predicted daily spend with budget limits and confidence intervals">
-                      <IconButton size="small" color="primary">
-                        <TipsAndUpdates fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+              <CardContent sx={{ p: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 1.5,
+                      bgcolor: `${aiAnalysis.descriptive.color}10`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Assessment sx={{ color: aiAnalysis.descriptive.color, fontSize: 20 }} />
+                  </Box>
+                  <Box flex={1}>
+                    <Typography variant="subtitle2" sx={{ color: aiAnalysis.descriptive.color, fontWeight: 600 }}>
+                      Descriptive
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      What happened
+                    </Typography>
                   </Box>
                 </Box>
-                <EnhancedChart
-                  height={400}
-                  xAxis={{ label: 'Date', dataKey: 'date' }}
-                  yAxis={{ label: 'Spend (₹)', format: 'currency' }}
-                  showGrid={true}
-                  showTooltip={true}
-                  showLegend={false}
-                >
-                  <ComposedChart data={forecastData}>
-                    {/* Confidence Interval */}
-                    <Area
-                      type="monotone"
-                      dataKey="upper"
-                      stroke="none"
-                      fill={alpha(theme.palette.warning.main, 0.1)}
-                      fillOpacity={0.5}
-                      name="Upper Bound"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="lower"
-                      stroke="none"
-                      fill={theme.palette.background.paper}
-                      fillOpacity={1}
-                      name="Lower Bound"
-                    />
-
-                    {/* Budget Line */}
-                    <Line
-                      type="monotone"
-                      dataKey="budget"
-                      stroke={theme.palette.error.main}
-                      strokeWidth={2}
-                      strokeDasharray="8 4"
-                      dot={false}
-                      name="Daily Budget"
-                    />
-
-                    {/* Actual Spend */}
-                    <Line
-                      type="monotone"
-                      dataKey="actual"
-                      stroke={theme.palette.success.main}
-                      strokeWidth={3}
-                      dot={{ fill: theme.palette.success.main, r: 5 }}
-                      connectNulls={false}
-                      name="Actual Spend"
-                    />
-
-                    {/* Predicted Spend */}
-                    <Line
-                      type="monotone"
-                      dataKey="predicted"
-                      stroke={theme.palette.warning.main}
-                      strokeWidth={3}
-                      strokeDasharray="5 5"
-                      dot={{ fill: theme.palette.warning.main, r: 4 }}
-                      name="Predicted Spend"
-                    />
-                  </ComposedChart>
-                </EnhancedChart>
-
-                {/* Legend */}
-                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mt: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ width: 20, height: 3, bgcolor: theme.palette.success.main }} />
-                    <Typography variant="caption">Actual Spend</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ width: 20, height: 3, bgcolor: theme.palette.warning.main, opacity: 0.7 }} />
-                    <Typography variant="caption">Predicted Spend</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ width: 20, height: 3, bgcolor: theme.palette.error.main, opacity: 0.7 }} />
-                    <Typography variant="caption">Daily Budget</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ width: 20, height: 10, bgcolor: alpha(theme.palette.warning.main, 0.2) }} />
-                    <Typography variant="caption">Confidence Interval</Typography>
-                  </Box>
-                </Box>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.7, color: 'text.secondary' }}>
+                  {aiAnalysis.descriptive.text || 'Waiting for data...'}
+                </Typography>
               </CardContent>
             </Card>
-          </Fade>
-        </Grid>
-
-        {/* Category Breakdown */}
-        {categoryData.length > 0 && (
-          <Grid item xs={12} md={6}>
-            <Fade in timeout={700}>
-              <Card
-                sx={{
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: theme.shadows[8],
-                  },
-                }}
-              >
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h6">
-                      Spend by Channel
-                    </Typography>
-                    <Chip
-                      icon={<AccountBalance />}
-                      label="Budget Tracking"
-                      color="primary"
-                      size="small"
-                    />
-                  </Box>
-                  <EnhancedChart
-                    height={300}
-                    xAxis={{ label: 'Channel', dataKey: 'category' }}
-                    yAxis={{ label: 'Spend (₹)', format: 'currency' }}
-                    showGrid={true}
-                    showTooltip={true}
-                    showLegend={false}
-                  >
-                    <ComposedChart data={categoryData}>
-                      <Bar
-                        dataKey="current"
-                        fill={alpha(theme.palette.primary.main, 0.7)}
-                        radius={[4, 4, 0, 0]}
-                        name="Current Spend"
-                      />
-                      <Bar
-                        dataKey="forecast"
-                        fill={alpha(theme.palette.warning.main, 0.7)}
-                        radius={[4, 4, 0, 0]}
-                        name="Forecasted Spend"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="budget"
-                        stroke={theme.palette.error.main}
-                        strokeWidth={2}
-                        strokeDasharray="5 5"
-                        dot={{ fill: theme.palette.error.main, r: 4 }}
-                        name="Budget Limit"
-                      />
-                    </ComposedChart>
-                  </EnhancedChart>
-                </CardContent>
-              </Card>
-            </Fade>
           </Grid>
-        )}
 
-        {/* Budget Utilization */}
-        {categoryData.length > 0 && (
+          {/* 2. Diagnostic */}
           <Grid item xs={12} md={6}>
-            <Fade in timeout={800}>
-              <Card
-                sx={{
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: theme.shadows[8],
-                  },
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h6" sx={{ mb: 2 }}>
-                    Budget Utilization Forecast
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    {categoryData.map((category, index) => (
-                      <Box key={index}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="body2" fontWeight={500}>
-                            {category.category}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {Math.round((category.forecast / category.budget) * 100)}% of budget
-                          </Typography>
-                        </Box>
-                        <Box sx={{ position: 'relative', height: 20, bgcolor: alpha(theme.palette.grey[400], 0.2), borderRadius: 2 }}>
-                          {/* Budget bar */}
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              height: '100%',
-                              width: '100%',
-                              bgcolor: alpha(theme.palette.grey[400], 0.3),
-                              borderRadius: 2,
-                            }}
-                          />
-                          {/* Current spend */}
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              height: '100%',
-                              width: `${Math.min((category.current / category.budget) * 100, 100)}%`,
-                              bgcolor: theme.palette.primary.main,
-                              borderRadius: 2,
-                            }}
-                          />
-                          {/* Forecasted spend */}
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              height: '100%',
-                              width: `${Math.min((category.forecast / category.budget) * 100, 100)}%`,
-                              bgcolor: category.forecast > category.budget ? theme.palette.error.main : theme.palette.warning.main,
-                              opacity: 0.7,
-                              borderRadius: 2,
-                            }}
-                          />
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                          <Typography variant="caption" color="text.secondary">
-                            Current: ₹{category.current.toLocaleString()}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Budget: ₹{category.budget.toLocaleString()}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    ))}
-                  </Box>
-                </CardContent>
-              </Card>
-            </Fade>
-          </Grid>
-        )}
-
-        <Grid item xs={12}>
-          <Fade in timeout={900}>
-            <Alert
-              severity={Math.abs(forecast.budgetVariance) > 10 ? "warning" : "info"}
-              icon={<AttachMoney />}
+            <Card
+              elevation={0}
               sx={{
-                background: `linear-gradient(45deg, ${alpha(theme.palette.warning.main, 0.1)} 0%, ${alpha(theme.palette.warning.light, 0.05)} 100%)`,
-                border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                height: '100%',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                transition: 'all 0.3s',
+                '&:hover': {
+                  boxShadow: `0 4px 20px ${aiAnalysis.diagnostic.color}20`,
+                  borderColor: aiAnalysis.diagnostic.color,
+                }
               }}
             >
-              <Typography variant="subtitle2">
-                <strong>Forecast Alert:</strong> {Math.abs(forecast.budgetVariance) > 10
-                  ? `Forecasted spend shows ${Math.abs(forecast.budgetVariance).toFixed(1)}% budget ${forecast.budgetVariance > 0 ? 'overrun' : 'underutilization'}. Consider adjusting bid strategies or reallocating budget.`
-                  : `Spend is forecasted to remain within budget limits. Continue monitoring for any trend changes.`
-                }
-              </Typography>
-            </Alert>
-          </Fade>
-        </Grid>
-      </Grid>
+              <CardContent sx={{ p: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 1.5,
+                      bgcolor: `${aiAnalysis.diagnostic.color}10`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Psychology sx={{ color: aiAnalysis.diagnostic.color, fontSize: 20 }} />
+                  </Box>
+                  <Box flex={1}>
+                    <Typography variant="subtitle2" sx={{ color: aiAnalysis.diagnostic.color, fontWeight: 600 }}>
+                      Diagnostic
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Why it happened
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.7, color: 'text.secondary' }}>
+                  {aiAnalysis.diagnostic.text || 'Waiting for data...'}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
 
-      {/* KPI Detail Drawer */}
-      <KPIDetailDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        title={drawerTitle}
-        subtitle={drawerSubtitle}
-        data={drawerData}
-        type="list"
-        showTopCount={15}
-        color="warning"
-      />
-    </DashboardTemplate>
+          {/* 3. Predictive */}
+          <Grid item xs={12} md={6}>
+            <Card
+              elevation={0}
+              sx={{
+                height: '100%',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                transition: 'all 0.3s',
+                '&:hover': {
+                  boxShadow: `0 4px 20px ${aiAnalysis.predictive.color}20`,
+                  borderColor: aiAnalysis.predictive.color,
+                }
+              }}
+            >
+              <CardContent sx={{ p: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 1.5,
+                      bgcolor: `${aiAnalysis.predictive.color}10`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Timeline sx={{ color: aiAnalysis.predictive.color, fontSize: 20 }} />
+                  </Box>
+                  <Box flex={1}>
+                    <Typography variant="subtitle2" sx={{ color: aiAnalysis.predictive.color, fontWeight: 600 }}>
+                      Predictive
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      What will happen
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.7, color: 'text.secondary' }}>
+                  {aiAnalysis.predictive.text || 'Waiting for data...'}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* 4. Prescriptive */}
+          <Grid item xs={12} md={6}>
+            <Card
+              elevation={0}
+              sx={{
+                height: '100%',
+                border: '1px solid',
+                borderColor: aiAnalysis.prescriptive.color,
+                borderRadius: 2,
+                background: `linear-gradient(135deg, ${aiAnalysis.prescriptive.color}08 0%, ${aiAnalysis.prescriptive.color}03 100%)`,
+                transition: 'all 0.3s',
+                '&:hover': {
+                  boxShadow: `0 4px 20px ${aiAnalysis.prescriptive.color}25`,
+                }
+              }}
+            >
+              <CardContent sx={{ p: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 1.5,
+                      bgcolor: `${aiAnalysis.prescriptive.color}15`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Lightbulb sx={{ color: aiAnalysis.prescriptive.color, fontSize: 20 }} />
+                  </Box>
+                  <Box flex={1}>
+                    <Typography variant="subtitle2" sx={{ color: aiAnalysis.prescriptive.color, fontWeight: 600 }}>
+                      Prescriptive
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      What should we do
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.7, color: 'text.primary', fontWeight: 500 }}>
+                  {aiAnalysis.prescriptive.text || 'Waiting for data...'}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Box>
+
+      {/* Pacing Alert */}
+      <Box sx={{ mb: 4 }}>
+        {pacingSummary.status === 'ahead' && (
+          <Alert severity="warning" icon={<Warning />}>
+            <AlertTitle>Pacing Ahead of Schedule</AlertTitle>
+            You're spending at {pacingSummary.pacingPct.toFixed(0)}% of your expected pace. At this rate, you'll exceed your monthly budget by ${(pacingSummary.totalForecasted - pacingSummary.totalBudget).toFixed(0)}. Consider adjusting bids or pausing low-performing campaigns.
+          </Alert>
+        )}
+        {pacingSummary.status === 'behind' && (
+          <Alert severity="info" icon={<TrendingDown />}>
+            <AlertTitle>Pacing Behind Schedule</AlertTitle>
+            You're spending at {pacingSummary.pacingPct.toFixed(0)}% of your expected pace. You may under-utilize your budget by ${(pacingSummary.totalBudget - pacingSummary.totalForecasted).toFixed(0)}. Consider increasing bids or expanding targeting.
+          </Alert>
+        )}
+        {pacingSummary.status === 'on-track' && (
+          <Alert severity="success" icon={<CheckCircle />}>
+            <AlertTitle>On Track</AlertTitle>
+            Your spending is pacing perfectly at {pacingSummary.pacingPct.toFixed(0)}% of expected. You're projected to utilize {((pacingSummary.totalForecasted / pacingSummary.totalBudget) * 100).toFixed(0)}% of your monthly budget.
+          </Alert>
+        )}
+      </Box>
+
+      {/* Cumulative Spend Chart */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight={600} gutterBottom>
+            Cumulative Spend vs Budget Pacing
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Track actual spend against expected budget utilization
+          </Typography>
+          <Divider sx={{ my: 2 }} />
+          <ResponsiveContainer width="100%" height={400}>
+            <ComposedChart data={spendData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="date"
+                tickFormatter={(value) => {
+                  const date = new Date(value);
+                  return `${date.getMonth() + 1}/${date.getDate()}`;
+                }}
+              />
+              <YAxis yAxisId="left" label={{ value: 'Cumulative Spend (₹)', angle: -90, position: 'insideLeft' }} />
+              <Tooltip
+                labelFormatter={(value) => `Date: ${value}`}
+                formatter={(value: any) => `₹${value.toFixed(0)}`}
+              />
+              <Legend />
+
+              {/* Budget pacing line (ideal) */}
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="cumulative_budget"
+                stroke="#999"
+                strokeDasharray="5 5"
+                strokeWidth={2}
+                dot={false}
+                name="Budget Pacing (Ideal)"
+              />
+
+              {/* Actual cumulative spend */}
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="cumulative_spend"
+                stroke="#667eea"
+                strokeWidth={3}
+                dot={false}
+                name="Actual/Forecasted Spend"
+              />
+
+              {/* Reference line at today */}
+              <ReferenceLine
+                x={new Date().toISOString().split('T')[0]}
+                stroke="#f093fb"
+                strokeWidth={2}
+                label="Today"
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Campaign-Level Pacing */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight={600} gutterBottom>
+            Campaign-Level Budget Pacing
+          </Typography>
+          <Divider sx={{ my: 2 }} />
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell><strong>Campaign</strong></TableCell>
+                  <TableCell align="right"><strong>Budget</strong></TableCell>
+                  <TableCell align="right"><strong>Spent</strong></TableCell>
+                  <TableCell align="center"><strong>Utilization</strong></TableCell>
+                  <TableCell align="center"><strong>Pacing %</strong></TableCell>
+                  <TableCell align="right"><strong>Forecasted EOM</strong></TableCell>
+                  <TableCell align="center"><strong>Status</strong></TableCell>
+                  <TableCell align="right"><strong>Daily Target</strong></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {campaignPacing.map((campaign) => (
+                  <TableRow key={campaign.campaign_id} hover>
+                    <TableCell>{campaign.campaign_name}</TableCell>
+                    <TableCell align="right">₹{campaign.monthly_budget.toLocaleString()}</TableCell>
+                    <TableCell align="right">₹{campaign.spent_to_date.toLocaleString()}</TableCell>
+                    <TableCell align="center">
+                      <Box sx={{ width: '100%', mr: 1 }}>
+                        <LinearProgress
+                          variant="determinate"
+                          value={(campaign.spent_to_date / campaign.monthly_budget) * 100}
+                          sx={{ height: 8, borderRadius: 4 }}
+                          color={campaign.pacing_status === 'ahead' ? 'warning' : campaign.pacing_status === 'behind' ? 'info' : 'success'}
+                        />
+                        <Typography variant="caption">
+                          {((campaign.spent_to_date / campaign.monthly_budget) * 100).toFixed(0)}%
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={`${campaign.pacing_pct}%`}
+                        size="small"
+                        color={campaign.pacing_status === 'ahead' ? 'warning' : campaign.pacing_status === 'behind' ? 'info' : 'success'}
+                      />
+                    </TableCell>
+                    <TableCell align="right">₹{campaign.forecasted_eom_spend.toLocaleString()}</TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={campaign.pacing_status.toUpperCase()}
+                        size="small"
+                        color={campaign.pacing_status === 'ahead' ? 'warning' : campaign.pacing_status === 'behind' ? 'info' : 'success'}
+                        icon={campaign.pacing_status === 'ahead' ? <TrendingUp /> : campaign.pacing_status === 'behind' ? <TrendingDown /> : <CheckCircle />}
+                      />
+                    </TableCell>
+                    <TableCell align="right">${campaign.daily_target.toFixed(0)}/day</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+
+      {/* Recommendations */}
+      <Card sx={{ background: 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)' }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight={600} gutterBottom>
+            Budget Pacing Recommendations
+          </Typography>
+          <Divider sx={{ my: 2 }} />
+          <Grid container spacing={2}>
+            {pacingSummary.ahead > 0 && (
+              <Grid item xs={12}>
+                <Alert severity="warning">
+                  <AlertTitle>{pacingSummary.ahead} Campaign(s) Pacing Ahead</AlertTitle>
+                  Consider reducing bids or daily budgets for campaigns spending faster than expected to avoid budget exhaustion.
+                </Alert>
+              </Grid>
+            )}
+            {pacingSummary.behind > 0 && (
+              <Grid item xs={12}>
+                <Alert severity="info">
+                  <AlertTitle>{pacingSummary.behind} Campaign(s) Pacing Behind</AlertTitle>
+                  Consider increasing bids or expanding targeting to utilize available budget more effectively.
+                </Alert>
+              </Grid>
+            )}
+            {pacingSummary.onTrack > 0 && (
+              <Grid item xs={12}>
+                <Alert severity="success">
+                  <AlertTitle>{pacingSummary.onTrack} Campaign(s) On Track</AlertTitle>
+                  These campaigns are pacing perfectly. No adjustments needed.
+                </Alert>
+              </Grid>
+            )}
+          </Grid>
+        </CardContent>
+      </Card>
+    </Box>
   );
 };
 

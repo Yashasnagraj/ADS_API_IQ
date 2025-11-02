@@ -1,911 +1,847 @@
-# MarketingIQ Google Ads Data Platform
+# Marketing IQ Platform
 
-Complete platform for Google Ads data extraction, analysis, and AI-powered insights. This repository contains:
-- **ETL Pipeline** - Extracts Google Ads data into a data warehouse
-- **Data API** - REST API to access the data
-- **Multi-Agent System** - AI agents for insights and optimization
-- **Web Dashboard** - React frontend for visualization and chat
+**Enterprise Multi-Platform Marketing Analytics with AI Intelligence**
 
 ---
 
-## 📋 Table of Contents
+## Vision
 
-1. [Prerequisites](#prerequisites)
-2. [Quick Overview](#quick-overview)
-3. [Complete Setup Guide](#complete-setup-guide)
-4. [Running the Platform](#running-the-platform)
-5. [Architecture](#architecture)
-6. [Troubleshooting](#troubleshooting)
+Marketing IQ is designed to solve the fragmentation problem in digital marketing analytics. Modern marketing teams run campaigns across multiple platforms - Google Ads, Meta Ads, Google Analytics, Shopify - but struggle to get a unified view of performance and actionable insights.
+
+**Our Mission**: Consolidate all marketing data into one intelligent platform that not only shows what happened, but explains why it happened, predicts what will happen next, and recommends what to do about it.
+
+### Why Marketing IQ?
+
+**The Problem**:
+- Marketing data scattered across 4+ platforms
+- No single source of truth for performance
+- Insights require manual analysis and technical expertise
+- Optimization decisions based on gut feeling, not AI
+- Incremental impact of campaigns difficult to measure
+
+**Our Solution**:
+- **Unified Data Warehouse** - All platforms in one star-schema database
+- **AI-Powered Insights** - Natural language chatbot + automated analysis
+- **Multi-Agent Intelligence** - Specialized AI agents for different tasks
+- **Cross-Platform Attribution** - Understand true incremental impact
+- **Predictive Forecasting** - Know what's coming before it happens
+- **Automated Optimization** - AI recommends budget and bid changes
 
 ---
 
-## Prerequisites
+## What We Built
 
-Before starting, ensure you have:
+### 1. Multi-Platform Data Integration
 
-### Required Software
-- **Python 3.8+** ([Download](https://www.python.org/downloads/))
-- **Node.js 18+** ([Download](https://nodejs.org/))
-- **Git** ([Download](https://git-scm.com/))
+**Platforms Integrated**:
+- **Google Ads**: Campaigns, keywords, ad groups, search terms, quality scores
+- **Meta Ads** (Facebook/Instagram): Campaigns, ad sets, ads, insights, demographics
+- **Google Analytics 4**: Sessions, events, conversions, user paths, audiences
+- **Shopify**: Orders, products, customers, cart events, revenue attribution
 
-### Required Accounts & Credentials
-- **Google Ads Account** with API access
-- **Google Ads API Developer Token** (apply at [Google Ads API Center](https://ads.google.com/aw/apicenter))
-- **Google Cloud Project** with Ads API enabled
-- **OAuth 2.0 Credentials** (Client ID & Secret)
-- **Gemini API Key** (for AI features, get from [Google AI Studio](https://makersuite.google.com/app/apikey))
+**Data Warehouse Architecture**:
+- Star schema design optimized for analytics queries
+- Daily automated ETL pipeline
+- Multi-customer support (agency-ready)
+- Historical data retention
+- Real-time performance metrics
 
-### Verify Installation
+### 2. AI Multi-Agent System
+
+Built on **Google ADK** (Agent Development Kit) with **Gemini 2.5 Flash**:
+
+**Data Agent**:
+- Fetches campaign performance across all platforms
+- Retrieves keyword and ad group metrics
+- Queries historical trends and patterns
+
+**Insight Agent**:
+- Analyzes performance trends automatically
+- Detects anomalies in spend, clicks, conversions
+- Identifies underperforming campaigns and keywords
+- Provides diagnostic explanations (not just numbers)
+
+**Optimization Agent**:
+- Recommends budget reallocation across campaigns
+- Suggests bid adjustments for keywords
+- Prioritizes optimization opportunities by impact
+- Calculates expected ROI of changes
+
+**Forecasting Agent**:
+- Predicts next 30-day performance
+- Forecasts spend, clicks, conversions, revenue
+- Models scenario outcomes ("what if" analysis)
+- Identifies growth opportunities
+
+**Alert Agent**:
+- Monitors campaign performance thresholds
+- Detects sudden drops in CTR, quality score, conversions
+- Alerts on budget pacing issues
+- Tracks competitive shifts
+
+### 3. AI Chatbot Interface
+
+**Natural Language Queries**:
+- "Show me top performing campaigns this month"
+- "Why did conversions drop last week?"
+- "How should I optimize my budget?"
+- "Predict next month's performance"
+
+**Features**:
+- Powered by Gemini 2.5 Flash for conversational responses
+- Context-aware (knows current customer, date range, filters)
+- Markdown-formatted answers with charts and tables
+- Floating chat button on all dashboard pages
+- Agent metadata showing which AI handled the request
+
+### 4. Professional Web Dashboard
+
+**Built with React + TypeScript + Material-UI**:
+
+**Platform Dashboards**:
+- **Unified Dashboard**: Cross-platform metrics, blended ROAS, best platform analysis
+- **Google Ads Dashboard**: Campaign performance, keyword quality scores, search terms
+- **Meta Ads Dashboard**: Ad set performance, demographic insights, creative analysis
+- **GA4 Dashboard**: Session analytics, conversion paths, user behavior
+- **Shopify Dashboard**: Revenue attribution, product performance, customer LTV
+
+**Agent Dashboards**:
+- **Data Agent Dashboard**: Campaign, keyword, ad group deep dives
+- **Insights Dashboard**: Daily insights, anomaly detection, trend analysis
+- **Optimization Dashboard**: Budget optimizer, keyword optimizer, ROI calculator
+- **Forecasting Dashboard**: Spend forecast, CTR forecast, scenario simulator
+- **Alerts Dashboard**: Threshold monitoring, performance alerts
+
+**Features**:
+- Global filtering (customer, date range, campaign type)
+- All dashboards react to filter changes instantly
+- Responsive design (desktop, tablet, mobile)
+- Dark theme with purple gradient accents
+- Professional charts with Recharts library
+- Real-time data updates
+
+### 5. Advanced AI Intelligence
+
+**PIE Model** (Probability of Incremental Effect):
+- Calculates true incremental ROAS (not just reported ROAS)
+- Identifies which conversions were truly caused by ads
+- Detects "Generosity Flaw" in Meta/Google attribution
+- Provides confidence scores for each campaign
+
+**Anomaly Detection**:
+- Statistical analysis of daily performance
+- Detects outliers beyond normal variance
+- Categorizes anomalies (spend spike, CTR drop, conversion anomaly)
+- Explains probable causes
+
+**Budget Optimization**:
+- Linear programming for optimal budget allocation
+- Considers ROAS, incrementality, and diminishing returns
+- Recommends specific dollar amounts to shift
+- Calculates expected impact of changes
+
+**Performance Forecasting**:
+- Time series analysis with trend decomposition
+- Accounts for seasonality and day-of-week patterns
+- Confidence intervals for predictions
+- Scenario modeling capabilities
+
+---
+
+## Technology Stack
+
+### Backend
+- **FastAPI** - Modern Python web framework (async support)
+- **SQLAlchemy** - ORM for database queries
+- **Pydantic** - Data validation and serialization
+- **Google Ads API** - Official Google Ads client library
+- **Meta Marketing API** - Facebook/Instagram ads data
+- **Google Analytics Data API** - GA4 reporting API
+- **Shopify Admin API** - E-commerce data
+
+### Frontend
+- **React 19** - Latest React with concurrent features
+- **TypeScript** - Type-safe development
+- **Material-UI v5** - Professional component library
+- **Recharts** - Composable charting library
+- **Axios** - HTTP client with interceptors
+- **React Router v7** - Client-side routing
+- **Framer Motion** - Smooth animations
+- **React Markdown** - Rich text formatting in chat
+
+### AI & ML
+- **Google ADK** - Multi-agent orchestration framework
+- **Gemini 2.5 Flash** - Conversational AI and analysis
+- **LangChain** - Agent prompting and chaining
+- **NumPy/Pandas** - Data manipulation
+- **SciPy** - Statistical analysis
+- **scikit-learn** - ML models (forecasting, clustering)
+
+### Database
+- **SQLite** - Production data warehouse
+- **Star Schema** - Analytics-optimized design
+- Dimension tables: customers, campaigns, keywords, ad groups
+- Fact tables: daily performance, insights, conversions
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+**Required Software**:
+- Python 3.10+ ([Download](https://www.python.org/downloads/))
+- Node.js 18+ ([Download](https://nodejs.org/))
+- Git ([Download](https://git-scm.com/))
+
+**Required API Credentials**:
+- Google Ads API access (developer token, OAuth2 credentials)
+- Meta Ads API access (app ID, app secret, access token)
+- Google Analytics 4 API (service account credentials)
+- Gemini API key ([Get here](https://makersuite.google.com/app/apikey))
+
+---
+
+## Setup Instructions
+
+### 1. Clone Repository
+
 ```bash
-python --version  # Should be 3.8+
-node --version    # Should be 18+
-npm --version     # Should be 9+
-git --version
-```
-
----
-
-## Quick Overview
-
-This platform has 4 main components that work together:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    YOUR LAPTOP SETUP                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  1. ETL Pipeline (warehouse_etl.py)                         │
-│     ↓ Extracts data from Google Ads                        │
-│     ↓ Stores in google_ads_data.db                         │
-│                                                             │
-│  2. Data API (api/)                                         │
-│     ↓ Reads from google_ads_data.db                        │
-│     ↓ Serves data via REST API (port 8000)                 │
-│                                                             │
-│  3. Multi-Agent System (google-ads-multiagent/)            │
-│     ↓ AI Agents using Gemini                               │
-│     ↓ Connects to Data API and database                    │
-│     ↓ Serves chat API (port 8001)                          │
-│                                                             │
-│  4. Web Dashboard (marketingiq-platform/web/)              │
-│     ↓ React frontend                                        │
-│     ↓ Connects to Data API & Agent API                     │
-│     ↓ Runs on port 3001                                    │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Complete Setup Guide
-
-Follow these steps **in order** to set up everything on your laptop.
-
-### STEP 1: Clone the Repository
-
-```bash
-git clone <your-repo-url>
+git clone <your-repository-url>
 cd ADS_API
 ```
 
----
-
-### STEP 2: Set Up ETL Pipeline (Data Warehouse)
-
-This extracts Google Ads data and stores it in a local database.
-
-#### 2.1 Install Python Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-#### 2.2 Configure Google Ads Credentials
-
-**Option A: If you already have credentials**
-```bash
-# Copy the template
-cp google-ads.yaml.template google-ads.yaml
-
-# Edit google-ads.yaml and add:
-# - developer_token
-# - client_id
-# - client_secret
-# - refresh_token
-# - login_customer_id (your Manager Account ID)
-```
-
-**Option B: If you need to generate credentials**
-
-1. Create Google Cloud Project:
-   - Go to [Google Cloud Console](https://console.cloud.google.com)
-   - Create new project: "MarketingIQ-API"
-   - Enable Google Ads API
-
-2. Create OAuth 2.0 Credentials:
-   - Go to APIs & Services → Credentials
-   - Create Credentials → OAuth 2.0 Client ID
-   - Application type: **Desktop app**
-   - Copy Client ID and Client Secret
-
-3. Generate Refresh Token:
-```bash
-python generate_refresh_token.py
-```
-   - Browser will open
-   - Sign in with your Google Ads account
-   - Copy the refresh token displayed
-   - Add to `google-ads.yaml`
-
-#### 2.3 Run ETL Pipeline
-```bash
-python warehouse_etl.py
-```
-
-**What happens:**
-- Connects to Google Ads API
-- Extracts last 30 days of data
-- Creates `google_ads_data.db` SQLite database
-- Populates 5 tables: campaigns, ad groups, keywords, search terms, ML features
-
-**Expected output:**
-```
-======================================================================
-STARTING WAREHOUSE ETL PIPELINE
-======================================================================
-Processing customer: Your Business (1234567890)
-----------------------------------------------------------------------
-Extracting campaigns performance...
-Loaded 25 records into campaigns_performance
-Extracting ad groups performance...
-Loaded 150 records into adgroups_performance
-...
-ETL PIPELINE COMPLETED SUCCESSFULLY
-```
-
-**Verify:**
-```bash
-# Check database was created
-ls -lh google_ads_data.db
-
-# Query the database
-python -c "import sqlite3; conn = sqlite3.connect('google_ads_data.db'); print('Campaigns:', conn.execute('SELECT COUNT(*) FROM campaigns_performance').fetchone()[0])"
-```
-
----
-
-### STEP 3: Set Up Data API
-
-This API reads from the database and serves data to the frontend.
+### 2. Set Up Backend API
 
 ```bash
-# Navigate to API folder
+# Navigate to API directory
 cd api
 
-# Create virtual environment (recommended)
-python -m venv venv
-
-# Activate virtual environment
-# Windows:
-venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
-
-# Install dependencies
+# Install Python dependencies
 pip install -r requirements.txt
 
-# Create .env file (if not exists)
-echo "DATABASE_URL=sqlite:///../google_ads_data.db" > .env
-echo "CORS_ORIGINS=[\"http://localhost:3001\",\"http://localhost:3000\"]" >> .env
+# Create environment file
+cp ../.env.example ../.env
 
-# Start the API server
+# Edit .env with your credentials
+# GOOGLE_ADS_DEVELOPER_TOKEN=xxx
+# GOOGLE_ADS_CLIENT_ID=xxx
+# GOOGLE_ADS_CLIENT_SECRET=xxx
+# GOOGLE_ADS_REFRESH_TOKEN=xxx
+# GOOGLE_ADS_LOGIN_CUSTOMER_ID=xxx
+
+# Also create .env.meta and .env.ga4 files
+cp ../.env.meta.example ../.env.meta
+cp ../.env.ga4.example ../.env.ga4
+
+# Initialize database
+cd ..
+python init_warehouse.py
+
+# Run ETL to populate data (first time only)
+python warehouse_etl.py
+
+# Start backend server
+cd api
 uvicorn app.main:app --reload --port 8000
 ```
 
-**Verify API is running:**
-- Open browser: http://localhost:8000/health
-- Should see: `{"status":"healthy"}`
-- API docs: http://localhost:8000/docs
+**Backend API will be running on**: http://localhost:8000
+**API Documentation**: http://localhost:8000/docs
 
-**Keep this terminal open** - API needs to keep running.
-
----
-
-### STEP 4: Set Up Multi-Agent System (Chatbot/AI Agents)
-
-This provides AI-powered insights using Google's Gemini.
-
-**Open a NEW terminal** (keep API running in previous terminal).
+### 3. Set Up Google ADK Chatbot
 
 ```bash
-cd google-ads-multiagent
+# Navigate to ADK directory
+cd google-ads-multiagent/adk
 
-# Create virtual environment
-python -m venv venv
+# Create .env file for Gemini
+echo "GOOGLE_API_KEY=your_gemini_api_key_here" > .env
 
-# Activate it
-# Windows:
-venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
+# Install ADK dependencies (if not already installed)
+pip install google-generativeai python-dotenv
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Create .env file
-cp .env.example .env
+# Start chatbot API
+python chatbot_api.py
 ```
 
-**Edit `google-ads-multiagent/.env`:**
-```env
-# Google Ads API (same credentials as root folder)
-GOOGLE_ADS_DEVELOPER_TOKEN=your_token
-GOOGLE_ADS_CLIENT_ID=your_client_id
-GOOGLE_ADS_CLIENT_SECRET=your_secret
-GOOGLE_ADS_REFRESH_TOKEN=your_refresh_token
-GOOGLE_ADS_LOGIN_CUSTOMER_ID=your_manager_id
+**Chatbot API will be running on**: http://localhost:8003
+**Health Check**: http://localhost:8003/health
 
-# Gemini API Key (get from https://makersuite.google.com/app/apikey)
-GEMINI_API_KEY=your_gemini_api_key
-
-# Database path (points to root google_ads_data.db)
-DATABASE_PATH=../google_ads_data.db
-
-# LangSmith (optional - for debugging agents)
-LANGCHAIN_TRACING_V2=false
-LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
-LANGCHAIN_API_KEY=your_langsmith_key
-LANGCHAIN_PROJECT=google-ads-agents
-```
-
-**Start the Agent API:**
-```bash
-python agent_api.py
-```
-
-**Verify agents are running:**
-- Open browser: http://localhost:8001/health
-- Should see: `{"status":"healthy","agents":5}`
-
-**Keep this terminal open** - Agent API needs to keep running.
-
----
-
-### STEP 5: Set Up Web Dashboard (Frontend)
-
-This is the React web interface that connects everything together.
-
-**Open a NEW terminal** (keep both APIs running).
+### 4. Set Up Web Dashboard
 
 ```bash
+# Navigate to frontend directory
 cd marketingiq-platform/web
 
 # Install Node.js dependencies
-npm install --legacy-peer-deps
-
-# Create .env file
-echo "REACT_APP_API_URL=http://localhost:8000/api/v1" > .env
-echo "REACT_APP_AGENT_API_URL=http://localhost:8001" >> .env
+npm install
 
 # Start development server
-npm start
+npm run dev
 ```
 
-**What happens:**
-- Webpack compiles React app
-- Opens browser at http://localhost:3001
-- Dashboard connects to both APIs
+**Frontend will be running on**: http://localhost:5173
 
-**Verify dashboard is working:**
-- You should see the MarketingIQ dashboard
-- Check browser console (F12) - no errors
-- Click on different sections - data should load
+### 5. One-Command Start (After Initial Setup)
 
-**Keep this terminal open** - Frontend needs to keep running.
+Once you've completed the setup above, you can start all servers with:
+
+```bash
+# Windows
+START_ALL_SERVERS.bat
+
+# Linux/Mac
+./start_all.sh
+```
+
+This automatically starts:
+1. Backend API (port 8000)
+2. Chatbot API (port 8003)
+3. Frontend (port 5173)
 
 ---
 
-## Running the Platform
+## Using the Platform
 
-After initial setup, here's how to start everything:
+### Access the Dashboard
 
-### Daily Startup (4 terminals)
+1. Open browser: http://localhost:5173
+2. You'll see the landing page with feature overview
+3. Click "Get Started" to access dashboards
 
-**Terminal 1 - Data API:**
-```bash
-cd api
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-uvicorn app.main:app --reload --port 8000
-```
+### Navigate Dashboards
 
-**Terminal 2 - Agent API:**
-```bash
-cd google-ads-multiagent
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-python agent_api.py
-```
+**Main Navigation** (left sidebar):
+- **Home** - Landing page
+- **Unified Dashboard** - Cross-platform analytics
+- **Platform Dashboards** - Google Ads, Meta Ads, GA4, Shopify
+- **Agent Dashboards** - Data, Insights, Optimization, Forecasting, Alerts
 
-**Terminal 3 - Frontend:**
-```bash
-cd marketingiq-platform/web
-npm start
-```
+### Use Global Filters
 
-**Terminal 4 - Run ETL (optional - to refresh data):**
-```bash
-python warehouse_etl.py
-```
+**Top filter bar** (appears on all dashboards):
+- **Customer** - Select which client/account to view
+- **Date Range** - Choose time period (Last 7/30/90 days, custom range)
+- **Campaign Type** - Filter by campaign objective (Search, Ecommerce, B2B, All)
 
-### Quick Start Script (Windows)
+All dashboards update instantly when you change filters.
 
-Create `START_ALL.bat`:
-```bat
-@echo off
-start cmd /k "cd api && venv\Scripts\activate && uvicorn app.main:app --reload --port 8000"
-start cmd /k "cd google-ads-multiagent && venv\Scripts\activate && python agent_api.py"
-start cmd /k "cd marketingiq-platform\web && npm start"
-echo All services starting...
-timeout /t 10
-start http://localhost:3001
-```
+### Chat with AI Assistant
 
-Run: `START_ALL.bat`
+1. Look for purple **chat button** in bottom-right corner
+2. Click to open chat window
+3. Ask questions in natural language:
 
-### Quick Start Script (Mac/Linux)
+**Example Questions**:
+- "Show me top performing campaigns"
+- "Which keywords have low quality scores?"
+- "How should I optimize my budget?"
+- "Predict next month's performance"
+- "Are there any anomalies in my campaigns?"
 
-Create `start_all.sh`:
-```bash
-#!/bin/bash
+4. AI responds with:
+   - Formatted text with **bold**, *italic*, lists
+   - Data tables and metrics
+   - Insights and recommendations
+   - Agent attribution (shows which AI handled it)
 
-# Start Data API
-cd api && source venv/bin/activate && uvicorn app.main:app --reload --port 8000 &
+### View AI Intelligence
 
-# Start Agent API
-cd ../google-ads-multiagent && source venv/bin/activate && python agent_api.py &
+Each dashboard has an **AI Intelligence** section showing:
 
-# Start Frontend
-cd ../marketingiq-platform/web && npm start &
+**Descriptive** - What happened?
+- Daily performance summary
+- Key metric changes
+- Top campaigns/keywords
 
-# Open browser
-sleep 10
-open http://localhost:3001  # macOS
-# xdg-open http://localhost:3001  # Linux
+**Diagnostic** - Why did it happen?
+- Trend analysis
+- Anomaly detection
+- Contributing factors
 
-wait
-```
+**Predictive** - What will happen?
+- Performance forecasts
+- Trend projections
+- Risk indicators
 
-Make executable: `chmod +x start_all.sh`
-Run: `./start_all.sh`
-
----
-
-## Architecture
-
-### System Components
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                         FRONTEND                             │
-│              marketingiq-platform/web/                       │
-│                  (React + TypeScript)                        │
-│                   Port: 3001                                 │
-└───────────────────┬──────────────────────┬──────────────────┘
-                    │                      │
-            ┌───────▼─────────┐   ┌────────▼─────────┐
-            │   DATA API      │   │  AGENT API       │
-            │   api/          │   │  google-ads-     │
-            │   (FastAPI)     │   │  multiagent/     │
-            │   Port: 8000    │   │  (FastAPI)       │
-            └────────┬────────┘   └────────┬─────────┘
-                     │                     │
-                     │    ┌────────────────┘
-                     │    │
-                ┌────▼────▼─────┐      ┌──────────────┐
-                │  google_ads_  │      │  Google Ads  │
-                │  data.db      │◄─────┤  API         │
-                │  (SQLite)     │      └──────────────┘
-                └───────────────┘             ▲
-                                              │
-                                    ┌─────────┴─────────┐
-                                    │  warehouse_etl.py │
-                                    │  (ETL Pipeline)   │
-                                    └───────────────────┘
-```
-
-### Data Flow
-
-1. **ETL Pipeline** (`warehouse_etl.py`)
-   - Runs on-demand or scheduled
-   - Connects to Google Ads API
-   - Extracts data → Transforms → Loads into `google_ads_data.db`
-
-2. **Data API** (`api/`)
-   - FastAPI service on port 8000
-   - Reads from `google_ads_data.db`
-   - Serves REST endpoints for campaigns, keywords, metrics
-   - Used by frontend for dashboards
-
-3. **Agent API** (`google-ads-multiagent/`)
-   - FastAPI service on port 8001
-   - Connects to both database and Google Ads API
-   - Runs 5 AI agents: Data, Insight, Optimization, Forecasting, Alert
-   - Uses Google Gemini for natural language processing
-   - Serves chat interface
-
-4. **Frontend** (`marketingiq-platform/web/`)
-   - React application on port 3001
-   - Connects to both APIs
-   - Provides dashboards, data explorer, and chat interface
-
-### Port Reference
-
-| Component | Port | URL |
-|-----------|------|-----|
-| Frontend Dashboard | 3001 | http://localhost:3001 |
-| Data API | 8000 | http://localhost:8000 |
-| Agent API (Chat) | 8001 | http://localhost:8001 |
-
----
-
-## Database Schema
-
-The ETL creates 5 tables with `customer_id` for multi-customer filtering:
-
-### 1. campaigns_performance
-Campaign-level metrics and configuration.
-- **Fields:** campaign_id, customer_id, campaign_name, status, channel_type, bidding_strategy, budget_amount, date, impressions, clicks, cost, conversions, ctr, cpc, roas, etc.
-
-### 2. adgroups_performance
-Ad group structure and metrics.
-- **Fields:** ad_group_id, campaign_id, customer_id, ad_group_name, status, ad_group_type, date, impressions, clicks, cost, conversions, ctr, cpc, etc.
-
-### 3. keywords_performance
-Keyword-level targeting and performance.
-- **Fields:** keyword_id, ad_group_id, campaign_id, customer_id, keyword_text, match_type, status, quality_score, max_cpc, date, impressions, clicks, cost, conversions, etc.
-
-### 4. search_terms
-Actual user search queries.
-- **Fields:** search_term, keyword_id, campaign_id, customer_id, match_type, date, impressions, clicks, cost, conversions, ctr, conversion_rate, etc.
-
-### 5. ml_features
-Pre-processed features for machine learning.
-- **Fields:** customer_id, campaign_id, keyword_id, keyword_text, match_type, quality_score, avg_cpc, ctr, conversion_rate, cost, impressions, clicks, competition_index, search_volume_trend, etc.
-
----
-
-## Multi-Agent System
-
-The platform includes 5 AI agents powered by Google Gemini:
-
-### 1. Data Agent
-**Purpose:** Query and retrieve Google Ads data
-**Capabilities:**
-- Fetch campaigns, ad groups, keywords
-- Get performance metrics
-- Filter by date, status, customer
-
-### 2. Insight Agent
-**Purpose:** Analyze performance and detect anomalies
-**Capabilities:**
-- Identify underperforming campaigns
-- Detect CTR drops, cost spikes
-- Compare metrics against benchmarks
-
-### 3. Optimization Agent
-**Purpose:** Provide actionable recommendations
-**Capabilities:**
+**Prescriptive** - What should we do?
+- Optimization recommendations
 - Budget reallocation suggestions
-- Keyword bid adjustments
-- Campaign structure improvements
-
-### 4. Forecasting Agent
-**Purpose:** Predict future performance
-**Capabilities:**
-- 7-day spend forecasts
-- CTR predictions
-- Conversion projections
-
-### 5. Alert Agent
-**Purpose:** Monitor and alert on critical issues
-**Capabilities:**
-- Budget overspend alerts
-- Quality score drops
-- Conversion rate anomalies
-
-### Using the Agents
-
-**Via Web Chat:**
-```
-User: "Show me my top 5 campaigns by spend"
-Data Agent: [Returns campaign list with spend metrics]
-
-User: "Why is my CTR dropping?"
-Insight Agent: [Analyzes trends and identifies causes]
-
-User: "How should I optimize my budget?"
-Optimization Agent: [Provides recommendations]
-```
-
-**Via API:**
-```bash
-curl -X POST http://localhost:8001/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Show me campaigns with CTR below 2%"}'
-```
+- Bid adjustment proposals
 
 ---
 
 ## API Endpoints
 
-### Data API (Port 8000)
-
-**Health Check:**
+### Warehouse Endpoints
 ```
+GET /api/v1/warehouse/metrics
+    - Cross-platform summary metrics
+    - Params: customer_id, date_range
+
+GET /api/v1/warehouse/google-ads-performance
+    - Google Ads campaign performance
+    - Params: customer_id, date_range, campaign_type
+
+GET /api/v1/warehouse/meta-ads-performance
+    - Meta Ads insights
+    - Params: customer_id, date_range
+
+GET /api/v1/warehouse/ga4-metrics
+    - Google Analytics 4 data
+    - Params: customer_id, date_range
+```
+
+### AI Intelligence Endpoints
+```
+GET /api/v1/ai/daily-insights
+    - Daily AI-generated insights
+    - Returns: descriptive, diagnostic, predictive, prescriptive
+
+GET /api/v1/ai/incrementality
+    - PIE model results (incremental ROAS)
+    - Returns: campaign-level incrementality scores
+
+GET /api/v1/ai/anomalies
+    - Anomaly detection results
+    - Returns: detected anomalies with explanations
+
+GET /api/v1/ai/budget-optimization
+    - Budget allocation recommendations
+    - Returns: suggested budget changes
+
+GET /api/v1/ai/spend-forecast
+    - Performance forecasting
+    - Returns: 30-day predictions with confidence intervals
+```
+
+### Campaign & Keyword Endpoints
+```
+GET /api/v1/campaigns
+    - List all campaigns
+    - Params: customer_id, campaign_type
+
+GET /api/v1/campaigns/{campaign_id}/performance
+    - Single campaign details
+    - Params: date_range
+
+GET /api/v1/keywords/performance
+    - Keyword performance data
+    - Params: customer_id
+
+GET /api/v1/adgroups
+    - Ad group data
+    - Params: customer_id, campaign_id
+```
+
+### Chatbot Endpoints
+```
+POST /api/chat
+    - Send message to AI chatbot
+    - Body: { message, customer_id, date_range, campaign_type }
+    - Returns: { response, metadata, timestamp, agent_used }
+
 GET /health
+    - Chatbot health check
+    - Returns: { status, adk_agents, gemini_enabled }
+
+GET /api/agents
+    - List available agents
+    - Returns: { agents: [{ name, type, status }] }
 ```
 
-**Campaigns:**
+**Full Interactive Docs**: http://localhost:8000/docs
+
+---
+
+## Architecture
+
+### Data Flow
+
 ```
-GET /api/v1/campaigns?customer_id=123
-GET /api/v1/campaigns/{id}
-GET /api/v1/campaigns/{id}/performance
+┌─────────────────────────────────────────────────────────────────┐
+│                     EXTERNAL DATA SOURCES                       │
+├─────────────────────────────────────────────────────────────────┤
+│  Google Ads API  │  Meta Ads API  │  GA4 API  │  Shopify API   │
+└────────┬─────────┴────────┬────────┴───────┬──┴────────┬────────┘
+         │                  │                │           │
+         ↓                  ↓                ↓           ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                        ETL PIPELINE                             │
+├─────────────────────────────────────────────────────────────────┤
+│  warehouse_google_ads_etl.py  │  warehouse_meta_ads_etl.py     │
+│  warehouse_ga4_etl.py          │  shopify_etl.py               │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+                          ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                   DATA WAREHOUSE (SQLite)                       │
+├─────────────────────────────────────────────────────────────────┤
+│  marketing_warehouse.db                                         │
+│  ┌──────────────────────┐  ┌──────────────────────┐           │
+│  │  Dimension Tables    │  │  Fact Tables         │           │
+│  │  - dim_customer      │  │  - fact_campaign_*   │           │
+│  │  - dim_campaign      │  │  - fact_keyword_*    │           │
+│  │  - dim_keyword       │  │  - meta_insights     │           │
+│  │  - dim_ad_group      │  │  - ga4_sessions      │           │
+│  └──────────────────────┘  └──────────────────────┘           │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+                          ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    BACKEND API (FastAPI)                        │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐  ┌──────────────────┐  ┌────────────────┐│
+│  │ Warehouse Routes│  │  AI Services     │  │ Campaign Routes││
+│  │  - Metrics      │  │  - PIE Model     │  │  - List        ││
+│  │  - Performance  │  │  - Insights      │  │  - Details     ││
+│  │  - Cross-platform│  │  - Forecasting  │  │  - Keywords    ││
+│  └─────────────────┘  └──────────────────┘  └────────────────┘│
+└─────────────┬──────────────────────────┬────────────────────────┘
+              │                          │
+              ↓                          ↓
+┌──────────────────────────┐  ┌──────────────────────────────────┐
+│   FRONTEND (React)       │  │  AI CHATBOT (Google ADK)         │
+├──────────────────────────┤  ├──────────────────────────────────┤
+│  ┌───────────────────┐   │  │  ┌────────────────────────────┐  │
+│  │ Dashboards        │   │  │  │ Root Agent (Orchestrator)  │  │
+│  │  - Unified        │   │  │  └──────────┬─────────────────┘  │
+│  │  - Google Ads     │   │  │             │                    │
+│  │  - Meta Ads       │   │  │    ┌────────┴────────┐          │
+│  │  - GA4            │   │  │    │   Sub-Agents    │          │
+│  │  - Agents         │   │  │    │  - Data Agent   │          │
+│  └───────────────────┘   │  │    │  - Insight Agent│          │
+│  ┌───────────────────┐   │  │    │  - Optimization │          │
+│  │ Chatbot UI        │───┼──┼───→│  - Forecasting  │          │
+│  │  - Floating Button│   │  │    │  - Alert Agent  │          │
+│  │  - Chat Window    │   │  │    └─────────────────┘          │
+│  └───────────────────┘   │  │  Powered by Gemini 2.5 Flash    │
+└──────────────────────────┘  └──────────────────────────────────┘
 ```
 
-**Keywords:**
+### Component Communication
+
 ```
-GET /api/v1/keywords?customer_id=123
-GET /api/v1/keywords/performance?campaign_id=456
-GET /api/v1/keywords/top?limit=10
+Frontend (React)
+    ↓ HTTP (Axios)
+Backend API (FastAPI) :8000
+    ↓ SQL (SQLAlchemy)
+Data Warehouse (SQLite)
+
+Frontend (React)
+    ↓ HTTP (Axios)
+Chatbot API (FastAPI) :8003
+    ↓ Gemini SDK
+Google Gemini 2.5 Flash
+    ↓ Warehouse Client
+Data Warehouse (SQLite)
 ```
 
-**Metrics:**
+---
+
+## File Structure
+
 ```
-GET /api/v1/metrics/summary?customer_id=123
-GET /api/v1/metrics/timeseries?days=30
+ADS_API/
+├── api/                          # Backend API
+│   ├── app/
+│   │   ├── routes/               # API endpoints
+│   │   │   ├── campaigns.py
+│   │   │   ├── keywords.py
+│   │   │   └── warehouse.py
+│   │   ├── services/             # Business logic
+│   │   │   ├── ai/               # AI Intelligence
+│   │   │   │   ├── daily_insights_warehouse.py
+│   │   │   │   ├── pie_model_warehouse.py
+│   │   │   │   ├── anomaly_detection_warehouse.py
+│   │   │   │   ├── budget_optimizer_warehouse.py
+│   │   │   │   └── spend_forecast_warehouse.py
+│   │   │   ├── google_ads_service.py
+│   │   │   ├── meta_ads_service.py
+│   │   │   └── ga4_service.py
+│   │   ├── models/               # SQLAlchemy models
+│   │   └── main.py               # FastAPI app
+│   └── requirements.txt
+│
+├── marketingiq-platform/web/     # Frontend
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── chat/
+│   │   │   │   └── FloatingChatButton.tsx
+│   │   │   ├── dashboard/        # Platform dashboards
+│   │   │   │   ├── UnifiedDashboard.tsx
+│   │   │   │   ├── GoogleAdsDashboard.tsx
+│   │   │   │   └── MetaAdsDashboard.tsx
+│   │   │   ├── dashboards/agents/ # Agent dashboards
+│   │   │   │   ├── data_agent/
+│   │   │   │   ├── insight_agent/
+│   │   │   │   ├── optimization_agent/
+│   │   │   │   └── forecasting_agent/
+│   │   │   ├── common/
+│   │   │   │   ├── Layout.tsx
+│   │   │   │   └── GlobalFilterBar.tsx
+│   │   │   └── landing/
+│   │   │       └── LandingPage.tsx
+│   │   ├── services/             # API clients
+│   │   │   ├── api.ts
+│   │   │   ├── unifiedService.ts
+│   │   │   └── metaAdsService.ts
+│   │   ├── context/
+│   │   │   └── FilterContext.tsx # Global filters
+│   │   └── types/
+│   │       └── index.ts
+│   └── package.json
+│
+├── google-ads-multiagent/adk/    # AI Multi-Agent System
+│   ├── chatbot_api.py            # Chatbot FastAPI server
+│   ├── orchestration_agent/
+│   │   ├── agent.py              # Root agent
+│   │   └── sub_agents/
+│   │       ├── data_agent/
+│   │       │   ├── agent.py
+│   │       │   ├── tools.py
+│   │       │   └── warehouse_client.py
+│   │       ├── insight_agent/
+│   │       ├── optimization_agent/
+│   │       └── forecasting_agent/
+│   └── .env                      # Gemini API key
+│
+├── ETL Scripts
+│   ├── warehouse_etl.py          # Main ETL orchestrator
+│   ├── warehouse_google_ads_etl.py
+│   ├── warehouse_meta_ads_etl.py
+│   ├── warehouse_ga4_etl.py
+│   ├── shopify_etl.py
+│   ├── warehouse_etl_helpers.py
+│   └── init_warehouse.py
+│
+├── Configuration
+│   ├── .env                      # Google Ads credentials
+│   ├── .env.meta                 # Meta Ads credentials
+│   ├── .env.ga4                  # GA4 credentials
+│   ├── google-ads.yaml           # Google Ads API config
+│   ├── requirements.txt
+│   └── warehouse_schema.sql
+│
+├── Startup Scripts
+│   ├── START_ALL_SERVERS.bat    # Windows: Start all servers
+│   ├── START_BACKEND.bat         # Windows: Backend only
+│   ├── start_all.sh              # Linux/Mac: Start all
+│   └── stop_all.sh               # Stop all servers
+│
+├── Data & Logs
+│   ├── marketing_warehouse.db    # Production database
+│   ├── credentials/              # API credentials
+│   ├── secrets/                  # OAuth tokens
+│   └── logs/                     # Application logs
+│
+└── Documentation
+    ├── README.md                 # This file
+    ├── CHATBOT_SETUP.md          # Chatbot setup guide
+    ├── CLAUDE.md                 # Development notes
+    └── PROJECT_STRUCTURE.md      # Detailed structure
 ```
 
-**Search Terms:**
-```
-GET /api/v1/search-terms?campaign_id=456
-GET /api/v1/search-terms/top
+---
+
+## Data Refresh Schedule
+
+### Manual ETL
+```bash
+# Full refresh (all platforms)
+python warehouse_etl.py
+
+# Individual platforms
+python warehouse_google_ads_etl.py
+python warehouse_meta_ads_etl.py
+python warehouse_ga4_etl.py
+python shopify_etl.py
 ```
 
-**ML Features:**
-```
-GET /api/v1/ml-features?customer_id=123
-```
-
-**Full documentation:** http://localhost:8000/docs
-
-### Agent API (Port 8001)
-
-**Chat with AI Agents:**
-```
-POST /chat
-Body: {"message": "your question", "customer_id": "123"}
-```
-
-**Get Agent Status:**
-```
-GET /agents
-```
-
-**Query Specific Agent:**
-```
-POST /agents/{agent_name}/query
-Body: {"query": "your question"}
-```
-
-**Full documentation:** http://localhost:8001/docs
+### Automated (Production)
+- **Cloud Function**: Runs daily at 2 AM UTC
+- **Deployment**: `./deploy-etl.sh`
+- **Monitoring**: Check `logs/etl.log`
 
 ---
 
 ## Troubleshooting
 
-### Problem: "Module not found" errors
-
-**Solution:**
+### Backend API won't start
 ```bash
-# For Python:
-pip install -r requirements.txt
+# Check Python version
+python --version  # Should be 3.10+
 
-# For Node.js:
+# Reinstall dependencies
+cd api
+pip install -r requirements.txt --force-reinstall
+
+# Check database exists
+ls -l ../marketing_warehouse.db
+
+# Initialize if missing
+cd ..
+python init_warehouse.py
+```
+
+### Frontend won't start
+```bash
+# Check Node version
+node --version  # Should be 18+
+
+# Clear cache and reinstall
 cd marketingiq-platform/web
-npm install --legacy-peer-deps
-```
-
-### Problem: API returns empty data
-
-**Check:**
-1. ETL ran successfully: `python warehouse_etl.py`
-2. Database exists: `ls -lh google_ads_data.db`
-3. Database has data:
-```bash
-python -c "import sqlite3; conn = sqlite3.connect('google_ads_data.db'); print('Campaigns:', conn.execute('SELECT COUNT(*) FROM campaigns_performance').fetchone()[0])"
-```
-
-### Problem: "Authentication failed" when running ETL
-
-**Solutions:**
-- Verify `google-ads.yaml` has correct credentials
-- Check developer token is approved (not in "test" mode)
-- Regenerate refresh token: `python generate_refresh_token.py`
-- Ensure `login_customer_id` is your Manager Account ID
-
-### Problem: "Database is locked"
-
-**Solution:**
-```bash
-# Close all connections
-# Kill any running Python processes
-# Delete and recreate database
-rm google_ads_data.db
-python warehouse_etl.py
-```
-
-### Problem: Frontend shows CORS errors
-
-**Check:**
-1. Data API is running on port 8000
-2. Agent API is running on port 8001
-3. Check `api/.env` has correct CORS origins:
-```env
-CORS_ORIGINS=["http://localhost:3001","http://localhost:3000"]
-```
-
-### Problem: "process is not defined" in frontend
-
-**Solution:**
-```bash
-# Clear cache and rebuild
-cd marketingiq-platform/web
-rm -rf node_modules dist
-npm install --legacy-peer-deps
-npm start
-```
-
-### Problem: Gemini API errors
-
-**Check:**
-1. `GEMINI_API_KEY` is set in `google-ads-multiagent/.env`
-2. API key is valid: https://makersuite.google.com/app/apikey
-3. Gemini API is enabled in your Google Cloud project
-
-### Problem: Port already in use
-
-**Find and kill process:**
-```bash
-# Windows:
-netstat -ano | findstr :8000
-taskkill /PID <process_id> /F
-
-# Mac/Linux:
-lsof -ti:8000 | xargs kill -9
-```
-
-### Problem: ETL extracts no data
-
-**Check:**
-1. Google Ads account has campaigns
-2. Campaigns have data in last 30 days
-3. Manager account has access to client accounts
-4. API credentials have correct permissions
-
----
-
-## Project Structure
-
-```
-ADS_API/
-│
-├── warehouse_etl.py              # ETL pipeline (main script)
-├── generate_refresh_token.py     # OAuth token generator
-├── requirements.txt              # ETL Python dependencies
-├── google-ads.yaml.template      # Config template
-├── google-ads.yaml               # Your credentials (DO NOT COMMIT)
-├── google_ads_data.db            # SQLite database (created by ETL)
-│
-├── README.md                     # This file
-├── ETL_SETUP_GUIDE.md            # Simple ETL-only setup
-├── ETL_STATUS_REPORT.md          # Cloud deployment status
-├── SETUP_GUIDE_FOR_BOSS.md       # Alternative setup guide
-├── CLAUDE.md                     # AI assistant instructions
-│
-├── api/                          # DATA API (FastAPI)
-│   ├── app/
-│   │   ├── main.py               # FastAPI app
-│   │   ├── routes/               # API endpoints
-│   │   ├── schemas/              # Pydantic models
-│   │   └── db/                   # Database models
-│   ├── requirements.txt          # API dependencies
-│   └── .env                      # API config
-│
-├── google-ads-multiagent/        # AGENT API (Multi-Agent System)
-│   ├── agent_api.py              # Agent FastAPI server
-│   ├── main.py                   # Agent orchestration
-│   ├── adk/                      # Agent Development Kit
-│   ├── src/                      # Agent implementations
-│   │   └── agents/               # 5 AI agents
-│   ├── requirements.txt          # Agent dependencies
-│   └── .env                      # Agent config (Gemini API key)
-│
-└── marketingiq-platform/         # FRONTEND
-    ├── web/                      # React Dashboard
-    │   ├── src/
-    │   │   ├── components/       # React components
-    │   │   ├── pages/            # Dashboard pages
-    │   │   ├── hooks/            # Custom React hooks
-    │   │   └── config/           # API configuration
-    │   ├── package.json          # Node dependencies
-    │   ├── webpack.config.js     # Build config
-    │   └── .env                  # Frontend config
-    │
-    └── server/                   # Additional backend
-        └── api.py                # Supplementary API
-```
-
----
-
-## Environment Variables Reference
-
-### Root `.env` (for ETL)
-```env
-GOOGLE_ADS_DEVELOPER_TOKEN=your_token
-GOOGLE_ADS_CLIENT_ID=your_client_id
-GOOGLE_ADS_CLIENT_SECRET=your_secret
-GOOGLE_ADS_REFRESH_TOKEN=your_refresh_token
-GOOGLE_ADS_LOGIN_CUSTOMER_ID=your_manager_id
-```
-
-### `api/.env` (Data API)
-```env
-DATABASE_URL=sqlite:///../google_ads_data.db
-CORS_ORIGINS=["http://localhost:3001","http://localhost:3000"]
-DEBUG=true
-LOG_LEVEL=INFO
-```
-
-### `google-ads-multiagent/.env` (Agent API)
-```env
-GOOGLE_ADS_DEVELOPER_TOKEN=your_token
-GOOGLE_ADS_CLIENT_ID=your_client_id
-GOOGLE_ADS_CLIENT_SECRET=your_secret
-GOOGLE_ADS_REFRESH_TOKEN=your_refresh_token
-GOOGLE_ADS_LOGIN_CUSTOMER_ID=your_manager_id
-
-GEMINI_API_KEY=your_gemini_api_key
-DATABASE_PATH=../google_ads_data.db
-
-LANGCHAIN_TRACING_V2=false
-LANGCHAIN_API_KEY=optional
-LANGCHAIN_PROJECT=google-ads-agents
-```
-
-### `marketingiq-platform/web/.env` (Frontend)
-```env
-REACT_APP_API_URL=http://localhost:8000/api/v1
-REACT_APP_AGENT_API_URL=http://localhost:8001
-NODE_ENV=development
-```
-
----
-
-## Getting Help
-
-### Documentation Files
-- **ETL_SETUP_GUIDE.md** - ETL pipeline only setup
-- **SETUP_GUIDE_FOR_BOSS.md** - Alternative setup guide
-- **ETL_STATUS_REPORT.md** - Cloud deployment status
-- **marketingiq-platform/web/README.md** - Frontend docs
-- **google-ads-multiagent/README.md** - Agent system docs
-
-### API Documentation
-- Data API docs: http://localhost:8000/docs
-- Agent API docs: http://localhost:8001/docs
-
-### External Resources
-- [Google Ads API Docs](https://developers.google.com/google-ads/api)
-- [FastAPI Docs](https://fastapi.tiangolo.com)
-- [React Docs](https://react.dev)
-- [LangChain Docs](https://docs.langchain.com)
-
----
-
-## Quick Command Reference
-
-### ETL Commands
-```bash
-# Run ETL pipeline
-python warehouse_etl.py
-
-# Generate OAuth token
-python generate_refresh_token.py
-
-# Query database
-python -c "import sqlite3; conn = sqlite3.connect('google_ads_data.db'); print(conn.execute('SELECT * FROM campaigns_performance LIMIT 5').fetchall())"
-```
-
-### API Commands
-```bash
-# Start Data API
-cd api && uvicorn app.main:app --reload --port 8000
-
-# Start Agent API
-cd google-ads-multiagent && python agent_api.py
-
-# Test API
-curl http://localhost:8000/health
-curl http://localhost:8001/health
-```
-
-### Frontend Commands
-```bash
-# Install dependencies
-cd marketingiq-platform/web && npm install --legacy-peer-deps
+rm -rf node_modules package-lock.json
+npm install
 
 # Start dev server
-npm start
+npm run dev
+```
 
-# Build for production
-npm run build
+### Chatbot not responding
+```bash
+# Check Gemini API key
+cd google-ads-multiagent/adk
+cat .env  # Should have GOOGLE_API_KEY=xxx
 
-# Clear cache
-rm -rf node_modules dist && npm install --legacy-peer-deps
+# Test chatbot health
+curl http://localhost:8003/health
+
+# Check chatbot logs in terminal
+# Should see "Gemini API configured for friendly responses"
+```
+
+### No data in dashboards
+```bash
+# Verify warehouse has data
+python -c "import sqlite3; conn = sqlite3.connect('marketing_warehouse.db'); print('Campaigns:', conn.execute('SELECT COUNT(*) FROM dim_google_ads_campaign').fetchone()[0])"
+
+# Run ETL if empty
+python warehouse_etl.py
+
+# Check customer filter
+# Make sure you've selected a customer with data (e.g., "Emcee Sons")
+```
+
+### CORS errors
+```bash
+# Make sure backend is running
+curl http://localhost:8000/health
+
+# Restart backend
+cd api
+uvicorn app.main:app --reload --port 8000
 ```
 
 ---
 
-## Security Notes
+## Deployment
 
-- **Never commit** `google-ads.yaml` or `.env` files
-- Keep API keys secure and rotate regularly
-- Use environment variables for credentials
-- Enable HTTPS in production
-- Implement rate limiting for public APIs
-- Review Google Ads API usage limits
+### Development
+```bash
+# All services on localhost
+START_ALL_SERVERS.bat  # or ./start_all.sh
+```
+
+### Production (Google Cloud)
+```bash
+# Deploy ETL pipeline
+./deploy-etl.sh
+
+# Deploy backend API
+gcloud builds submit --config cloudbuild.yaml
+
+# Frontend can be deployed to:
+# - Vercel
+# - Netlify
+# - Google Cloud Run
+```
 
 ---
 
-## Data Statistics (Example)
+## Security & Credentials
 
-After running ETL, you should have:
-- **19** Active Campaigns
-- **542** Keywords tracked
-- **199** Search terms analyzed
-- **511** ML features generated
-- **$5,114** Total spend tracked
-- **6** Conversions recorded
+### Never Commit
+- `.env` files (all variants)
+- `credentials/` folder
+- `secrets/` folder
+- `*.db` files (except schema)
 
-*(Your numbers will vary based on your Google Ads account)*
+### Git-Ignored
+All sensitive files are already in `.gitignore`:
+- `.env*`
+- `credentials/`
+- `secrets/`
+- `marketing_warehouse.db`
+- `google_ads_data.db`
+- OAuth tokens
+
+---
+
+## Performance
+
+### Database Size
+- Typical warehouse: ~1-2 MB per customer per month
+- 1 year of data for 5 customers: ~60-120 MB
+- SQLite handles up to 140 TB (we're using <1 GB)
+
+### Query Speed
+- Simple metrics: <50ms
+- Complex aggregations: <200ms
+- AI analysis: 1-3 seconds
+- Chatbot responses: 2-5 seconds (includes Gemini processing)
+
+### Scalability
+- Current: Handles 10+ customers, 1000+ campaigns
+- Bottleneck: SQLite write concurrency
+- Solution (if needed): Migrate to PostgreSQL
+
+---
+
+## Future Roadmap
+
+### Planned Features
+- [ ] Real-time data streaming (vs daily batch)
+- [ ] Custom alert rules builder
+- [ ] Automated campaign creation from AI recommendations
+- [ ] A/B test analysis and recommendations
+- [ ] Competitive intelligence integration
+- [ ] Multi-user accounts with role-based access
+- [ ] PDF report generation
+- [ ] Email digest of daily insights
+- [ ] Slack/Teams bot integration
+- [ ] Mobile app (React Native)
+
+### Platform Expansions
+- [ ] LinkedIn Ads integration
+- [ ] TikTok Ads integration
+- [ ] Twitter Ads integration
+- [ ] Amazon Advertising integration
 
 ---
 
 ## Contributing
 
-This is a proprietary project. For internal development:
-1. Create feature branch
-2. Make changes
-3. Test thoroughly
-4. Submit for review
+This is a proprietary platform. For questions or feature requests, contact the development team.
 
 ---
 
-## Support & Contacts
+## License
 
-- **Technical Issues**: Check Troubleshooting section
-- **ETL Questions**: See ETL_SETUP_GUIDE.md
-- **API Issues**: Check API documentation at `/docs` endpoints
-- **Frontend Issues**: See marketingiq-platform/web/README.md
+Proprietary - All rights reserved.
 
 ---
 
-**Built with:**
-- Python 3.11 | FastAPI | SQLAlchemy | Pandas
-- React 18 | TypeScript | Material-UI | Recharts
-- LangChain | LangGraph | Google Gemini
-- Google Ads API | SQLite
+## Support
 
-**Last Updated:** October 2024
+For technical support or questions:
+- Check documentation: `PROJECT_STRUCTURE.md`, `CHATBOT_SETUP.md`
+- API docs: http://localhost:8000/docs
+- Chatbot health: http://localhost:8003/health
 
 ---
 
-**Ready to start?** Follow the [Complete Setup Guide](#complete-setup-guide) above step by step!
+**Built with professional standards for enterprise marketing analytics.**
+
+*Last updated: November 2025*

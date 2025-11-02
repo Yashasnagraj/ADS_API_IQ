@@ -49,12 +49,20 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
     fetchCustomers();
   }, []);
 
-  // Set default customer if none selected
+  // Set default customer if none selected or current customer is invalid
   useEffect(() => {
-    if (customers.length > 0 && !filters.customerId) {
-      const defaultCustomer = customers[0];
-      console.log('Setting default customer:', defaultCustomer.customer_name, defaultCustomer.customer_id);
-      setFilters({ customerId: String(defaultCustomer.customer_id) });
+    if (customers.length > 0) {
+      // Check if current customerId exists in the customers list
+      const currentCustomerExists = customers.some(
+        (c) => String(c.customer_id) === filters.customerId
+      );
+
+      // Set default customer if none selected or current customer is invalid
+      if (!filters.customerId || !currentCustomerExists) {
+        const defaultCustomer = customers[0];
+        console.log('Setting default customer:', defaultCustomer.customer_name, defaultCustomer.customer_id);
+        setFilters({ customerId: String(defaultCustomer.customer_id) });
+      }
     }
   }, [customers, filters.customerId, setFilters]);
 
@@ -166,20 +174,30 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
               <Select
                 labelId="customer-select-label"
                 id="customer-select"
-                value={filters.customerId || ''}
+                value={
+                  customers.some((c) => String(c.customer_id) === filters.customerId)
+                    ? filters.customerId
+                    : ''
+                }
                 label="Customer"
                 onChange={handleCustomerChange}
-                disabled={loading}
+                disabled={loading || customers.length === 0}
               >
-                {customers.map((customer) => (
-                  <MenuItem key={customer.customer_id} value={String(customer.customer_id)}>
-                    <Stack direction="row" spacing={1} alignItems="center" width="100%">
-                      <Typography variant="body2" flex={1}>
-                        {customer.customer_name}
-                      </Typography>
-                    </Stack>
+                {customers.length === 0 ? (
+                  <MenuItem value="" disabled>
+                    No customers available
                   </MenuItem>
-                ))}
+                ) : (
+                  customers.map((customer) => (
+                    <MenuItem key={customer.customer_id} value={String(customer.customer_id)}>
+                      <Stack direction="row" spacing={1} alignItems="center" width="100%">
+                        <Typography variant="body2" flex={1}>
+                          {customer.customer_name}
+                        </Typography>
+                      </Stack>
+                    </MenuItem>
+                  ))
+                )}
               </Select>
             </FormControl>
 

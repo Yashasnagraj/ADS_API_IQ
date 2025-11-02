@@ -60,8 +60,8 @@ export const metaAdsService = {
         params: { customer_id: customerId, date_range: dateRange },
       });
     } catch (error) {
-      console.error('Error fetching Meta demographics:', error);
-      throw error;
+      console.warn('Meta Ads demographics endpoint not available:', error);
+      return [];
     }
   },
 
@@ -74,8 +74,8 @@ export const metaAdsService = {
         params: { customer_id: customerId, date_range: dateRange },
       });
     } catch (error) {
-      console.error('Error fetching Meta daily performance:', error);
-      throw error;
+      console.warn('Meta Ads daily performance endpoint not available:', error);
+      return [];
     }
   },
 };

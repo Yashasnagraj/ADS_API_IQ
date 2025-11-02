@@ -1,18 +1,35 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * Thresholds Monitor Dashboard - Alert Agent
+ *
+ * Configure and monitor performance thresholds
+ *
+ * Features:
+ * - Configurable metric thresholds
+ * - Real-time threshold monitoring
+ * - Threshold breach history
+ * - Custom alert rules
+ * - Notification preferences
+ *
+ * Structure:
+ * - Header (Title + Description)
+ * - Threshold Configuration Panel
+ * - Active Thresholds Table
+ * - Threshold Status Monitoring
+ * - Breach History
+ */
+
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Card,
   CardContent,
   Typography,
   Grid,
-  LinearProgress,
   Alert,
+  AlertTitle,
   Chip,
-  IconButton,
-  Tooltip,
-  Fade,
-  useTheme,
-  alpha,
+  Divider,
+  Button,
   Table,
   TableBody,
   TableCell,
@@ -20,613 +37,911 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Button,
+  IconButton,
+  Tooltip,
+  TextField,
   Switch,
   FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  LinearProgress,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import {
-  TrendingUp,
-  Info,
   Settings,
-  Timeline,
-  Speed,
-  AutoAwesome,
-  TipsAndUpdates,
+  TrendingUp,
+  TrendingDown,
+  Edit,
+  Delete,
+  Add,
+  Save,
   Warning,
   CheckCircle,
-  TuneRounded,
-  MonitorHeart,
+  Notifications,
+  Speed,
+  AttachMoney,
+  Mouse,
+  Visibility,
+  Assessment,
+  Psychology,
+  Timeline,
+  Lightbulb,
 } from '@mui/icons-material';
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
-import DashboardTemplate from '../../../common/DashboardTemplate';
-import CompactKPICard from '../../../common/CompactKPICard';
-import AIIntelligenceSection, { AIInsight } from '../../../common/AIIntelligenceSection';
-import { alertService } from '../../../../services/api';
-import InteractiveKPICard from '../../../kpi/InteractiveKPICard';
-import KPIDetailDrawer, { KPIDetailItem } from '../../../kpi/KPIDetailDrawer';
-import { EnhancedChart } from '../../../charts/EnhancedChart';
+import { useFilters } from '../../../../context/FilterContext';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  ResponsiveContainer,
+  ReferenceLine,
+} from 'recharts';
+
+interface ThresholdConfig {
+  id: string;
+  metric_name: string;
+  metric_display: string;
+  icon: string;
+  threshold_type: 'min' | 'max';
+  threshold_value: number;
+  warning_threshold: number;
+  critical_threshold: number;
+  current_value: number;
+  enabled: boolean;
+  notify_email: boolean;
+  notify_dashboard: boolean;
+  comparison_period: 'daily' | 'weekly' | 'monthly';
+}
+
+interface BreachHistory {
+  timestamp: string;
+  metric_name: string;
+  severity: 'critical' | 'warning';
+  value: number;
+  threshold: number;
+  duration_minutes: number;
+}
 
 const ThresholdsMonitor: React.FC = () => {
-  const theme = useTheme();
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedTimeRange, setSelectedTimeRange] = useState('7d');
+  const { filters } = useFilters();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedThreshold, setSelectedThreshold] = useState<ThresholdConfig | null>(null);
 
-  // Drawer state for interactive KPIs
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerData, setDrawerData] = useState<KPIDetailItem[]>([]);
-  const [drawerTitle, setDrawerTitle] = useState('');
-  const [drawerSubtitle, setDrawerSubtitle] = useState('');
+  // Helper function to render icons
+  const renderIcon = (iconName: string) => {
+    const icons: Record<string, React.ReactNode> = {
+      mouse: <Mouse />,
+      money: <AttachMoney />,
+      trending_up: <TrendingUp />,
+      speed: <Speed />,
+      visibility: <Visibility />,
+      check_circle: <CheckCircle />,
+    };
+    return icons[iconName] || <Settings />;
+  };
 
-  useEffect(() => {
-    fetchData();
+  // Threshold configurations
+  const [thresholds, setThresholds] = useState<ThresholdConfig[]>([
+    {
+      id: '1',
+      metric_name: 'ctr',
+      metric_display: 'CTR (%)',
+      icon: 'mouse',
+      threshold_type: 'min',
+      threshold_value: 2.0,
+      warning_threshold: 1.5,
+      critical_threshold: 1.0,
+      current_value: 3.2,
+      enabled: true,
+      notify_email: true,
+      notify_dashboard: true,
+      comparison_period: 'daily',
+    },
+    {
+      id: '2',
+      metric_name: 'cpc',
+      metric_display: 'CPC ($)',
+      icon: 'money',
+      threshold_type: 'max',
+      threshold_value: 2.00,
+      warning_threshold: 2.50,
+      critical_threshold: 3.00,
+      current_value: 1.45,
+      enabled: true,
+      notify_email: true,
+      notify_dashboard: true,
+      comparison_period: 'daily',
+    },
+    {
+      id: '3',
+      metric_name: 'roas',
+      metric_display: 'ROAS',
+      icon: 'trending_up',
+      threshold_type: 'min',
+      threshold_value: 2.0,
+      warning_threshold: 1.5,
+      critical_threshold: 1.0,
+      current_value: 2.3,
+      enabled: true,
+      notify_email: true,
+      notify_dashboard: true,
+      comparison_period: 'daily',
+    },
+    {
+      id: '4',
+      metric_name: 'conversion_rate',
+      metric_display: 'Conversion Rate (%)',
+      icon: 'speed',
+      threshold_type: 'min',
+      threshold_value: 4.0,
+      warning_threshold: 3.0,
+      critical_threshold: 2.0,
+      current_value: 4.8,
+      enabled: true,
+      notify_email: false,
+      notify_dashboard: true,
+      comparison_period: 'weekly',
+    },
+    {
+      id: '5',
+      metric_name: 'impressions',
+      metric_display: 'Impressions',
+      icon: 'visibility',
+      threshold_type: 'min',
+      threshold_value: 1000,
+      warning_threshold: 500,
+      critical_threshold: 100,
+      current_value: 1250,
+      enabled: false,
+      notify_email: false,
+      notify_dashboard: true,
+      comparison_period: 'daily',
+    },
+    {
+      id: '6',
+      metric_name: 'quality_score',
+      metric_display: 'Quality Score',
+      icon: 'check_circle',
+      threshold_type: 'min',
+      threshold_value: 6.0,
+      warning_threshold: 5.0,
+      critical_threshold: 4.0,
+      current_value: 6.8,
+      enabled: true,
+      notify_email: true,
+      notify_dashboard: true,
+      comparison_period: 'weekly',
+    },
+  ]);
+
+  // Breach history
+  const breachHistory = useMemo((): BreachHistory[] => {
+    const history: BreachHistory[] = [];
+    const now = new Date();
+
+    for (let i = 0; i < 10; i++) {
+      const timestamp = new Date(now.getTime() - i * 3600000 * 24);
+      history.push({
+        timestamp: timestamp.toISOString(),
+        metric_name: ['CTR', 'CPC', 'ROAS', 'Conversion Rate'][Math.floor(Math.random() * 4)],
+        severity: Math.random() > 0.5 ? 'critical' : 'warning',
+        value: Math.random() * 5,
+        threshold: Math.random() * 3 + 1,
+        duration_minutes: Math.floor(Math.random() * 240) + 30,
+      });
+    }
+    return history;
   }, []);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const result = await alertService.getThresholds();
-      setData(result);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setData(mockData);
-    } finally {
-      setLoading(false);
+  const thresholdStatus = useMemo(() => {
+    const total = thresholds.length;
+    const enabled = thresholds.filter(t => t.enabled).length;
+
+    const breaching = thresholds.filter(t => {
+      if (!t.enabled) return false;
+      if (t.threshold_type === 'min') {
+        return t.current_value < t.critical_threshold;
+      } else {
+        return t.current_value > t.critical_threshold;
+      }
+    }).length;
+
+    const warning = thresholds.filter(t => {
+      if (!t.enabled) return false;
+      if (t.threshold_type === 'min') {
+        return t.current_value < t.warning_threshold && t.current_value >= t.critical_threshold;
+      } else {
+        return t.current_value > t.warning_threshold && t.current_value <= t.critical_threshold;
+      }
+    }).length;
+
+    const healthy = enabled - breaching - warning;
+
+    return { total, enabled, breaching, warning, healthy };
+  }, [thresholds]);
+
+  const getStatusColor = (threshold: ThresholdConfig) => {
+    if (!threshold.enabled) return 'default';
+
+    if (threshold.threshold_type === 'min') {
+      if (threshold.current_value < threshold.critical_threshold) return 'error';
+      if (threshold.current_value < threshold.warning_threshold) return 'warning';
+      return 'success';
+    } else {
+      if (threshold.current_value > threshold.critical_threshold) return 'error';
+      if (threshold.current_value > threshold.warning_threshold) return 'warning';
+      return 'success';
     }
   };
 
-  const mockData = {
-    metrics: [
-      { label: 'Active Thresholds', value: 24 },
-      { label: 'Violations Today', value: 7 },
-      { label: 'Accuracy Rate', value: 92.5 },
-      { label: 'Response Time', value: 1.8 },
-      { label: 'Coverage', value: 95 },
-      { label: 'Optimization Score', value: 8.3 },
-    ],
-    thresholds: [
-      { id: 'THR001', metric: 'CTR', operator: '<', value: 2.0, current: 1.8, status: 'violated', campaign: 'Summer Sale', lastTriggered: '5 mins ago', enabled: true },
-      { id: 'THR002', metric: 'CPC', operator: '>', value: 2.50, current: 2.35, status: 'safe', campaign: 'Brand Awareness', lastTriggered: 'Never', enabled: true },
-      { id: 'THR003', metric: 'Budget', operator: '>', value: 1000, current: 1150, status: 'violated', campaign: 'Holiday Campaign', lastTriggered: '2 mins ago', enabled: true },
-      { id: 'THR004', metric: 'Quality Score', operator: '<', value: 5, current: 6.2, status: 'safe', campaign: 'Product Launch', lastTriggered: '1 day ago', enabled: false },
-      { id: 'THR005', metric: 'Conversion Rate', operator: '<', value: 1.5, current: 0.8, status: 'violated', campaign: 'Retargeting', lastTriggered: '12 mins ago', enabled: true },
-    ],
-    violationTrends: [
-      { date: 'Mon', violations: 5, thresholds: 24 },
-      { date: 'Tue', violations: 8, thresholds: 24 },
-      { date: 'Wed', violations: 3, thresholds: 25 },
-      { date: 'Thu', violations: 12, thresholds: 25 },
-      { date: 'Fri', violations: 7, thresholds: 24 },
-    ],
-    metricDistribution: [
-      { metric: 'CTR', count: 6, violations: 2 },
-      { metric: 'CPC', count: 5, violations: 1 },
-      { metric: 'Budget', count: 8, violations: 3 },
-      { metric: 'Quality Score', count: 3, violations: 0 },
-      { metric: 'Conversion Rate', count: 2, violations: 1 },
-    ]
-  };
-
-  const aiInsights: AIInsight[] = [
-    {
-      type: 'warning',
-      title: 'Multiple Threshold Violations',
-      description: '7 threshold violations detected today across 5 campaigns - review critical metrics',
-      impact: 'Performance degradation',
-      confidence: 94,
-      action: 'Review Violations',
-      icon: <Warning />,
-    },
-    {
-      type: 'recommendation',
-      title: 'Threshold Optimization',
-      description: 'Adjust CTR threshold from 2.0% to 1.5% to reduce false positives by 30%',
-      impact: 'Better accuracy',
-      confidence: 88,
-      action: 'Optimize Thresholds',
-      icon: <TuneRounded />,
-    },
-    {
-      type: 'opportunity',
-      title: 'Coverage Enhancement',
-      description: 'Add conversion rate thresholds for 8 campaigns currently not monitored',
-      impact: 'Improved monitoring',
-      confidence: 91,
-      action: 'Expand Coverage',
-      icon: <MonitorHeart />,
-    },
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'violated':
-        return 'error';
-      case 'warning':
-        return 'warning';
-      case 'safe':
-        return 'success';
-      default:
-        return 'default';
+  const getStatusPercentage = (threshold: ThresholdConfig) => {
+    if (threshold.threshold_type === 'min') {
+      return (threshold.current_value / threshold.threshold_value) * 100;
+    } else {
+      return 100 - ((threshold.current_value / threshold.critical_threshold) * 50);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'violated':
-        return <Warning sx={{ color: theme.palette.error.main }} />;
-      case 'warning':
-        return <Warning sx={{ color: theme.palette.warning.main }} />;
-      case 'safe':
-        return <CheckCircle sx={{ color: theme.palette.success.main }} />;
-      default:
-        return <Info />;
+  const handleEdit = (threshold: ThresholdConfig) => {
+    setSelectedThreshold(threshold);
+    setEditDialogOpen(true);
+  };
+
+  const handleToggleEnabled = (id: string) => {
+    setThresholds(thresholds.map(t =>
+      t.id === id ? { ...t, enabled: !t.enabled } : t
+    ));
+  };
+
+  // AI Analysis - 4 Types (Threshold Optimization focus)
+  const aiAnalysis = useMemo(() => {
+    if (!thresholds || thresholds.length === 0) {
+      return {
+        descriptive: { text: '', icon: Assessment, color: '#1E88E5' },
+        diagnostic: { text: '', icon: Psychology, color: '#7B1FA2' },
+        predictive: { text: '', icon: Timeline, color: '#F57C00' },
+        prescriptive: { text: '', icon: Lightbulb, color: '#388E3C' },
+      };
     }
-  };
 
-  // KPI Click Handlers
-  const handleActiveThresholdsClick = () => {
-    const displayData = data || mockData;
-    const items: KPIDetailItem[] = displayData.thresholds?.map((t: any) => ({
-      id: t.id,
-      name: t.metric,
-      value: `${t.operator} ${t.value}`,
-      status: t.enabled ? 'success' : 'warning',
-      subtitle: `${t.campaign} • Current: ${t.current}`,
-      trend: t.status === 'safe' ? 1 : -1,
-    })) || [];
-    setDrawerData(items);
-    setDrawerTitle('Active Thresholds');
-    setDrawerSubtitle(`${displayData.metrics[0]?.value || 24} thresholds currently configured`);
-    setDrawerOpen(true);
-  };
+    const total = thresholdStatus.total;
+    const enabled = thresholdStatus.enabled;
+    const breaching = thresholdStatus.breaching;
+    const warning = thresholdStatus.warning;
+    const healthy = thresholdStatus.healthy;
 
-  const handleViolationsTodayClick = () => {
-    const displayData = data || mockData;
-    const violatedThresholds = displayData.thresholds?.filter((t: any) => t.status === 'violated') || [];
-    const items: KPIDetailItem[] = violatedThresholds.map((t: any) => ({
-      id: t.id,
-      name: t.metric,
-      value: `Current: ${t.current}`,
-      status: 'error',
-      subtitle: `${t.campaign} • Threshold: ${t.operator} ${t.value}`,
-      trend: -1,
-    }));
-    setDrawerData(items);
-    setDrawerTitle('Threshold Violations');
-    setDrawerSubtitle(`${displayData.metrics[1]?.value || 7} violations detected today`);
-    setDrawerOpen(true);
-  };
+    // Calculate effectiveness metrics
+    const breachRate = enabled > 0 ? (breaching / enabled) * 100 : 0;
+    const warningRate = enabled > 0 ? (warning / enabled) * 100 : 0;
+    const healthyRate = enabled > 0 ? (healthy / enabled) * 100 : 0;
 
-  const handleAccuracyRateClick = () => {
-    const displayData = data || mockData;
-    const items: KPIDetailItem[] = displayData.violationTrends?.map((vt: any, idx: number) => ({
-      id: `trend-${idx}`,
-      name: vt.date,
-      value: `${vt.violations} violations`,
-      status: vt.violations < 5 ? 'success' : vt.violations < 10 ? 'warning' : 'error',
-      subtitle: `${vt.thresholds} active thresholds`,
-      trend: idx > 0 ? (vt.violations < displayData.violationTrends[idx - 1].violations ? 1 : -1) : 0,
-    })) || [];
-    setDrawerData(items);
-    setDrawerTitle('Accuracy Rate');
-    setDrawerSubtitle(`${displayData.metrics[2]?.value || 92.5}% accuracy across all threshold checks`);
-    setDrawerOpen(true);
-  };
+    // Analyze threshold tightness
+    const tooTightThresholds = thresholds.filter(t => {
+      const margin = Math.abs(t.current_value - t.threshold_value) / t.threshold_value;
+      return margin < 0.1 && t.enabled; // Within 10% of threshold
+    }).length;
 
-  const handleResponseTimeClick = () => {
-    const displayData = data || mockData;
-    const items: KPIDetailItem[] = displayData.thresholds?.map((t: any) => ({
-      id: t.id,
-      name: t.metric,
-      value: t.lastTriggered,
-      status: t.lastTriggered.includes('mins') ? 'error' : t.lastTriggered === 'Never' ? 'success' : 'warning',
-      subtitle: `${t.campaign} • ${t.status.toUpperCase()}`,
-    })) || [];
-    setDrawerData(items);
-    setDrawerTitle('Response Time');
-    setDrawerSubtitle(`${displayData.metrics[3]?.value || 1.8}s average detection time`);
-    setDrawerOpen(true);
-  };
+    const tooLooseThresholds = thresholds.filter(t => {
+      const margin = Math.abs(t.current_value - t.threshold_value) / t.threshold_value;
+      return margin > 0.5 && t.enabled; // More than 50% away
+    }).length;
 
-  const handleCoverageClick = () => {
-    const displayData = data || mockData;
-    const items: KPIDetailItem[] = displayData.metricDistribution?.map((md: any) => ({
-      id: md.metric,
-      name: md.metric,
-      value: `${md.count} thresholds`,
-      status: md.violations === 0 ? 'success' : md.violations < 2 ? 'warning' : 'error',
-      subtitle: `${md.violations} violations`,
-      trend: md.violations === 0 ? 1 : -1,
-    })) || [];
-    setDrawerData(items);
-    setDrawerTitle('Coverage');
-    setDrawerSubtitle(`${displayData.metrics[4]?.value || 95}% of campaigns have thresholds`);
-    setDrawerOpen(true);
-  };
+    // 1. DESCRIPTIVE: Threshold configuration status
+    const descriptive = `Threshold Monitoring Overview:\n• ${total} thresholds configured (${enabled} active, ${total - enabled} disabled)\n• ${healthy} metrics within healthy range (${healthyRate.toFixed(0)}%)\n• ${warning} metrics approaching limits (${warningRate.toFixed(0)}%)\n• ${breaching} metrics breaching thresholds (${breachRate.toFixed(0)}%)\n\nThreshold Distribution:\n• ${thresholds.filter(t => t.threshold_type === 'min').length} minimum thresholds (floor protection)\n• ${thresholds.filter(t => t.threshold_type === 'max').length} maximum thresholds (ceiling protection)\n\nNotification Settings:\n• ${thresholds.filter(t => t.notify_email).length} email alerts enabled\n• ${thresholds.filter(t => t.notify_dashboard).length} dashboard alerts active`;
 
-  const handleOptimizationScoreClick = () => {
-    const displayData = data || mockData;
-    const items: KPIDetailItem[] = displayData.thresholds?.map((t: any) => ({
-      id: t.id,
-      name: t.metric,
-      value: t.enabled ? 'Optimized' : 'Disabled',
-      status: t.enabled && t.status === 'safe' ? 'success' : t.enabled && t.status === 'violated' ? 'error' : 'warning',
-      subtitle: `${t.campaign} • ${t.operator} ${t.value}`,
-      trend: t.status === 'safe' ? 1 : -1,
-    })) || [];
-    setDrawerData(items);
-    setDrawerTitle('Optimization Score');
-    setDrawerSubtitle(`${displayData.metrics[5]?.value || 8.3}/10 overall optimization score`);
-    setDrawerOpen(true);
-  };
+    // 2. DIAGNOSTIC: Why thresholds are performing this way
+    let diagnostic = `Threshold Effectiveness Analysis:\n\n`;
 
-  if (loading) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <LinearProgress />
-      </Box>
-    );
-  }
+    if (breachRate > 20) {
+      diagnostic += `High Breach Rate (${breachRate.toFixed(0)}%):\n• ${breaching} thresholds consistently breached\n• Indicates thresholds set too aggressively or systematic performance issues\n\n`;
+    } else if (breachRate > 0) {
+      diagnostic += `Normal Breach Rate (${breachRate.toFixed(0)}%):\n• ${breaching} active breaches within acceptable range\n• Thresholds effectively catching outliers\n\n`;
+    }
 
-  const displayData = data || mockData;
+    if (tooTightThresholds > 0) {
+      diagnostic += `Tight Threshold Warning:\n• ${tooTightThresholds} metrics running close to limits (<10% margin)\n• Risk of frequent alert fatigue\n\n`;
+    }
+
+    if (tooLooseThresholds > 0) {
+      diagnostic += `Loose Threshold Gap:\n• ${tooLooseThresholds} thresholds too relaxed (>50% margin)\n• May miss important performance degradation\n\n`;
+    }
+
+    if (breachRate === 0 && warningRate === 0) {
+      diagnostic += `⚠️ Zero breaches/warnings may indicate thresholds are too loose - review settings`;
+    } else if (breachRate > 30) {
+      diagnostic += `⚠️ Excessive breaches indicate either unrealistic thresholds or serious performance issues`;
+    }
+
+    // 3. PREDICTIVE: Threshold breach forecasts
+    const avgBreachDuration = breachHistory.reduce((sum, b) => sum + b.duration_minutes, 0) / Math.max(breachHistory.length, 1);
+    const recentBreaches = breachHistory.filter(b => {
+      const hoursAgo = (new Date().getTime() - new Date(b.timestamp).getTime()) / 3600000;
+      return hoursAgo <= 24;
+    }).length;
+
+    const breachTrend = recentBreaches > breachHistory.length * 0.4 ? 'increasing' : recentBreaches > breachHistory.length * 0.2 ? 'stable' : 'decreasing';
+    const futureRisk = breachRate > 20 ? 'High' : breachRate > 10 ? 'Medium' : 'Low';
+
+    const predictive = `Threshold Breach Forecast:\n\nBreach Patterns:\n• Recent breach velocity: ${recentBreaches} in last 24h\n• Trend direction: ${breachTrend}\n• Average breach duration: ${avgBreachDuration.toFixed(0)} minutes\n\nRisk Assessment:\n• Future breach risk: ${futureRisk}\n• ${warning} metrics in warning zone (may escalate to breaches)\n• Alert fatigue risk: ${tooTightThresholds > 3 ? 'High' : tooTightThresholds > 0 ? 'Medium' : 'Low'}\n\nProjected Impact:\n• If current trend continues: ${breachTrend === 'increasing' ? `+${(recentBreaches * 1.5).toFixed(0)} breaches next 24h` : 'Breach rate stabilizing'}`;
+
+    // 4. PRESCRIPTIVE: Threshold optimization recommendations
+    const recommendations: string[] = [];
+
+    if (tooTightThresholds > 0) {
+      recommendations.push(`1. Relax ${tooTightThresholds} overly tight thresholds by 15-20% to reduce alert noise`);
+    }
+
+    if (tooLooseThresholds > 0) {
+      recommendations.push(`${recommendations.length + 1}. Tighten ${tooLooseThresholds} loose thresholds to catch issues earlier (target 20-30% margin)`);
+    }
+
+    if (breaching > 0) {
+      recommendations.push(`${recommendations.length + 1}. Investigate ${breaching} breaching metrics - address root causes before adjusting thresholds`);
+    }
+
+    if (total - enabled > 3) {
+      recommendations.push(`${recommendations.length + 1}. Review ${total - enabled} disabled thresholds - re-enable if still relevant or delete`);
+    }
+
+    if (thresholds.filter(t => !t.notify_email && !t.notify_dashboard).length > 0) {
+      recommendations.push(`${recommendations.length + 1}. Enable notifications for ${thresholds.filter(t => !t.notify_email && !t.notify_dashboard).length} silent thresholds`);
+    }
+
+    const prescriptive = `Threshold Optimization Plan:\n${recommendations.slice(0, 4).join('\n')}\n\nBest Practice Guidelines:\n• Set warning at 70-80% of critical threshold\n• Review monthly and adjust based on performance evolution\n• Balance sensitivity (catch issues) vs noise (alert fatigue)\n• Target: 5-10% breach rate for optimal effectiveness`;
+
+    return {
+      descriptive: {
+        text: descriptive,
+        icon: Assessment,
+        color: '#1E88E5',
+      },
+      diagnostic: {
+        text: diagnostic,
+        icon: Psychology,
+        color: '#7B1FA2',
+      },
+      predictive: {
+        text: predictive,
+        icon: Timeline,
+        color: '#F57C00',
+      },
+      prescriptive: {
+        text: prescriptive,
+        icon: Lightbulb,
+        color: '#388E3C',
+      },
+    };
+  }, [thresholds, thresholdStatus, breachHistory]);
 
   return (
-    <DashboardTemplate
-      title="Thresholds Monitor"
-      subtitle="Real-time threshold monitoring and intelligent alert configuration management"
-      selectedTimeRange={selectedTimeRange}
-      onTimeRangeChange={() => setSelectedTimeRange(selectedTimeRange === '7d' ? '30d' : '7d')}
-    >
-      {/* KPI Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Active Thresholds"
-            value={displayData.metrics[0]?.value || 24}
-            format="number"
-            icon={<TuneRounded />}
-            trend="up"
-            trendValue={4}
-            color="primary"
-            index={0}
-            onClick={handleActiveThresholdsClick}
-            drillDownAvailable={true}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Violations Today"
-            value={displayData.metrics[1]?.value || 7}
-            format="number"
-            icon={<Warning />}
-            trend="down"
-            trendValue={22}
-            color="error"
-            index={1}
-            onClick={handleViolationsTodayClick}
-            drillDownAvailable={true}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Accuracy Rate"
-            value={displayData.metrics[2]?.value || 92.5}
-            format="percentage"
-            icon={<CheckCircle />}
-            trend="up"
-            trendValue={3}
-            color="success"
-            index={2}
-            onClick={handleAccuracyRateClick}
-            drillDownAvailable={true}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Response Time"
-            value={displayData.metrics[3]?.value || 1.8}
-            format="number"
-            icon={<Speed />}
-            trend="down"
-            trendValue={15}
-            color="info"
-            index={3}
-            onClick={handleResponseTimeClick}
-            drillDownAvailable={true}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Coverage"
-            value={displayData.metrics[4]?.value || 95}
-            format="percentage"
-            icon={<MonitorHeart />}
-            trend="up"
-            trendValue={8}
-            color="success"
-            index={4}
-            onClick={handleCoverageClick}
-            drillDownAvailable={true}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <InteractiveKPICard
-            title="Optimization Score"
-            value={displayData.metrics[5]?.value || 8.3}
-            format="number"
-            icon={<AutoAwesome />}
-            trend="up"
-            trendValue={12}
-            color="secondary"
-            index={5}
-            onClick={handleOptimizationScoreClick}
-            drillDownAvailable={true}
-          />
-        </Grid>
-      </Grid>
-
-
-      {/* AI Intelligence Section */}
-      <Box sx={{ mb: 3 }}>
-        <AIIntelligenceSection insights={aiInsights} />
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight={700} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Settings fontSize="large" color="primary" />
+          Thresholds Monitor
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Configure and monitor performance thresholds for automated alerting
+        </Typography>
       </Box>
 
-      <Grid container spacing={3}>
-        {/* Violation Trends */}
-        <Grid item xs={12} md={8}>
-          <Fade in timeout={600}>
-            <Card
-              sx={{
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: theme.shadows[8],
-                },
-              }}
-            >
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    Threshold Violations Trend
-                  </Typography>
-                  <Chip
-                    icon={<Timeline />}
-                    label="Daily Tracking"
-                    color="primary"
-                    size="small"
-                  />
-                </Box>
-                <EnhancedChart
-                  xAxis={{ label: "Day", dataKey: "date" }}
-                  yAxis={{ label: "Count", format: "number" }}
-                  height={300}
-                >
-                  <AreaChart data={displayData.violationTrends}>
-                    <Area
-                      type="monotone"
-                      dataKey="violations"
-                      stroke={theme.palette.error.main}
-                      fill={alpha(theme.palette.error.main, 0.3)}
-                      name="Violations"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="thresholds"
-                      stroke={theme.palette.primary.main}
-                      strokeWidth={2}
-                      dot={{ fill: theme.palette.primary.main, r: 4 }}
-                      name="Active Thresholds"
-                    />
-                  </AreaChart>
-                </EnhancedChart>
-              </CardContent>
-            </Card>
-          </Fade>
-        </Grid>
+      {/* AI Intelligence */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h5" fontWeight={600} gutterBottom sx={{ mb: 3 }}>
+          🧠 AI Intelligence
+        </Typography>
 
-        {/* Metric Distribution */}
-        <Grid item xs={12} md={4}>
-          <Fade in timeout={700}>
+        <Grid container spacing={2.5}>
+          {/* 1. Descriptive */}
+          <Grid item xs={12} md={6}>
             <Card
+              elevation={0}
               sx={{
-                transition: 'all 0.3s ease',
+                height: '100%',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                transition: 'all 0.3s',
                 '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: theme.shadows[8],
-                },
+                  boxShadow: `0 4px 20px ${aiAnalysis.descriptive.color}20`,
+                  borderColor: aiAnalysis.descriptive.color,
+                }
               }}
             >
-              <CardContent>
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                  Thresholds by Metric
-                </Typography>
-                <EnhancedChart
-                  xAxis={{ label: "Metric", dataKey: "metric" }}
-                  yAxis={{ label: "Count", format: "number" }}
-                  height={250}
-                >
-                  <BarChart data={displayData.metricDistribution}>
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                      {displayData.metricDistribution.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={entry.color || theme.palette.primary.main} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </EnhancedChart>
-              </CardContent>
-            </Card>
-          </Fade>
-        </Grid>
-
-        {/* Thresholds Configuration Table */}
-        <Grid item xs={12}>
-          <Fade in timeout={800}>
-            <Card
-              sx={{
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  boxShadow: theme.shadows[4],
-                },
-              }}
-            >
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    Threshold Configuration
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Chip
-                      icon={<Settings />}
-                      label={`${displayData.thresholds?.filter((t: any) => t.enabled).length || 4}/${displayData.thresholds?.length || 5} Active`}
-                      color="primary"
-                      size="small"
-                      variant="outlined"
-                    />
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      startIcon={<TuneRounded />}
-                      size="small"
-                    >
-                      Add Threshold
-                    </Button>
+              <CardContent sx={{ p: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 1.5,
+                      bgcolor: `${aiAnalysis.descriptive.color}10`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Assessment sx={{ color: aiAnalysis.descriptive.color, fontSize: 20 }} />
+                  </Box>
+                  <Box flex={1}>
+                    <Typography variant="subtitle2" sx={{ color: aiAnalysis.descriptive.color, fontWeight: 600 }}>
+                      Descriptive
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Threshold status
+                    </Typography>
                   </Box>
                 </Box>
-                <TableContainer component={Paper} elevation={0}>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Metric</TableCell>
-                        <TableCell>Campaign</TableCell>
-                        <TableCell align="center">Condition</TableCell>
-                        <TableCell align="right">Current Value</TableCell>
-                        <TableCell align="center">Status</TableCell>
-                        <TableCell>Last Triggered</TableCell>
-                        <TableCell align="center">Enabled</TableCell>
-                        <TableCell align="center">Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {displayData.thresholds?.map((threshold: any, index: number) => (
-                        <TableRow
-                          key={index}
-                          hover
-                          sx={{
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            '&:hover': {
-                              bgcolor: alpha(theme.palette.primary.main, 0.05),
-                              transform: 'scale(1.01)',
-                            },
-                            bgcolor: threshold.status === 'violated' ? alpha(theme.palette.error.main, 0.1) : 'transparent',
-                          }}
-                        >
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              {getStatusIcon(threshold.status)}
-                              <Typography variant="body2" fontWeight={600}>
-                                {threshold.metric}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" fontWeight={500}>
-                              {threshold.campaign}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="center">
-                            <Typography variant="body2" fontFamily="monospace">
-                              {threshold.operator} {threshold.value}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography
-                              variant="body2"
-                              fontWeight={600}
-                              color={threshold.status === 'violated' ? 'error.main' : 'text.primary'}
-                            >
-                              {threshold.current}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="center">
-                            <Chip
-                              label={threshold.status.toUpperCase()}
-                              color={getStatusColor(threshold.status) as any}
-                              size="small"
-                              variant="outlined"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="caption" color="text.secondary">
-                              {threshold.lastTriggered}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="center">
-                            <FormControlLabel
-                              control={
-                                <Switch
-                                  checked={threshold.enabled}
-                                  size="small"
-                                  color={threshold.status === 'violated' ? 'error' : 'primary'}
-                                />
-                              }
-                              label=""
-                              sx={{ m: 0 }}
-                            />
-                          </TableCell>
-                          <TableCell align="center">
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="primary"
-                              sx={{
-                                minWidth: 'auto',
-                                px: 2,
-                                transition: 'all 0.2s',
-                                '&:hover': { transform: 'scale(1.05)' },
-                              }}
-                            >
-                              Edit
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.7, color: 'text.secondary' }}>
+                  {aiAnalysis.descriptive.text}
+                </Typography>
               </CardContent>
             </Card>
-          </Fade>
-        </Grid>
+          </Grid>
 
-        <Grid item xs={12}>
-          <Fade in timeout={900}>
-            <Alert
-              severity="warning"
-              icon={<TuneRounded />}
+          {/* 2. Diagnostic */}
+          <Grid item xs={12} md={6}>
+            <Card
+              elevation={0}
               sx={{
-                background: `linear-gradient(45deg, ${alpha(theme.palette.warning.main, 0.1)} 0%, ${alpha(theme.palette.warning.light, 0.05)} 100%)`,
-                border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                height: '100%',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                transition: 'all 0.3s',
+                '&:hover': {
+                  boxShadow: `0 4px 20px ${aiAnalysis.diagnostic.color}20`,
+                  borderColor: aiAnalysis.diagnostic.color,
+                }
               }}
             >
-              <Typography variant="subtitle2">
-                <strong>Optimization Tip:</strong> 7 threshold violations detected today.
-                Consider adjusting CTR threshold from 2.0% to 1.5% to reduce false positives while maintaining monitoring coverage.
-              </Typography>
-            </Alert>
-          </Fade>
+              <CardContent sx={{ p: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 1.5,
+                      bgcolor: `${aiAnalysis.diagnostic.color}10`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Psychology sx={{ color: aiAnalysis.diagnostic.color, fontSize: 20 }} />
+                  </Box>
+                  <Box flex={1}>
+                    <Typography variant="subtitle2" sx={{ color: aiAnalysis.diagnostic.color, fontWeight: 600 }}>
+                      Diagnostic
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Effectiveness
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.7, color: 'text.secondary' }}>
+                  {aiAnalysis.diagnostic.text}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* 3. Predictive */}
+          <Grid item xs={12} md={6}>
+            <Card
+              elevation={0}
+              sx={{
+                height: '100%',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                transition: 'all 0.3s',
+                '&:hover': {
+                  boxShadow: `0 4px 20px ${aiAnalysis.predictive.color}20`,
+                  borderColor: aiAnalysis.predictive.color,
+                }
+              }}
+            >
+              <CardContent sx={{ p: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 1.5,
+                      bgcolor: `${aiAnalysis.predictive.color}10`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Timeline sx={{ color: aiAnalysis.predictive.color, fontSize: 20 }} />
+                  </Box>
+                  <Box flex={1}>
+                    <Typography variant="subtitle2" sx={{ color: aiAnalysis.predictive.color, fontWeight: 600 }}>
+                      Predictive
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Breach forecast
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.7, color: 'text.secondary' }}>
+                  {aiAnalysis.predictive.text}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* 4. Prescriptive */}
+          <Grid item xs={12} md={6}>
+            <Card
+              elevation={0}
+              sx={{
+                height: '100%',
+                border: '1px solid',
+                borderColor: aiAnalysis.prescriptive.color,
+                borderRadius: 2,
+                background: `linear-gradient(135deg, ${aiAnalysis.prescriptive.color}08 0%, ${aiAnalysis.prescriptive.color}03 100%)`,
+                transition: 'all 0.3s',
+                '&:hover': {
+                  boxShadow: `0 4px 20px ${aiAnalysis.prescriptive.color}25`,
+                }
+              }}
+            >
+              <CardContent sx={{ p: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 1.5,
+                      bgcolor: `${aiAnalysis.prescriptive.color}15`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Lightbulb sx={{ color: aiAnalysis.prescriptive.color, fontSize: 20 }} />
+                  </Box>
+                  <Box flex={1}>
+                    <Typography variant="subtitle2" sx={{ color: aiAnalysis.prescriptive.color, fontWeight: 600 }}>
+                      Prescriptive
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Optimization plan
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.7, color: 'text.primary', fontWeight: 500 }}>
+                  {aiAnalysis.prescriptive.text}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Box>
+
+      {/* Summary Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Total Thresholds</Typography>
+                  <Typography variant="h2" fontWeight={700} color="text.primary">{thresholdStatus.total}</Typography>
+                  <Typography variant="caption" color="text.secondary">{thresholdStatus.enabled} enabled</Typography>
+                </Box>
+                <Settings sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Healthy</Typography>
+                  <Typography variant="h2" fontWeight={700} color="text.primary">{thresholdStatus.healthy}</Typography>
+                  <Typography variant="caption" color="text.secondary">Within range</Typography>
+                </Box>
+                <CheckCircle sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Warning</Typography>
+                  <Typography variant="h2" fontWeight={700} color="text.primary">{thresholdStatus.warning}</Typography>
+                  <Typography variant="caption" color="text.secondary">Approaching limit</Typography>
+                </Box>
+                <Warning sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Breaching</Typography>
+                  <Typography variant="h2" fontWeight={700} color="text.primary">{thresholdStatus.breaching}</Typography>
+                  <Typography variant="caption">Over threshold</Typography>
+                </Box>
+                <TrendingDown sx={{ fontSize: 60, opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
 
-      {/* KPI Detail Drawer */}
-      <KPIDetailDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        title={drawerTitle}
-        subtitle={drawerSubtitle}
-        data={drawerData}
-      />
-    </DashboardTemplate>
+      {/* Actions */}
+      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+        <Button variant="contained" color="primary" startIcon={<Add />}>
+          Add Threshold
+        </Button>
+        <Button variant="outlined" startIcon={<Save />}>
+          Save All Changes
+        </Button>
+      </Box>
+
+      {/* Active Thresholds */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight={600} gutterBottom>
+            Configured Thresholds
+          </Typography>
+          <Divider sx={{ my: 2 }} />
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell><strong>Metric</strong></TableCell>
+                  <TableCell align="center"><strong>Type</strong></TableCell>
+                  <TableCell align="center"><strong>Current Value</strong></TableCell>
+                  <TableCell align="center"><strong>Target</strong></TableCell>
+                  <TableCell align="center"><strong>Warning</strong></TableCell>
+                  <TableCell align="center"><strong>Critical</strong></TableCell>
+                  <TableCell align="center"><strong>Status</strong></TableCell>
+                  <TableCell align="center"><strong>Enabled</strong></TableCell>
+                  <TableCell align="center"><strong>Notifications</strong></TableCell>
+                  <TableCell align="center"><strong>Actions</strong></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {thresholds.map((threshold) => (
+                  <TableRow key={threshold.id} hover>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {renderIcon(threshold.icon)}
+                        <Typography variant="body2" fontWeight={600}>{threshold.metric_display}</Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={threshold.threshold_type === 'min' ? 'MIN' : 'MAX'}
+                        size="small"
+                        color={threshold.threshold_type === 'min' ? 'primary' : 'secondary'}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Typography variant="body2" fontWeight={600}>
+                        {threshold.current_value.toFixed(2)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">{threshold.threshold_value.toFixed(2)}</TableCell>
+                    <TableCell align="center">{threshold.warning_threshold.toFixed(2)}</TableCell>
+                    <TableCell align="center">{threshold.critical_threshold.toFixed(2)}</TableCell>
+                    <TableCell align="center">
+                      <Box sx={{ width: '100%' }}>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(getStatusPercentage(threshold), 100)}
+                          sx={{ height: 8, borderRadius: 4, mb: 0.5 }}
+                          color={getStatusColor(threshold) as any}
+                        />
+                        <Chip
+                          label={
+                            !threshold.enabled ? 'DISABLED' :
+                            getStatusColor(threshold) === 'error' ? 'BREACH' :
+                            getStatusColor(threshold) === 'warning' ? 'WARNING' :
+                            'HEALTHY'
+                          }
+                          size="small"
+                          color={getStatusColor(threshold) as any}
+                        />
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Switch
+                        checked={threshold.enabled}
+                        onChange={() => handleToggleEnabled(threshold.id)}
+                        color="primary"
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                        {threshold.notify_email && (
+                          <Tooltip title="Email notifications enabled">
+                            <Chip label="Email" size="small" variant="outlined" />
+                          </Tooltip>
+                        )}
+                        {threshold.notify_dashboard && (
+                          <Tooltip title="Dashboard notifications enabled">
+                            <Chip label="Dashboard" size="small" variant="outlined" />
+                          </Tooltip>
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                        <Tooltip title="Edit threshold">
+                          <IconButton size="small" onClick={() => handleEdit(threshold)}>
+                            <Edit fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete threshold">
+                          <IconButton size="small" color="error">
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+
+      {/* Breach History */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight={600} gutterBottom>
+            Recent Threshold Breaches
+          </Typography>
+          <Divider sx={{ my: 2 }} />
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell><strong>Timestamp</strong></TableCell>
+                  <TableCell><strong>Metric</strong></TableCell>
+                  <TableCell align="center"><strong>Severity</strong></TableCell>
+                  <TableCell align="right"><strong>Value</strong></TableCell>
+                  <TableCell align="right"><strong>Threshold</strong></TableCell>
+                  <TableCell align="right"><strong>Duration</strong></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {breachHistory.slice(0, 10).map((breach, idx) => (
+                  <TableRow key={idx} hover>
+                    <TableCell>
+                      {new Date(breach.timestamp).toLocaleString()}
+                    </TableCell>
+                    <TableCell>{breach.metric_name}</TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={breach.severity.toUpperCase()}
+                        size="small"
+                        color={breach.severity === 'critical' ? 'error' : 'warning'}
+                      />
+                    </TableCell>
+                    <TableCell align="right">{breach.value.toFixed(2)}</TableCell>
+                    <TableCell align="right">{breach.threshold.toFixed(2)}</TableCell>
+                    <TableCell align="right">{breach.duration_minutes}m</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+
+      {/* Best Practices */}
+      <Card sx={{ background: 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)' }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight={600} gutterBottom>
+            Threshold Best Practices
+          </Typography>
+          <Divider sx={{ my: 2 }} />
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Alert severity="info">
+                <AlertTitle>Set Realistic Thresholds</AlertTitle>
+                Base thresholds on historical performance data, not aspirational goals. Use 20-30% variance from average as a starting point.
+              </Alert>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Alert severity="success">
+                <AlertTitle>Use Warning & Critical Levels</AlertTitle>
+                Warning thresholds give you time to investigate before critical breaches occur. Set warnings at 70-80% of critical values.
+              </Alert>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Alert severity="warning">
+                <AlertTitle>Avoid Alert Fatigue</AlertTitle>
+                Too many alerts reduce effectiveness. Focus on metrics that directly impact business goals and require action.
+              </Alert>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Alert severity="info">
+                <AlertTitle>Regular Review</AlertTitle>
+                Review and adjust thresholds monthly as campaign performance evolves. What's normal today may not be normal next month.
+              </Alert>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Threshold: {selectedThreshold?.metric_display}</DialogTitle>
+        <DialogContent>
+          {selectedThreshold && (
+            <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <TextField
+                label="Target Threshold"
+                type="number"
+                value={selectedThreshold.threshold_value}
+                fullWidth
+                size="small"
+              />
+              <TextField
+                label="Warning Threshold"
+                type="number"
+                value={selectedThreshold.warning_threshold}
+                fullWidth
+                size="small"
+              />
+              <TextField
+                label="Critical Threshold"
+                type="number"
+                value={selectedThreshold.critical_threshold}
+                fullWidth
+                size="small"
+              />
+              <FormControlLabel
+                control={<Switch checked={selectedThreshold.notify_email} />}
+                label="Email Notifications"
+              />
+              <FormControlLabel
+                control={<Switch checked={selectedThreshold.notify_dashboard} />}
+                label="Dashboard Notifications"
+              />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" color="primary" onClick={() => setEditDialogOpen(false)}>
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 
