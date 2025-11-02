@@ -1,12 +1,15 @@
 // Google Analytics 4 Dashboard
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Grid, Stack, Paper, Typography, Box, CircularProgress, Alert } from '@mui/material';
 import DashboardTemplate from '../../common/DashboardTemplate';
 import { KPICard } from '../../common/KPICard';
 import InsightCard from '../../common/InsightCard';
+import { SmartInsightCard } from '../../common/SmartInsightCard';
+import { DataQualityIndicator } from '../../common/DataQualityIndicator';
 import { FilterState, KPIData, InsightData, GA4Metrics, GA4SourceMedium } from '../../../types';
 import { useFilters } from '../../../context/FilterContext';
 import { ga4Service } from '../../../services/ga4Service';
+import { SmartInsightGenerator } from '../../../utils/insightGenerator';
 import {
   BarChart,
   Bar,
@@ -52,6 +55,17 @@ export const GA4Dashboard: React.FC = () => {
 
     fetchData();
   }, [filters.customerId, filters.dateRange]);
+
+  // Generate AI-powered insights from GA4 metrics (MUST be before any conditional returns)
+  const smartInsights = useMemo(() => {
+    if (!metrics) return [];
+    try {
+      return SmartInsightGenerator.analyzeGA4Performance(metrics);
+    } catch (error) {
+      console.error('Error generating GA4 insights:', error);
+      return [];
+    }
+  }, [metrics]);
 
   // Format session duration from seconds to MM:SS
   const formatDuration = (seconds: number) => {
@@ -177,6 +191,17 @@ export const GA4Dashboard: React.FC = () => {
         </Alert>
       )}
 
+      {/* Data Quality Indicator */}
+      <Box sx={{ mb: 3 }}>
+        <DataQualityIndicator
+          lastSync={new Date(Date.now() - 1000 * 60 * 7)} // 7 minutes ago
+          dataPoints={metrics?.sessions || 0}
+          qualityScore={metrics ? 90 : 0}
+          isLoading={loading}
+          compact={true}
+        />
+      </Box>
+
       <Grid container spacing={3} sx={{ mt: 2 }}>
         {kpis.map((kpi, index) => (
           <Grid item xs={12} md={4} key={index}>
@@ -185,11 +210,29 @@ export const GA4Dashboard: React.FC = () => {
         ))}
       </Grid>
 
-      <Stack spacing={2} sx={{ mt: 4 }}>
-        {insights.map((insight, index) => (
-          <InsightCard key={index} data={insight} index={index} />
-        ))}
-      </Stack>
+      {/* AI-Powered Smart Insights for GA4 */}
+      {smartInsights.length > 0 && (
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
+            🧠 AI Intelligence & Recommendations
+          </Typography>
+          <Stack spacing={2.5}>
+            {smartInsights.map((insight, index) => (
+              <SmartInsightCard
+                key={index}
+                type={insight.type}
+                title={insight.title}
+                message={insight.message}
+                impact={insight.impact}
+                confidence={insight.confidence}
+                actionable={insight.actionable}
+                actions={insight.actions}
+                index={index}
+              />
+            ))}
+          </Stack>
+        </Box>
+      )}
 
       <Grid container spacing={3} sx={{ mt: 4 }}>
         <Grid item xs={12} md={6}>

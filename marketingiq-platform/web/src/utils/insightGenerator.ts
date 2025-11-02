@@ -258,4 +258,182 @@ export class SmartInsightGenerator {
     // Placeholder for anomaly detection
     return [];
   }
+
+  /**
+   * Analyze GA4 website analytics performance
+   */
+  static analyzeGA4Performance(metrics: any): InsightResult[] {
+    const insights: InsightResult[] = [];
+
+    if (!metrics) {
+      return [{
+        type: 'info',
+        title: 'No Analytics Data',
+        message: 'Connect your Google Analytics 4 property to start receiving website performance insights.',
+        impact: 'Setup required',
+        confidence: 100,
+        actionable: false,
+      }];
+    }
+
+    const {
+      sessions = 0,
+      conversion_rate = 0,
+      conversions = 0,
+      bounce_rate = 0,
+      avg_session_duration = 0,
+      pages_per_session = 0,
+    } = metrics;
+
+    // Industry benchmarks for GA4
+    const benchmarkConversionRate = 2.35;
+    const benchmarkBounceRate = 45;
+    const benchmarkSessionDuration = 120; // 2 minutes
+    const benchmarkPagesPerSession = 2.5;
+
+    // 1. Conversion Rate Analysis
+    if (conversion_rate > benchmarkConversionRate * 1.5) {
+      insights.push({
+        type: 'success',
+        title: 'Exceptional Website Conversion Rate',
+        message: `Your ${conversion_rate.toFixed(2)}% conversion rate is ${((conversion_rate / benchmarkConversionRate - 1) * 100).toFixed(0)}% above the ${benchmarkConversionRate}% industry benchmark. From ${sessions.toLocaleString()} sessions, you're converting ${conversions.toLocaleString()} users—significantly outperforming typical websites.`,
+        impact: `Superior conversion efficiency = ${conversions} conversions from quality traffic`,
+        confidence: 92,
+        actionable: true,
+        actions: [
+          'Document your winning conversion formula (UX, copy, CTAs)',
+          'Expand traffic to high-converting pages',
+          'Test premium upsell offers to increase order value',
+          'Replicate successful elements across other landing pages'
+        ]
+      });
+    } else if (conversion_rate < benchmarkConversionRate * 0.6) {
+      const conversionGap = benchmarkConversionRate - conversion_rate;
+      const missedConversions = Math.floor(sessions * (conversionGap / 100));
+
+      insights.push({
+        type: 'danger',
+        title: 'Website Conversion Rate Below Par',
+        message: `Only ${conversion_rate.toFixed(2)}% of your ${sessions.toLocaleString()} sessions convert vs. ${benchmarkConversionRate}% industry standard. This means you're losing ~${missedConversions.toLocaleString()} potential conversions. Root cause analysis: likely poor user experience, slow load times, unclear value proposition, or traffic quality issues.`,
+        impact: `Fixing conversion rate could add ${missedConversions.toLocaleString()} monthly conversions`,
+        confidence: 87,
+        actionable: true,
+        actions: [
+          'Run speed test: target <2s load time (use PageSpeed Insights)',
+          'Simplify navigation—users should find what they need in 2 clicks',
+          'Clarify value proposition above the fold',
+          'Add trust signals: testimonials, security badges, guarantees',
+          'Test your checkout/contact flow on mobile (60%+ of traffic)',
+          'Review traffic sources—are you attracting the right audience?'
+        ]
+      });
+    }
+
+    // 2. Bounce Rate Analysis
+    if (bounce_rate < benchmarkBounceRate * 0.7) {
+      insights.push({
+        type: 'success',
+        title: 'Low Bounce Rate Indicates Strong Engagement',
+        message: `${bounce_rate.toFixed(1)}% bounce rate is ${((1 - bounce_rate / benchmarkBounceRate) * 100).toFixed(0)}% better than the ${benchmarkBounceRate}% benchmark. Visitors are staying and exploring your content, which strongly correlates with higher conversion rates.`,
+        impact: 'High engagement = better SEO rankings and more conversions',
+        confidence: 90,
+        actionable: true,
+        actions: [
+          'Analyze which pages have lowest bounce—replicate their patterns',
+          'Create internal linking strategy to guide users deeper',
+          'Add related content recommendations'
+        ]
+      });
+    } else if (bounce_rate > benchmarkBounceRate * 1.3) {
+      insights.push({
+        type: 'warning',
+        title: 'High Bounce Rate Losing Visitors',
+        message: `${bounce_rate.toFixed(1)}% bounce rate means ${Math.floor(sessions * (bounce_rate / 100)).toLocaleString()} visitors left immediately without engaging. This is ${((bounce_rate / benchmarkBounceRate - 1) * 100).toFixed(0)}% higher than the ${benchmarkBounceRate}% industry standard. High bounce rates hurt SEO and indicate content/experience mismatch.`,
+        impact: 'Each 10% bounce reduction = 5-10% more conversions',
+        confidence: 85,
+        actionable: true,
+        actions: [
+          'Check page load speed (mobile + desktop)',
+          'Ensure headline matches ad/search intent',
+          'Add compelling CTAs above the fold',
+          'Remove intrusive popups that trigger immediate exits',
+          'Improve mobile responsiveness—test on actual devices'
+        ]
+      });
+    }
+
+    // 3. Session Duration & Engagement
+    if (avg_session_duration < benchmarkSessionDuration * 0.6) {
+      const minutes = Math.floor(avg_session_duration / 60);
+      const seconds = Math.floor(avg_session_duration % 60);
+      insights.push({
+        type: 'warning',
+        title: 'Low Session Duration Shows Weak Engagement',
+        message: `Average session of ${minutes}m ${seconds}s is ${((1 - avg_session_duration / benchmarkSessionDuration) * 100).toFixed(0)}% below the ${Math.floor(benchmarkSessionDuration / 60)}m standard. Combined with ${pages_per_session.toFixed(1)} pages/session (vs ${benchmarkPagesPerSession} benchmark), this suggests visitors aren't finding what they need quickly enough.`,
+        impact: 'Low engagement = lower trust = fewer conversions',
+        confidence: 83,
+        actionable: true,
+        actions: [
+          'Add engaging content: videos, interactive tools, calculators',
+          'Improve internal search functionality',
+          'Create content hubs that keep users exploring',
+          'Add "related articles" or "you might also like" sections',
+          'Review exit pages—where are users leaving?'
+        ]
+      });
+    } else if (avg_session_duration > benchmarkSessionDuration * 1.5 && pages_per_session > benchmarkPagesPerSession * 1.2) {
+      insights.push({
+        type: 'success',
+        title: 'Exceptional User Engagement',
+        message: `Users spend ${Math.floor(avg_session_duration / 60)}m ${Math.floor(avg_session_duration % 60)}s and view ${pages_per_session.toFixed(1)} pages per session—both significantly above benchmarks. This high engagement indicates quality content and good UX.`,
+        impact: 'Deep engagement = higher conversion intent and brand trust',
+        confidence: 91,
+        actionable: true,
+        actions: [
+          'Identify most-engaged user segments for targeting',
+          'Create retargeting campaigns for engaged visitors',
+          'Add exit-intent offers to convert engaged browsers'
+        ]
+      });
+    }
+
+    // 4. Traffic Volume Assessment
+    if (sessions < 1000) {
+      insights.push({
+        type: 'info',
+        title: 'Low Traffic Volume Limits Insights',
+        message: `With only ${sessions.toLocaleString()} sessions, statistical significance is limited. Small traffic volumes make it hard to identify reliable patterns and A/B test effectively.`,
+        impact: 'Need 5,000+ monthly sessions for reliable optimization',
+        confidence: 95,
+        actionable: true,
+        actions: [
+          'Invest in SEO: optimize for long-tail keywords',
+          'Create content marketing strategy (blog, guides, tools)',
+          'Build backlinks through guest posting and PR',
+          'Run targeted paid campaigns to supplement organic growth',
+          'Leverage social media and email to drive repeat visits'
+        ]
+      });
+    } else if (sessions > 10000 && conversion_rate > benchmarkConversionRate) {
+      insights.push({
+        type: 'success',
+        title: 'Scalable High-Performance Website',
+        message: `${sessions.toLocaleString()} monthly sessions converting at ${conversion_rate.toFixed(2)}% = strong foundation for growth. You have the traffic volume and conversion efficiency to scale profitably.`,
+        impact: 'Ready to scale: each 1,000 additional sessions = ~${Math.floor(1000 * (conversion_rate / 100))} conversions',
+        confidence: 93,
+        actionable: true,
+        actions: [
+          'Invest aggressively in paid acquisition (proven ROI)',
+          'Scale top-performing content and traffic sources',
+          'Implement advanced personalization and segmentation',
+          'Test premium features or upsells'
+        ]
+      });
+    }
+
+    return insights.sort((a, b) => {
+      const severityOrder = { danger: 0, warning: 1, success: 2, info: 3 };
+      return severityOrder[a.type] - severityOrder[b.type];
+    });
+  }
 }
