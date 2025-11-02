@@ -1,0 +1,25 @@
+# Render configuration for FastAPI backend
+# This file can be used if deploying the API service separately
+
+services:
+  - type: web
+    name: marketingiq-api
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --bind 0.0.0.0:$PORT --workers 2 --worker-class uvicorn.workers.UvicornWorker
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: DATABASE_URL
+        sync: false
+      - key: DEBUG
+        value: false
+      - key: LOG_LEVEL
+        value: INFO
+      - key: API_VERSION
+        value: v1
+      - key: CORS_ORIGINS
+        sync: false
+
