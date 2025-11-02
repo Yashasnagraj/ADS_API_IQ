@@ -125,7 +125,13 @@ export const GoogleAdsDashboard: React.FC = () => {
 
   // Generate AI-powered insights from campaign data
   const smartInsights = useMemo(() => {
-    return SmartInsightGenerator.analyzeCampaignPerformance(campaigns);
+    if (!campaigns || campaigns.length === 0) return [];
+    try {
+      return SmartInsightGenerator.analyzeCampaignPerformance(campaigns);
+    } catch (error) {
+      console.error('Error generating insights:', error);
+      return [];
+    }
   }, [campaigns]);
 
   // Convert smart insights to InsightData format

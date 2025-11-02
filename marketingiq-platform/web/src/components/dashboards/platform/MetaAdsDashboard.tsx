@@ -33,6 +33,13 @@ interface MetaCampaign {
   objective: string;
   daily_budget?: number;
   lifetime_budget?: number;
+  cost?: number;
+  spend?: number;
+  impressions?: number;
+  clicks?: number;
+  conversions?: number;
+  ctr?: number;
+  roas?: number;
 }
 
 export const MetaAdsDashboard: React.FC = () => {
@@ -72,6 +79,17 @@ export const MetaAdsDashboard: React.FC = () => {
 
     fetchData();
   }, [filters.customerId, filters.dateRange]);
+
+  // Generate AI-powered insights from campaign data (MUST be before any conditional returns)
+  const smartInsights = useMemo(() => {
+    if (!campaigns || campaigns.length === 0) return [];
+    try {
+      return SmartInsightGenerator.analyzeCampaignPerformance(campaigns);
+    } catch (error) {
+      console.error('Error generating insights:', error);
+      return [];
+    }
+  }, [campaigns]);
 
   // Generate KPIs from real data (using standard field names)
   const kpis: KPIData[] = metrics
@@ -186,11 +204,6 @@ export const MetaAdsDashboard: React.FC = () => {
       </DashboardTemplate>
     );
   }
-
-  // Generate AI-powered insights from campaign data
-  const smartInsights = useMemo(() => {
-    return SmartInsightGenerator.analyzeCampaignPerformance(campaigns);
-  }, [campaigns]);
 
   return (
     <DashboardTemplate
