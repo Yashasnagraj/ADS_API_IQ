@@ -328,17 +328,29 @@ class InsightAgent:
         Analyze performance trends over time
 
         Args:
-            customer_id: Customer ID
+            customer_id: Customer ID (required)
             lookback_days: Number of days to analyze
 
         Returns:
             Trend analysis report
         """
         try:
-            # This would typically fetch time-series data
-            # For now, we'll use campaign data as a proxy
+            # Validate customer_id
+            if not customer_id:
+                return {
+                    'status': 'error',
+                    'message': 'customer_id is required for trend analysis',
+                    'trends': None
+                }
 
-            campaigns_data = self.db_client.fetch_campaigns()
+            # Use warehouse if available
+            if self.use_warehouse and self.warehouse_client:
+                cust_id = int(customer_id) if customer_id and customer_id.isdigit() else None
+                campaigns_data = self.warehouse_client.fetch_campaigns(customer_id=cust_id)
+                logger.info(f"Using warehouse for trend analysis (customer {customer_id})")
+            else:
+                campaigns_data = self.db_client.fetch_campaigns()
+                logger.info("Using old DB for trend analysis")
 
             if "error" in campaigns_data:
                 return {
@@ -428,15 +440,29 @@ class InsightAgent:
         Detect anomalies in performance data
 
         Args:
-            customer_id: Customer ID
+            customer_id: Customer ID (required)
             sensitivity: Anomaly detection sensitivity (low/medium/high)
 
         Returns:
             Detected anomalies
         """
         try:
-            # Fetch campaign data
-            campaigns_data = self.db_client.fetch_campaigns()
+            # Validate customer_id
+            if not customer_id:
+                return {
+                    'status': 'error',
+                    'message': 'customer_id is required for anomaly detection',
+                    'anomalies': []
+                }
+
+            # Use warehouse if available
+            if self.use_warehouse and self.warehouse_client:
+                cust_id = int(customer_id) if customer_id and customer_id.isdigit() else None
+                campaigns_data = self.warehouse_client.fetch_campaigns(customer_id=cust_id)
+                logger.info(f"Using warehouse for anomaly detection (customer {customer_id})")
+            else:
+                campaigns_data = self.db_client.fetch_campaigns()
+                logger.info("Using old DB for anomaly detection")
 
             if "error" in campaigns_data:
                 return {
@@ -544,14 +570,29 @@ class InsightAgent:
         Calculate ROI metrics across campaigns
 
         Args:
-            customer_id: Customer ID
+            customer_id: Customer ID (required)
             include_lifetime_value: Whether to include LTV in calculations
 
         Returns:
             ROI analysis
         """
         try:
-            campaigns_data = self.db_client.fetch_campaigns()
+            # Validate customer_id
+            if not customer_id:
+                return {
+                    'status': 'error',
+                    'message': 'customer_id is required for ROI calculation',
+                    'roi_analysis': None
+                }
+
+            # Use warehouse if available
+            if self.use_warehouse and self.warehouse_client:
+                cust_id = int(customer_id) if customer_id and customer_id.isdigit() else None
+                campaigns_data = self.warehouse_client.fetch_campaigns(customer_id=cust_id)
+                logger.info(f"Using warehouse for ROI calculation (customer {customer_id})")
+            else:
+                campaigns_data = self.db_client.fetch_campaigns()
+                logger.info("Using old DB for ROI calculation")
 
             if "error" in campaigns_data:
                 return {

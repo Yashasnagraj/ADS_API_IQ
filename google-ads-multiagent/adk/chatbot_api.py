@@ -21,6 +21,22 @@ load_dotenv(Path(__file__).parent / ".env")
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Import WarehouseClient first (independent of ADK)
+warehouse_client = None
+try:
+    # Try to import WarehouseClient from the data_agent module
+    import sys
+    warehouse_path = Path(__file__).parent / "orchestration_agent" / "sub_agents" / "data_agent"
+    if str(warehouse_path) not in sys.path:
+        sys.path.insert(0, str(warehouse_path))
+
+    from warehouse_client import WarehouseClient
+    warehouse_client = WarehouseClient()
+    print("[OK] WarehouseClient initialized for customer lookup")
+except Exception as e:
+    print(f"[WARNING] WarehouseClient initialization failed: {e}")
+    warehouse_client = None
+
 # Import the root agent from orchestration_agent
 try:
     from adk.orchestration_agent.agent import (
@@ -30,6 +46,7 @@ try:
         get_ad_group_performance,
         analyze_performance_trends,
         detect_anomalies,
+        calculate_roi,
         optimize_bids,
         optimize_budgets,
         forecast_performance
@@ -83,6 +100,33 @@ class ChatResponse(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
     timestamp: datetime
     agent_used: Optional[str] = None
+
+# Helper function to get customer information
+def get_customer_info(customer_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Get customer name and details from customer ID
+
+    Args:
+        customer_id: Customer ID (string)
+
+    Returns:
+        Dictionary with customer_id and customer_name, or None if not found
+    """
+    if not warehouse_client or not customer_id:
+        return None
+
+    try:
+        customers = warehouse_client.get_customers()
+        for c in customers:
+            if str(c['customer_id']) == str(customer_id):
+                return {
+                    'customer_id': c['customer_id'],
+                    'customer_name': c['customer_name']
+                }
+        return None
+    except Exception as e:
+        print(f"[ERROR] Failed to get customer info: {e}")
+        return None
 
 # Simple intent mapping (no Gemini needed for basic routing)
 def classify_user_intent(message: str) -> Dict[str, Any]:
@@ -207,44 +251,49 @@ def execute_agent_action(intent: Dict, customer_id: Optional[str] = None, campai
         # Insight Agent actions
         elif agent == "insight":
             if action == "analyze_trends":
-                print(f">> Analyzing performance trends from ml_features table...", flush=True)
-                result = analyze_performance_trends()
-                print(f">> Trends analysis complete: {len(result.get('trends', []))} trends detected", flush=True)
+                print(f">> Analyzing performance trends for customer {customer_id}...", flush=True)
+                result = analyze_performance_trends(customer_id)
+                print(f">> Trends analysis complete: {len(result.get('insights', []))} insights detected", flush=True)
                 return result
             elif action == "detect_anomalies":
-                print(f">> Running anomaly detection on campaign/keyword metrics...", flush=True)
-                result = detect_anomalies()
-                print(f">> Anomaly detection complete: {len(result.get('anomalies', []))} anomalies found", flush=True)
+                print(f">> Running anomaly detection for customer {customer_id}...", flush=True)
+                result = detect_anomalies(customer_id)
+                print(f">> Anomaly detection complete: {result.get('summary', {}).get('total_anomalies', 0)} anomalies found", flush=True)
+                return result
+            elif action == "calculate_roi":
+                print(f">> Calculating ROI for customer {customer_id}...", flush=True)
+                result = calculate_roi(customer_id)
+                print(f">> ROI calculation complete", flush=True)
                 return result
 
         # Optimization Agent actions
         elif agent == "optimization":
             if action == "optimize_budgets":
-                print(f">> Running budget optimization algorithm...", flush=True)
-                result = optimize_budgets()
+                print(f">> Running budget optimization algorithm for customer {customer_id}...", flush=True)
+                result = optimize_budgets(customer_id)
                 print(f">> Budget optimization complete: {len(result.get('recommendations', []))} recommendations", flush=True)
                 return result
             elif action == "optimize_bids":
-                print(f">> Running bid optimization algorithm...", flush=True)
-                result = optimize_bids()
+                print(f">> Running bid optimization algorithm for customer {customer_id}...", flush=True)
+                result = optimize_bids(customer_id)
                 print(f">> Bid optimization complete: {len(result.get('recommendations', []))} recommendations", flush=True)
                 return result
 
         # Forecasting Agent actions
         elif agent == "forecasting":
             if action == "forecast_performance":
-                print(f">> Running ML forecasting model (30-day horizon)...", flush=True)
-                result = forecast_performance(30)  # Default 30 days
+                print(f">> Running ML forecasting model (30-day horizon) for customer {customer_id}...", flush=True)
+                result = forecast_performance(customer_id, 30)  # Pass customer_id and default 30 days
                 print(f">> Forecast complete: Predicted {result.get('predicted_metrics', {}).get('clicks', 0):,} clicks", flush=True)
                 return result
 
         # Orchestrator - use root agent for complex queries
         elif agent == "orchestrator":
-            print(f">> Orchestrator coordinating multiple agents...", flush=True)
+            print(f">> Orchestrator coordinating multiple agents for customer {customer_id}...", flush=True)
             print(f"  -> Invoking Data Agent for campaigns...", flush=True)
             campaign_data = get_campaign_performance(customer_id)
             print(f"  -> Invoking Insight Agent for trends...", flush=True)
-            trends = analyze_performance_trends()
+            trends = analyze_performance_trends(customer_id)
             print(f">> Orchestrator analysis complete", flush=True)
             return {
                 "status": "success",
@@ -277,29 +326,49 @@ def format_response(user_message: str, intent: Dict, agent_data: Dict) -> str:
         if action == "campaign_performance":
             campaigns = agent_data.get("campaigns", [])
             if isinstance(campaigns, list) and len(campaigns) > 0:
+                # Handle both warehouse format (clicks directly on object) and API format (metrics nested)
                 # Filter campaigns with actual performance (clicks > 0)
-                active_campaigns = [c for c in campaigns if c.get('metrics', {}).get('clicks', 0) > 0]
+                active_campaigns = []
+                for c in campaigns:
+                    # Try to get clicks from either location
+                    clicks = c.get('clicks', c.get('metrics', {}).get('clicks', 0))
+                    if clicks > 0:
+                        active_campaigns.append(c)
 
                 # Sort by clicks descending
-                active_campaigns.sort(key=lambda x: x.get('metrics', {}).get('clicks', 0), reverse=True)
+                active_campaigns.sort(key=lambda x: x.get('clicks', x.get('metrics', {}).get('clicks', 0)), reverse=True)
 
                 if len(active_campaigns) == 0:
-                    return "📊 No campaigns with active performance data found. All campaigns may be paused or have no traffic."
+                    # Still show all campaigns even if no clicks
+                    active_campaigns = campaigns[:10]  # Show up to 10 campaigns
+                    if len(active_campaigns) == 0:
+                        return "📊 No campaigns found in the database."
 
-                top_5 = active_campaigns[:5]
-                response = f"📊 **Top {len(top_5)} Performing Campaigns** (out of {len(campaigns)} total):\n\n"
-                for i, c in enumerate(top_5, 1):
-                    name = c.get('campaign_name', 'Unknown')
-                    status = c.get('status', 'UNKNOWN')
-                    # Metrics are nested in a metrics object from the API
-                    metrics = c.get('metrics', {})
-                    clicks = metrics.get('clicks', 0)
-                    cost = metrics.get('cost', 0)
-                    conv = metrics.get('conversions', 0)
-                    ctr = metrics.get('ctr', 0) * 100  # Convert to percentage
+                top_10 = active_campaigns[:10]
+                response = f"📊 **Campaign Performance** ({len(top_10)} campaigns shown, {len(campaigns)} total):\n\n"
+                for i, c in enumerate(top_10, 1):
+                    # Handle both warehouse and API formats
+                    name = c.get('name', c.get('campaign_name', 'Unknown'))
+                    status = c.get('status', 'ACTIVE')
+
+                    # Get metrics from either direct properties or nested metrics object
+                    clicks = c.get('clicks', c.get('metrics', {}).get('clicks', 0))
+                    cost = c.get('cost', c.get('metrics', {}).get('cost', 0))
+                    conv = c.get('conversions', c.get('metrics', {}).get('conversions', 0))
+                    impressions = c.get('impressions', c.get('metrics', {}).get('impressions', 0))
+                    ctr = c.get('ctr', c.get('metrics', {}).get('ctr', 0))
+
+                    # Calculate CTR if it's 0 but we have impressions and clicks
+                    if ctr == 0 and impressions > 0 and clicks > 0:
+                        ctr = (clicks / impressions) * 100
+                    elif ctr < 1 and ctr > 0:
+                        # CTR is stored as decimal, convert to percentage
+                        ctr = ctr * 100
+
                     response += f"{i}. **{name}** ({status})\n"
-                    response += f"   - Clicks: {clicks:,} | Cost: ₹{cost:,.2f}\n"
-                    response += f"   - CTR: {ctr:.2f}% | Conversions: {conv:.1f}\n\n"
+                    response += f"   • Impressions: {impressions:,} | Clicks: {clicks:,}\n"
+                    response += f"   • CTR: {ctr:.2f}% | Cost: ₹{cost:,.2f}\n"
+                    response += f"   • Conversions: {conv:.1f}\n\n"
                 return response
 
         elif action == "keyword_performance":
@@ -407,7 +476,7 @@ def format_response(user_message: str, intent: Dict, agent_data: Dict) -> str:
     # Default response
     return "I've processed your request. Here's what I found:\n\n" + str(agent_data.get("message", "Analysis complete"))
 
-def enhance_with_gemini(user_query: str, technical_response: str) -> str:
+def enhance_with_gemini(user_query: str, technical_response: str, customer_name: Optional[str] = None) -> str:
     """
     Use Gemini to transform technical ADK responses into friendly, conversational replies
     """
@@ -415,9 +484,12 @@ def enhance_with_gemini(user_query: str, technical_response: str) -> str:
         return technical_response
 
     try:
+        customer_context = f"This data is for {customer_name}." if customer_name else ""
+
         prompt = f"""You are a friendly AI Marketing Assistant helping a marketing professional understand their Google Ads performance.
 
 User asked: "{user_query}"
+{customer_context}
 
 The ADK multi-agent system provided this technical data:
 {technical_response}
@@ -425,11 +497,12 @@ The ADK multi-agent system provided this technical data:
 Your task:
 1. Keep all the data and numbers EXACTLY as shown (don't change metrics)
 2. Make the response warm, conversational, and encouraging
-3. Add helpful context or insights where appropriate
-4. Use emojis sparingly and naturally
-5. Keep the markdown formatting for better readability
-6. Be concise - don't add unnecessary fluff
-7. Maintain a professional yet friendly tone
+3. If customer name is provided, naturally reference it (e.g., "for {customer_name}" or "{customer_name}'s campaigns")
+4. Add helpful context or insights where appropriate
+5. Use emojis sparingly and naturally
+6. Keep the markdown formatting for better readability
+7. Be concise - don't add unnecessary fluff
+8. Maintain a professional yet friendly tone
 
 Transform this into a friendly response that feels like talking to a knowledgeable colleague:"""
 
@@ -472,11 +545,16 @@ async def chat(request: ChatRequest):
         campaign_type = request.campaign_type
         date_range = request.date_range
 
+        # Get customer info for better context
+        customer_info = get_customer_info(customer_id) if customer_id else None
+        customer_name = customer_info.get('customer_name') if customer_info else None
+
         print(f"\n{'#'*80}", flush=True)
         print(f"[NEW CHAT REQUEST RECEIVED]", flush=True)
         print(f"{'#'*80}", flush=True)
         print(f"User Message: '{user_message}'", flush=True)
         print(f"Customer ID: {customer_id or 'Not specified'}", flush=True)
+        print(f"Customer Name: {customer_name or 'Not found'}", flush=True)
         print(f"Campaign Type: {campaign_type or 'All types'}", flush=True)
         print(f"Date Range: {date_range or 'All time'}", flush=True)
         print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
@@ -500,7 +578,7 @@ async def chat(request: ChatRequest):
 
         # Step 4: Enhance with Gemini for friendly, conversational tone
         print(f"[STEP 4] Enhancing response with Gemini AI...", flush=True)
-        final_response = enhance_with_gemini(user_message, formatted_response)
+        final_response = enhance_with_gemini(user_message, formatted_response, customer_name)
         if GEMINI_ENABLED:
             print(f">> Gemini enhancement complete ({len(final_response)} characters)\n", flush=True)
         else:

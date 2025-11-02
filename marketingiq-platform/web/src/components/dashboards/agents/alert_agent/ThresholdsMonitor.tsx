@@ -270,8 +270,8 @@ const ThresholdsMonitor: React.FC = () => {
     return { total, enabled, breaching, warning, healthy };
   }, [thresholds]);
 
-  const getStatusColor = (threshold: ThresholdConfig) => {
-    if (!threshold.enabled) return 'default';
+  const getStatusColor = (threshold: ThresholdConfig): 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' | 'inherit' => {
+    if (!threshold.enabled) return 'inherit';
 
     if (threshold.threshold_type === 'min') {
       if (threshold.current_value < threshold.critical_threshold) return 'error';
@@ -435,6 +435,69 @@ const ThresholdsMonitor: React.FC = () => {
           Configure and monitor performance thresholds for automated alerting
         </Typography>
       </Box>
+
+      {/* Summary Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Total Thresholds</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{thresholdStatus.total}</Typography>
+                  <Typography variant="caption" color="text.secondary">{thresholdStatus.enabled} enabled</Typography>
+                </Box>
+                <Settings sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Healthy</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{thresholdStatus.healthy}</Typography>
+                  <Typography variant="caption" color="text.secondary">Within range</Typography>
+                </Box>
+                <CheckCircle sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Warning</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{thresholdStatus.warning}</Typography>
+                  <Typography variant="caption" color="text.secondary">Approaching limit</Typography>
+                </Box>
+                <Warning sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Breaching</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{thresholdStatus.breaching}</Typography>
+                  <Typography variant="caption" color="text.secondary">Over threshold</Typography>
+                </Box>
+                <TrendingDown sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
       {/* AI Intelligence */}
       <Box sx={{ mb: 4 }}>
@@ -633,69 +696,6 @@ const ThresholdsMonitor: React.FC = () => {
         </Grid>
       </Box>
 
-      {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Total Thresholds</Typography>
-                  <Typography variant="h2" fontWeight={700} color="text.primary">{thresholdStatus.total}</Typography>
-                  <Typography variant="caption" color="text.secondary">{thresholdStatus.enabled} enabled</Typography>
-                </Box>
-                <Settings sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Healthy</Typography>
-                  <Typography variant="h2" fontWeight={700} color="text.primary">{thresholdStatus.healthy}</Typography>
-                  <Typography variant="caption" color="text.secondary">Within range</Typography>
-                </Box>
-                <CheckCircle sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Warning</Typography>
-                  <Typography variant="h2" fontWeight={700} color="text.primary">{thresholdStatus.warning}</Typography>
-                  <Typography variant="caption" color="text.secondary">Approaching limit</Typography>
-                </Box>
-                <Warning sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Breaching</Typography>
-                  <Typography variant="h2" fontWeight={700} color="text.primary">{thresholdStatus.breaching}</Typography>
-                  <Typography variant="caption">Over threshold</Typography>
-                </Box>
-                <TrendingDown sx={{ fontSize: 60, opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
       {/* Actions */}
       <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
         <Button variant="contained" color="primary" startIcon={<Add />}>
@@ -759,7 +759,7 @@ const ThresholdsMonitor: React.FC = () => {
                           variant="determinate"
                           value={Math.min(getStatusPercentage(threshold), 100)}
                           sx={{ height: 8, borderRadius: 4, mb: 0.5 }}
-                          color={getStatusColor(threshold) as any}
+                          color={getStatusColor(threshold)}
                         />
                         <Chip
                           label={
@@ -769,7 +769,7 @@ const ThresholdsMonitor: React.FC = () => {
                             'HEALTHY'
                           }
                           size="small"
-                          color={getStatusColor(threshold) as any}
+                          color={getStatusColor(threshold) === 'inherit' ? 'default' : getStatusColor(threshold)}
                         />
                       </Box>
                     </TableCell>

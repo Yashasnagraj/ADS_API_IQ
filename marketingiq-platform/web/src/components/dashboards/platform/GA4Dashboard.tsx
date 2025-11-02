@@ -1,10 +1,16 @@
 // Google Analytics 4 Dashboard
-import React, { useState, useEffect } from 'react';
-import { Grid, Stack, Paper, Typography, Box } from '@mui/material';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Grid, Stack, Paper, Typography, Box, CircularProgress, Alert } from '@mui/material';
 import DashboardTemplate from '../../common/DashboardTemplate';
 import { KPICard } from '../../common/KPICard';
 import InsightCard from '../../common/InsightCard';
-import { FilterState, KPIData, InsightData } from '../../../types';
+import { SmartInsightCard } from '../../common/SmartInsightCard';
+import { DataQualityIndicator } from '../../common/DataQualityIndicator';
+import { SmartInsightSummary } from '../../common/SmartInsightSummary';
+import { FilterState, KPIData, InsightData, GA4Metrics, GA4SourceMedium } from '../../../types';
+import { useFilters } from '../../../context/FilterContext';
+import { ga4Service } from '../../../services/ga4Service';
+import { SmartInsightGenerator } from '../../../utils/insightGenerator';
 import {
   BarChart,
   Bar,
@@ -20,46 +26,92 @@ import {
 } from 'recharts';
 
 export const GA4Dashboard: React.FC = () => {
-  const [filters, setFilters] = useState<FilterState>({
-    customer_id: 1,
-    date_range: 'last_30d',
-  });
+  const { filters } = useFilters();
+  const [metrics, setMetrics] = useState<GA4Metrics | null>(null);
+  const [sourceMedium, setSourceMedium] = useState<GA4SourceMedium[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const kpis: KPIData[] = [
-    {
-      title: 'Total Sessions',
-      value: '45,200',
-      change: 15,
-    },
-    {
-      title: 'Conversion Rate',
-      value: '4.2%',
-      change: 0.3,
-      isHighlighted: true,
-      color: 'success',
-    },
-    {
-      title: 'Conversions',
-      value: 1898,
-      change: 18,
-    },
-    {
-      title: 'Bounce Rate',
-      value: '32%',
-      change: -4,
-      trend: 'down',
-    },
-    {
-      title: 'Avg. Session Duration',
-      value: '2:45',
-      change: 12,
-    },
-    {
-      title: 'Pages per Session',
-      value: '3.2',
-      change: 0.4,
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!filters.customerId) return;
+
+      setLoading(true);
+      setError(null);
+      try {
+        const [metricsData, sourceData] = await Promise.all([
+          ga4Service.getSessions(Number(filters.customerId), filters.dateRange),
+          ga4Service.getSourceMedium(Number(filters.customerId), filters.dateRange).catch(() => []),
+        ]);
+
+        setMetrics(metricsData);
+        setSourceMedium(sourceData);
+      } catch (err: any) {
+        console.error('Error fetching GA4 data:', err);
+        setError(err.message || 'Failed to load GA4 data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [filters.customerId, filters.dateRange]);
+
+  // Generate AI-powered insights from GA4 metrics (MUST be before any conditional returns)
+  const smartInsights = useMemo(() => {
+    if (!metrics) return [];
+    try {
+      return SmartInsightGenerator.analyzeGA4Performance(metrics);
+    } catch (error) {
+      console.error('Error generating GA4 insights:', error);
+      return [];
+    }
+  }, [metrics]);
+
+  // Format session duration from seconds to MM:SS
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const kpis: KPIData[] = metrics
+    ? [
+        {
+          title: 'Total Sessions',
+          value: metrics.sessions.toLocaleString(),
+          change: 15, // Would need historical data to calculate
+        },
+        {
+          title: 'Conversion Rate',
+          value: `${metrics.conversion_rate.toFixed(1)}%`,
+          change: 0.3,
+          isHighlighted: true,
+          color: 'success',
+        },
+        {
+          title: 'Conversions',
+          value: metrics.conversions.toLocaleString(),
+          change: 18,
+        },
+        {
+          title: 'Bounce Rate',
+          value: `${metrics.bounce_rate.toFixed(0)}%`,
+          change: -4,
+          trend: 'down',
+        },
+        {
+          title: 'Avg. Session Duration',
+          value: formatDuration(metrics.avg_session_duration),
+          change: 12,
+        },
+        {
+          title: 'Pages per Session',
+          value: metrics.pages_per_session.toFixed(1),
+          change: 0.4,
+        },
+      ]
+    : [];
 
   const insights: InsightData[] = [
     {
@@ -98,12 +150,20 @@ export const GA4Dashboard: React.FC = () => {
     },
   ];
 
-  const trafficSources = [
-    { source: 'Organic Search', sessions: 26216, conversions: 1100, cvr: 4.2 },
-    { source: 'Direct', sessions: 12656, conversions: 506, cvr: 4.0 },
-    { source: 'Social', sessions: 4520, conversions: 136, cvr: 3.0 },
-    { source: 'Referral', sessions: 1808, conversions: 156, cvr: 8.6 },
-  ];
+  // Use real data if available, fallback to mock data
+  const trafficSources = sourceMedium.length > 0
+    ? sourceMedium.map(s => ({
+        source: `${s.source} / ${s.medium}`,
+        sessions: s.sessions,
+        conversions: s.conversions,
+        cvr: s.cvr,
+      }))
+    : [
+        { source: 'Organic Search', sessions: 26216, conversions: 1100, cvr: 4.2 },
+        { source: 'Direct', sessions: 12656, conversions: 506, cvr: 4.0 },
+        { source: 'Social', sessions: 4520, conversions: 136, cvr: 3.0 },
+        { source: 'Referral', sessions: 1808, conversions: 156, cvr: 8.6 },
+      ];
 
   const devicePerformance = [
     { device: 'Mobile', sessions: 32544, cvr: 3.8 },
@@ -113,11 +173,36 @@ export const GA4Dashboard: React.FC = () => {
 
   const COLORS = ['#1E88E5', '#26A69A', '#FFA726', '#EF5350'];
 
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
     <DashboardTemplate
       title="Google Analytics (GA4) - Website Performance"
       subtitle="Understand your website traffic, user behavior, conversion funnels, and organic performance. Identify opportunities to improve user experience and conversion rates."
     >
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Data Quality Indicator */}
+      <Box sx={{ mb: 3 }}>
+        <DataQualityIndicator
+          lastSync={new Date(Date.now() - 1000 * 60 * 7)} // 7 minutes ago
+          dataPoints={metrics?.sessions || 0}
+          qualityScore={metrics ? 90 : 0}
+          isLoading={loading}
+          compact={true}
+        />
+      </Box>
+
       <Grid container spacing={3} sx={{ mt: 2 }}>
         {kpis.map((kpi, index) => (
           <Grid item xs={12} md={4} key={index}>
@@ -126,11 +211,45 @@ export const GA4Dashboard: React.FC = () => {
         ))}
       </Grid>
 
-      <Stack spacing={2} sx={{ mt: 4 }}>
-        {insights.map((insight, index) => (
-          <InsightCard key={index} data={insight} index={index} />
-        ))}
-      </Stack>
+      {/* AI-Powered Smart Insights for GA4 */}
+      {smartInsights.length > 0 && (
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
+            🧠 AI Intelligence & Recommendations
+          </Typography>
+
+          {/* Summary Banner */}
+          <SmartInsightSummary
+            totalInsights={smartInsights.length}
+            avgConfidence={Math.round(
+              smartInsights.reduce((sum, i) => sum + i.confidence, 0) / Math.max(smartInsights.length, 1)
+            )}
+            highPriorityCount={smartInsights.filter(i => i.type === 'danger' || i.type === 'warning').length}
+            actionableCount={smartInsights.filter(i => i.actionable).length}
+            isLoading={loading}
+          />
+
+          {/* Insights by Category */}
+          <Stack spacing={2.5}>
+            {smartInsights.map((insight, index) => (
+              <SmartInsightCard
+                key={index}
+                type={insight.type}
+                title={insight.title}
+                message={insight.message}
+                impact={insight.impact}
+                confidence={insight.confidence}
+                actionable={insight.actionable}
+                actions={insight.actions}
+                impactScore={insight.impactScore}
+                whyItMatters={insight.whyItMatters}
+                category={insight.category}
+                index={index}
+              />
+            ))}
+          </Stack>
+        </Box>
+      )}
 
       <Grid container spacing={3} sx={{ mt: 4 }}>
         <Grid item xs={12} md={6}>

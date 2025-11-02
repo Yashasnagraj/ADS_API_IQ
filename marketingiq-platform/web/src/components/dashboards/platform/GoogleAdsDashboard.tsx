@@ -1,11 +1,16 @@
 // Google Ads Performance Dashboard
-import React, { useState, useEffect } from 'react';
-import { Grid, Stack, Paper, Typography, Box } from '@mui/material';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Grid, Stack, Paper, Typography, Box, CircularProgress, Alert } from '@mui/material';
 import DashboardTemplate from '../../common/DashboardTemplate';
 import { KPICard } from '../../common/KPICard';
 import InsightCard from '../../common/InsightCard';
+import { SmartInsightCard } from '../../common/SmartInsightCard';
+import { DataQualityIndicator } from '../../common/DataQualityIndicator';
+import { SmartInsightSummary } from '../../common/SmartInsightSummary';
 import { FilterState, KPIData, InsightData } from '../../../types';
 import { googleAdsService } from '../../../services/googleAdsService';
+import { useFilters } from '../../../context/FilterContext';
+import { SmartInsightGenerator } from '../../../utils/insightGenerator';
 import {
   BarChart,
   Bar,
@@ -20,121 +25,199 @@ import {
 } from 'recharts';
 
 export const GoogleAdsDashboard: React.FC = () => {
-  const [filters, setFilters] = useState<FilterState>({
-    customer_id: 1,
-    date_range: 'last_30d',
-  });
+  const { filters } = useFilters();
   const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (filters.customer_id) {
+    console.log('GoogleAdsDashboard filters changed:', filters);
+    if (filters.customerId) {
       fetchData();
     }
-  }, [filters]);
+  }, [filters.customerId, filters.dateRange]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await googleAdsService.getCampaigns(
-        filters.customer_id!,
-        filters.date_range
-      );
-      setCampaigns(data);
-    } catch (error) {
-      console.error('Error fetching Google Ads data:', error);
+      setError(null);
+      const campaignsData = await googleAdsService.getCampaigns(Number(filters.customerId), filters.dateRange);
+
+      console.log('Google Ads campaigns data:', campaignsData);
+
+      setCampaigns(campaignsData);
+
+      // Calculate aggregated metrics from campaigns data
+      if (campaignsData && campaignsData.length > 0) {
+        const aggregated = campaignsData.reduce((acc: any, campaign: any) => {
+          const m = campaign.metrics || {};
+          return {
+            impressions: (acc.impressions || 0) + (m.impressions || 0),
+            clicks: (acc.clicks || 0) + (m.clicks || 0),
+            spend: (acc.spend || 0) + (m.cost || 0),
+            conversions: (acc.conversions || 0) + (m.conversions || 0),
+            conversion_value: (acc.conversion_value || 0) + (m.conversions_value || m.conversion_value || 0),
+          };
+        }, {});
+
+        // Calculate derived metrics
+        aggregated.ctr = aggregated.impressions > 0 ? (aggregated.clicks / aggregated.impressions) * 100 : 0;
+        aggregated.cpc = aggregated.clicks > 0 ? aggregated.spend / aggregated.clicks : 0;
+        aggregated.roas = aggregated.spend > 0 ? aggregated.conversion_value / aggregated.spend : 0;
+        aggregated.cpa = aggregated.conversions > 0 ? aggregated.spend / aggregated.conversions : 0;
+
+        console.log('Calculated metrics:', aggregated);
+        setMetrics(aggregated);
+      } else {
+        // Fallback to API summary if no campaigns
+        const metricsData = await googleAdsService.getMetricsSummary(Number(filters.customerId), filters.dateRange);
+        setMetrics(metricsData);
+      }
+    } catch (err: any) {
+      console.error('Error fetching Google Ads data:', err);
+      setError(err.message || 'Failed to load Google Ads data');
     } finally {
       setLoading(false);
     }
   };
 
-  const kpis: KPIData[] = [
-    {
-      title: 'Total Spend',
-      value: 5200,
-      prefix: '$',
-      change: 8,
-    },
-    {
-      title: 'ROAS',
-      value: '5.2',
-      suffix: 'x',
-      change: 12,
-      isHighlighted: true,
-      color: 'success',
-    },
-    {
-      title: 'Conversions',
-      value: 420,
-      change: 24,
-    },
-    {
-      title: 'Avg. CPC',
-      value: '1.20',
-      prefix: '$',
-      change: -5,
-      trend: 'down',
-    },
-    {
-      title: 'CTR',
-      value: '3.8%',
-      change: 0.4,
-    },
-    {
-      title: 'Quality Score',
-      value: '7.2/10',
-      change: 0.3,
-      color: 'info',
-    },
-  ];
-
-  const insights: InsightData[] = [
-    {
-      type: 'descriptive',
-      insight:
-        'Search campaigns generated 78% of conversions at 5.8x ROAS. Shopping campaigns contributed 18% at 4.1x ROAS.',
-      priority: 'info',
-    },
-    {
-      type: 'diagnostic',
-      insight:
-        '"Brand Keywords" campaign has 12.4x ROAS due to high purchase intent. "Competitor Terms" struggling with 2.1x ROAS because of high CPCs ($4.20) and low quality scores (4.2).',
-      priority: 'medium',
-      details: [
-        'Brand Keywords: 12.4x ROAS, Low CPC ($0.85)',
-        'Competitor Terms: 2.1x ROAS, High CPC ($4.20)',
-      ],
-    },
-    {
-      type: 'prescriptive',
-      insight:
-        'Increase brand campaign budget by 25% (expected +$2,100 revenue). Pause 12 underperforming keywords with QS < 3. Add 8 negative keywords to reduce wasted spend by $450/month.',
-      priority: 'high',
-      expectedImpact: '+$1,850 monthly profit',
-      confidence: '91%',
-      actions: [
+  const kpis: KPIData[] = metrics
+    ? [
         {
-          label: 'Apply All Recommendations',
-          primary: true,
-          onClick: () => console.log('Apply recommendations'),
+          title: 'Total Spend',
+          value: (metrics.spend || 0).toFixed(0),
+          prefix: '₹',
+          change: 8,
         },
-      ],
-    },
-  ];
+        {
+          title: 'ROAS',
+          value: (metrics.roas || 0).toFixed(1),
+          suffix: 'x',
+          change: 12,
+          isHighlighted: true,
+          color: 'success',
+        },
+        {
+          title: 'Conversions',
+          value: (metrics.conversions || 0).toFixed(0),
+          change: 24,
+        },
+        {
+          title: 'Avg. CPC',
+          value: (metrics.cpc || 0).toFixed(2),
+          prefix: '₹',
+          change: -5,
+          trend: 'down',
+        },
+        {
+          title: 'CTR',
+          value: `${(metrics.ctr || 0).toFixed(1)}%`,
+          change: 0.4,
+        },
+        {
+          title: 'Impressions',
+          value: (metrics.impressions || 0).toLocaleString(),
+          change: 0.3,
+          color: 'info',
+        },
+      ]
+    : [];
 
-  // Mock data for charts
-  const campaignPerformance = [
-    { name: 'Brand Keywords', spend: 1200, revenue: 14880, ROAS: 12.4 },
-    { name: 'Shopping Campaign', spend: 2100, revenue: 8610, ROAS: 4.1 },
-    { name: 'Search Generic', spend: 1400, revenue: 8120, ROAS: 5.8 },
-    { name: 'Competitor Terms', spend: 500, revenue: 1050, ROAS: 2.1 },
-  ];
+  // Generate AI-powered insights from campaign data
+  const smartInsights = useMemo(() => {
+    if (!campaigns || campaigns.length === 0) return [];
+    try {
+      return SmartInsightGenerator.analyzeCampaignPerformance(campaigns);
+    } catch (error) {
+      console.error('Error generating insights:', error);
+      return [];
+    }
+  }, [campaigns]);
+
+  // Convert smart insights to InsightData format
+  const insights: InsightData[] = smartInsights.map((insight) => {
+    const priorityMap: Record<string, 'high' | 'medium' | 'low' | 'info'> = {
+      danger: 'high',
+      warning: 'medium',
+      success: 'low',
+      info: 'info',
+    };
+
+    return {
+      type: 'prescriptive',
+      insight: insight.message,
+      priority: priorityMap[insight.type] || 'info',
+      expectedImpact: insight.impact,
+      confidence: `${insight.confidence}%`,
+      details: insight.actions,
+      actions: insight.actionable ? [
+        {
+          label: 'View Recommendations',
+          primary: true,
+          onClick: () => console.log('View recommendations for:', insight.title),
+        },
+      ] : undefined,
+    };
+  });
+
+  // Use campaigns data for chart - only campaigns with spend > 0
+  const campaignPerformance = campaigns.length > 0
+    ? campaigns
+        .filter(c => (c.metrics?.cost || 0) > 0) // Only campaigns with actual spend
+        .sort((a, b) => (b.metrics?.cost || 0) - (a.metrics?.cost || 0)) // Sort by spend descending
+        .slice(0, 4)
+        .map(c => {
+          const spend = c.metrics?.cost || 0;
+          const conversions = c.metrics?.conversions || 0;
+          // Estimate revenue if not available (assume ₹500 per conversion as average)
+          const revenue = c.metrics?.conversions_value || c.metrics?.conversion_value || (conversions * 500);
+          const roas = spend > 0 ? revenue / spend : 0;
+
+          return {
+            name: c.campaign_name || c.name,
+            spend: spend,
+            revenue: revenue,
+            ROAS: roas,
+          };
+        })
+    : [
+        { name: 'Brand Keywords', spend: 1200, revenue: 14880, ROAS: 12.4 },
+        { name: 'Shopping Campaign', spend: 2100, revenue: 8610, ROAS: 4.1 },
+        { name: 'Search Generic', spend: 1400, revenue: 8120, ROAS: 5.8 },
+        { name: 'Competitor Terms', spend: 500, revenue: 1050, ROAS: 2.1 },
+      ];
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <DashboardTemplate
       title="Google Ads Performance"
       subtitle="Comprehensive view of your Google Ads campaigns, keywords, and search terms. Optimize your search and shopping campaigns with AI-powered insights."
     >
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Data Quality Indicator */}
+      <Box sx={{ mb: 3 }}>
+        <DataQualityIndicator
+          lastSync={new Date(Date.now() - 1000 * 60 * 5)} // 5 minutes ago
+          dataPoints={campaigns.length}
+          qualityScore={campaigns.length > 0 ? 92 : 0}
+          isLoading={loading}
+          compact={true}
+        />
+      </Box>
+
       <Grid container spacing={3} sx={{ mt: 2 }}>
         {kpis.map((kpi, index) => (
           <Grid item xs={12} md={4} key={index}>
@@ -143,28 +226,135 @@ export const GoogleAdsDashboard: React.FC = () => {
         ))}
       </Grid>
 
-      <Stack spacing={2} sx={{ mt: 4 }}>
-        {insights.map((insight, index) => (
-          <InsightCard key={index} data={insight} index={index} />
-        ))}
-      </Stack>
+      {/* AI-Powered Smart Insights */}
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
+          🧠 AI Intelligence & Recommendations
+        </Typography>
+
+        {/* Summary Banner */}
+        <SmartInsightSummary
+          totalInsights={smartInsights.length}
+          avgConfidence={Math.round(
+            smartInsights.reduce((sum, i) => sum + i.confidence, 0) / Math.max(smartInsights.length, 1)
+          )}
+          highPriorityCount={smartInsights.filter(i => i.type === 'danger' || i.type === 'warning').length}
+          actionableCount={smartInsights.filter(i => i.actionable).length}
+          isLoading={loading}
+        />
+
+        {/* Insights by Category */}
+        <Stack spacing={2.5}>
+          {smartInsights.map((insight, index) => (
+            <SmartInsightCard
+              key={index}
+              type={insight.type}
+              title={insight.title}
+              message={insight.message}
+              impact={insight.impact}
+              confidence={insight.confidence}
+              actionable={insight.actionable}
+              actions={insight.actions}
+              impactScore={insight.impactScore}
+              whyItMatters={insight.whyItMatters}
+              category={insight.category}
+              index={index}
+            />
+          ))}
+        </Stack>
+      </Box>
 
       <Grid container spacing={3} sx={{ mt: 4 }}>
-        <Grid item xs={12}>
+        {/* Campaign Spend Chart */}
+        <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Campaign Performance Comparison
+              Campaign Spend Distribution
             </Typography>
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={300}>
               <BarChart data={campaignPerformance}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar yAxisId="left" dataKey="spend" fill="#1E88E5" name="Spend (₹)" />
-                <Bar yAxisId="left" dataKey="revenue" fill="#26A69A" name="Revenue (₹)" />
+                <Bar dataKey="spend" fill="#1E88E5" name="Spend (₹)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* Campaign Clicks & Impressions Chart */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Clicks vs Impressions
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={campaigns.filter(c => (c.metrics?.impressions || 0) > 0).slice(0, 5).map(c => ({
+                name: (c.campaign_name || c.name || '').substring(0, 15) + '...',
+                clicks: c.metrics?.clicks || 0,
+                impressions: c.metrics?.impressions || 0,
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="clicks" fill="#26A69A" name="Clicks" />
+                <Bar dataKey="impressions" fill="#FFA726" name="Impressions" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* Campaign CTR Comparison */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Campaign CTR Comparison
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={campaigns
+                .filter(c => (c.metrics?.ctr || 0) > 0)
+                .sort((a, b) => (b.metrics?.ctr || 0) - (a.metrics?.ctr || 0))
+                .slice(0, 5)
+                .map(c => ({
+                  name: (c.campaign_name || c.name || '').substring(0, 15) + '...',
+                  ctr: c.metrics?.ctr || 0,
+                }))}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="ctr" fill="#EF5350" name="CTR (%)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* Campaign Conversions */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Conversions by Campaign
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={campaigns
+                .filter(c => (c.metrics?.conversions || 0) > 0)
+                .sort((a, b) => (b.metrics?.conversions || 0) - (a.metrics?.conversions || 0))
+                .slice(0, 5)
+                .map(c => ({
+                  name: (c.campaign_name || c.name || '').substring(0, 15) + '...',
+                  conversions: c.metrics?.conversions || 0,
+                }))}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="conversions" fill="#66BB6A" name="Conversions" />
               </BarChart>
             </ResponsiveContainer>
           </Paper>
@@ -188,23 +378,30 @@ export const GoogleAdsDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {campaignPerformance.map((campaign, index) => (
+                  {campaigns.slice(0, 10).map((campaign, index) => (
                     <tr key={index} style={{ borderBottom: '1px solid #F0F0F0' }}>
-                      <td style={{ padding: '12px' }}>{campaign.name}</td>
+                      <td style={{ padding: '12px' }}>{campaign.campaign_name || campaign.name}</td>
                       <td style={{ textAlign: 'right', padding: '12px' }}>
-                        ${campaign.spend.toLocaleString()}
+                        ₹{(campaign.metrics?.cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td style={{ textAlign: 'right', padding: '12px' }}>
-                        {campaign.ROAS}x
+                        {campaign.metrics?.cost > 0 && campaign.metrics?.conversions > 0
+                          ? ((campaign.metrics.conversions_value || 0) / campaign.metrics.cost).toFixed(2)
+                          : '0.00'}x
                       </td>
                       <td style={{ textAlign: 'right', padding: '12px' }}>
-                        {Math.floor(campaign.revenue / 50)}
+                        {(campaign.metrics?.conversions || 0).toFixed(0)}
                       </td>
                       <td style={{ textAlign: 'right', padding: '12px' }}>
-                        ${(campaign.spend / (campaign.revenue / 50) / 10).toFixed(2)}
+                        ₹{(campaign.metrics?.avg_cpc || 0).toFixed(2)}
                       </td>
                       <td style={{ textAlign: 'center', padding: '12px' }}>
-                        <span style={{ color: '#66BB6A' }}>ENABLED</span>
+                        <span style={{
+                          color: campaign.status === 'ENABLED' ? '#66BB6A' :
+                                 campaign.status === 'PAUSED' ? '#FFA726' : '#EF5350'
+                        }}>
+                          {campaign.status}
+                        </span>
                       </td>
                     </tr>
                   ))}

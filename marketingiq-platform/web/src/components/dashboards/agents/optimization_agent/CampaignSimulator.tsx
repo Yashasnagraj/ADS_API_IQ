@@ -441,6 +441,99 @@ const CampaignSimulator: React.FC = () => {
         </Button>
       </Box>
 
+      {/* Impact Summary Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{
+            background: roasResult && roasResult.change > 0
+              ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
+              : 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            color: 'white'
+          }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Simulated ROAS</Typography>
+                  <Typography variant="h3" fontWeight={700}>
+                    {roasResult?.simulated.toFixed(2)}x
+                  </Typography>
+                  <Typography variant="caption">
+                    {roasResult && roasResult.change > 0 ? '+' : ''}{roasResult?.changePct.toFixed(1)}%
+                  </Typography>
+                </Box>
+                {roasResult && roasResult.change > 0 ? (
+                  <TrendingUp sx={{ fontSize: 50, opacity: 0.7 }} />
+                ) : (
+                  <TrendingDown sx={{ fontSize: 50, opacity: 0.7 }} />
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{
+            background: revenueResult && revenueResult.change > 0
+              ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+              : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            color: 'white'
+          }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Revenue Change</Typography>
+                  <Typography variant="h3" fontWeight={700}>
+                    {revenueResult && revenueResult.change > 0 ? '+' : ''}₹{revenueResult?.change.toFixed(0)}
+                  </Typography>
+                  <Typography variant="caption">
+                    {revenueResult && revenueResult.change > 0 ? '+' : ''}{revenueResult?.changePct.toFixed(1)}%
+                  </Typography>
+                </Box>
+                <AttachMoney sx={{ fontSize: 50, opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Conversions Change</Typography>
+                  <Typography variant="h3" fontWeight={700} color="text.primary">
+                    {simulationResults.find(r => r.metric === 'Conversions')?.change.toFixed(0)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {simulationResults.find(r => r.metric === 'Conversions')?.changePct.toFixed(1)}%
+                  </Typography>
+                </Box>
+                <TrendingUp sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Cost Change</Typography>
+                  <Typography variant="h3" fontWeight={700} color="text.primary">
+                    ₹{simulationResults.find(r => r.metric === 'Cost')?.change.toFixed(0)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {simulationResults.find(r => r.metric === 'Cost')?.changePct.toFixed(1)}%
+                  </Typography>
+                </Box>
+                <AttachMoney sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
       {/* AI Intelligence */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h5" fontWeight={600} gutterBottom sx={{ mb: 3 }}>
@@ -714,99 +807,6 @@ const CampaignSimulator: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Impact Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{
-            background: roasResult && roasResult.change > 0
-              ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
-              : 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-            color: 'white'
-          }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Simulated ROAS</Typography>
-                  <Typography variant="h3" fontWeight={700}>
-                    {roasResult?.simulated.toFixed(2)}x
-                  </Typography>
-                  <Typography variant="caption">
-                    {roasResult && roasResult.change > 0 ? '+' : ''}{roasResult?.changePct.toFixed(1)}%
-                  </Typography>
-                </Box>
-                {roasResult && roasResult.change > 0 ? (
-                  <TrendingUp sx={{ fontSize: 50, opacity: 0.7 }} />
-                ) : (
-                  <TrendingDown sx={{ fontSize: 50, opacity: 0.7 }} />
-                )}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{
-            background: revenueResult && revenueResult.change > 0
-              ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-              : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            color: 'white'
-          }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Revenue Change</Typography>
-                  <Typography variant="h3" fontWeight={700}>
-                    {revenueResult && revenueResult.change > 0 ? '+' : ''}${revenueResult?.change.toFixed(0)}
-                  </Typography>
-                  <Typography variant="caption">
-                    {revenueResult && revenueResult.change > 0 ? '+' : ''}{revenueResult?.changePct.toFixed(1)}%
-                  </Typography>
-                </Box>
-                <AttachMoney sx={{ fontSize: 50, opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Conversions Change</Typography>
-                  <Typography variant="h3" fontWeight={700} color="text.primary">
-                    {simulationResults.find(r => r.metric === 'Conversions')?.change.toFixed(0)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {simulationResults.find(r => r.metric === 'Conversions')?.changePct.toFixed(1)}%
-                  </Typography>
-                </Box>
-                <TrendingUp sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Cost Change</Typography>
-                  <Typography variant="h3" fontWeight={700} color="text.primary">
-                    ${simulationResults.find(r => r.metric === 'Cost')?.change.toFixed(0)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {simulationResults.find(r => r.metric === 'Cost')?.changePct.toFixed(1)}%
-                  </Typography>
-                </Box>
-                <AttachMoney sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
       {/* Radar Comparison */}
       <Card sx={{ mb: 4 }}>
         <CardContent>
@@ -875,7 +875,7 @@ const CampaignSimulator: React.FC = () => {
             {revenueResult && revenueResult.change > 0 && (
               <Alert severity="info">
                 <AlertTitle>Revenue Projection</AlertTitle>
-                Expected revenue increase: ${revenueResult.change.toFixed(0)} ({revenueResult.changePct.toFixed(1)}%)
+                Expected revenue increase: ₹{revenueResult.change.toFixed(0)} ({revenueResult.changePct.toFixed(1)}%)
               </Alert>
             )}
             <Alert severity="info">

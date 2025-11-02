@@ -16,6 +16,9 @@ import {
   ListSubheader,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import PsychologyIcon from '@mui/icons-material/Psychology';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import CampaignIcon from '@mui/icons-material/Campaign';
@@ -39,6 +42,7 @@ import { FloatingChatButton } from '../chat/FloatingChatButton';
 import { SiGoogleads, SiGoogleanalytics, SiFacebook } from 'react-icons/si';
 
 const drawerWidth = 260;
+const collapsedDrawerWidth = 65;
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -46,12 +50,17 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { filters } = useFilters();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleSidebarToggle = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
   };
 
   const menuSections = [
@@ -107,29 +116,129 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   const drawer = (
-    <Box sx={{ overflow: 'auto' }}>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
-          MarketingIQ
-        </Typography>
+    <Box sx={{ overflow: 'auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2 }}>
+        {!sidebarCollapsed ? (
+          <Box
+            onClick={() => navigate('/')}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              cursor: 'pointer',
+              transition: 'all 0.3s',
+              '&:hover': {
+                transform: 'scale(1.02)',
+                '& .logo-icon': {
+                  transform: 'rotate(10deg)',
+                }
+              }
+            }}
+          >
+            {/* Logo Icon */}
+            <Box
+              className="logo-icon"
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: 2,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+                transition: 'transform 0.3s',
+              }}
+            >
+              <PsychologyIcon sx={{ color: 'white', fontSize: 24 }} />
+            </Box>
+
+            {/* Brand Text */}
+            <Box>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 800,
+                  fontSize: '1.1rem',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  letterSpacing: '-0.5px',
+                  lineHeight: 1,
+                }}
+              >
+                MarketingIQ
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontSize: '0.65rem',
+                  color: 'text.secondary',
+                  fontWeight: 600,
+                  letterSpacing: '1px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                AI Platform
+              </Typography>
+            </Box>
+          </Box>
+        ) : (
+          <Box
+            onClick={() => navigate('/')}
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+              cursor: 'pointer',
+              transition: 'all 0.3s',
+              '&:hover': {
+                transform: 'scale(1.1) rotate(10deg)',
+              }
+            }}
+          >
+            <PsychologyIcon sx={{ color: 'white', fontSize: 24 }} />
+          </Box>
+        )}
+        <IconButton
+          onClick={handleSidebarToggle}
+          size="small"
+          sx={{
+            ml: sidebarCollapsed ? 0 : 'auto',
+            color: 'text.secondary',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            }
+          }}
+        >
+          {sidebarCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+        </IconButton>
       </Toolbar>
       <Divider />
       {menuSections.map((section, sectionIndex) => (
         <List
           key={section.title}
           subheader={
-            <ListSubheader
-              component="div"
-              sx={{
-                bgcolor: 'background.paper',
-                fontWeight: 600,
-                fontSize: '0.75rem',
-                lineHeight: '2.5rem',
-                color: 'text.secondary',
-              }}
-            >
-              {section.title}
-            </ListSubheader>
+            !sidebarCollapsed ? (
+              <ListSubheader
+                component="div"
+                sx={{
+                  bgcolor: 'background.paper',
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  lineHeight: '2.5rem',
+                  color: 'text.secondary',
+                }}
+              >
+                {section.title}
+              </ListSubheader>
+            ) : undefined
           }
         >
           {section.items.map((item) => (
@@ -141,7 +250,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   setMobileOpen(false);
                 }}
                 sx={{
-                  pl: 3,
+                  pl: sidebarCollapsed ? 2 : 3,
+                  justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
                   '&.Mui-selected': {
                     bgcolor: 'primary.light',
                     color: 'primary.contrastText',
@@ -150,23 +260,27 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     },
                   },
                 }}
+                title={sidebarCollapsed ? item.text : ''}
               >
                 {item.icon && (
                   <ListItemIcon
                     sx={{
-                      minWidth: 40,
+                      minWidth: sidebarCollapsed ? 'auto' : 40,
                       color: location.pathname === item.path ? 'inherit' : 'text.secondary',
+                      justifyContent: 'center',
                     }}
                   >
                     {item.icon}
                   </ListItemIcon>
                 )}
-                <ListItemText
-                  primary={item.text}
-                  primaryTypographyProps={{
-                    fontSize: '0.875rem',
-                  }}
-                />
+                {!sidebarCollapsed && (
+                  <ListItemText
+                    primary={item.text}
+                    primaryTypographyProps={{
+                      fontSize: '0.875rem',
+                    }}
+                  />
+                )}
               </ListItemButton>
             </ListItem>
           ))}
@@ -175,16 +289,20 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     </Box>
   );
 
+  const currentDrawerWidth = sidebarCollapsed ? collapsedDrawerWidth : drawerWidth;
+
   return (
     <Box sx={{ display: 'flex' }}>
       <AppBar
         position="fixed"
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: { sm: `calc(100% - ${currentDrawerWidth}px)` },
+          ml: { sm: `${currentDrawerWidth}px` },
+          transition: 'width 0.3s, margin 0.3s',
         }}
       >
         <Toolbar>
+          {/* Mobile menu button */}
           <IconButton
             color="inherit"
             edge="start"
@@ -193,6 +311,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           >
             <MenuIcon />
           </IconButton>
+
+          {/* Desktop expand button (only show when collapsed) */}
+          {sidebarCollapsed && (
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={handleSidebarToggle}
+              sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
+
           <Typography variant="h6" noWrap component="div">
             Marketing Intelligence Platform
           </Typography>
@@ -201,7 +332,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       <Box
         component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+        sx={{ width: { sm: currentDrawerWidth }, flexShrink: { sm: 0 } }}
       >
         <Drawer
           variant="temporary"
@@ -226,7 +357,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             display: { xs: 'none', sm: 'block' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: drawerWidth,
+              width: currentDrawerWidth,
+              transition: 'width 0.3s',
+              overflowX: 'hidden',
             },
           }}
           open
@@ -239,9 +372,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         component="main"
         sx={{
           flexGrow: 1,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          width: { sm: `calc(100% - ${currentDrawerWidth}px)` },
           minHeight: '100vh',
           bgcolor: 'background.default',
+          transition: 'width 0.3s',
         }}
       >
         <Toolbar />

@@ -59,7 +59,13 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
 
       // Set default customer if none selected or current customer is invalid
       if (!filters.customerId || !currentCustomerExists) {
-        const defaultCustomer = customers[0];
+        // Try to find "emcee sons" customer first (case-insensitive)
+        const emceeSonsCustomer = customers.find(
+          (c) => c.customer_name.toLowerCase().includes('emcee sons')
+        );
+
+        // Use "emcee sons" if found, otherwise fall back to first customer
+        const defaultCustomer = emceeSonsCustomer || customers[0];
         console.log('Setting default customer:', defaultCustomer.customer_name, defaultCustomer.customer_id);
         setFilters({ customerId: String(defaultCustomer.customer_id) });
       }
