@@ -51,29 +51,30 @@ export const DataQualityIndicator: React.FC<DataQualityIndicatorProps> = ({
   };
 
   const getQualityConfig = (score: number) => {
+    // Minimal monochrome scheme
     if (score >= 90) {
       return {
-        color: '#10b981',
+        color: '#374151',
         label: 'Excellent',
         icon: <CheckCircle sx={{ fontSize: 16 }} />,
       };
     }
     if (score >= 75) {
       return {
-        color: '#3b82f6',
+        color: '#374151',
         label: 'Good',
         icon: <CheckCircle sx={{ fontSize: 16 }} />,
       };
     }
     if (score >= 60) {
       return {
-        color: '#f59e0b',
+        color: '#6b7280',
         label: 'Fair',
         icon: <Warning sx={{ fontSize: 16 }} />,
       };
     }
     return {
-      color: '#ef4444',
+      color: '#9ca3af',
       label: 'Poor',
       icon: <Warning sx={{ fontSize: 16 }} />,
     };
@@ -104,11 +105,11 @@ export const DataQualityIndicator: React.FC<DataQualityIndicatorProps> = ({
             label={`${qualityScore}%`}
             size="small"
             sx={{
-              bgcolor: `${qualityConfig.color}10`,
-              color: qualityConfig.color,
-              border: `1px solid ${qualityConfig.color}`,
+              bgcolor: '#f9fafb',
+              color: '#374151',
+              border: '1px solid #e5e7eb',
               fontSize: '0.75rem',
-              fontWeight: 600,
+              fontWeight: 500,
             }}
           />
         </Tooltip>

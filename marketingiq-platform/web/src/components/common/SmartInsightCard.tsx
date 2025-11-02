@@ -60,37 +60,38 @@ export const SmartInsightCard: React.FC<SmartInsightCardProps> = ({
   const [expanded, setExpanded] = React.useState(false);
 
   const getTypeConfig = () => {
+    // Minimal color scheme - Only use subtle grays and one accent
     switch (type) {
       case 'success':
         return {
           icon: <CheckCircle />,
-          color: '#10b981',
-          bgcolor: '#10b98110',
-          borderColor: '#10b981',
+          color: '#1f2937', // Dark gray
+          bgcolor: '#f9fafb', // Very light gray
+          borderColor: '#e5e7eb', // Light gray border
           severity: 'success' as const,
         };
       case 'warning':
         return {
           icon: <Warning />,
-          color: '#f59e0b',
-          bgcolor: '#f59e0b10',
-          borderColor: '#f59e0b',
+          color: '#1f2937',
+          bgcolor: '#fffbeb', // Subtle yellow tint
+          borderColor: '#fef3c7',
           severity: 'warning' as const,
         };
       case 'danger':
         return {
           icon: <ErrorIcon />,
-          color: '#ef4444',
-          bgcolor: '#ef444410',
-          borderColor: '#ef4444',
+          color: '#1f2937',
+          bgcolor: '#fef2f2', // Subtle red tint
+          borderColor: '#fecaca',
           severity: 'error' as const,
         };
       default:
         return {
           icon: <Info />,
-          color: '#3b82f6',
-          bgcolor: '#3b82f610',
-          borderColor: '#3b82f6',
+          color: '#1f2937',
+          bgcolor: '#f9fafb',
+          borderColor: '#e5e7eb',
           severity: 'info' as const,
         };
     }
@@ -118,8 +119,8 @@ export const SmartInsightCard: React.FC<SmartInsightCardProps> = ({
           },
         },
         '&:hover': {
-          boxShadow: `0 8px 24px ${config.color}30`,
-          transform: 'translateY(-2px)',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+          transform: 'translateY(-1px)',
         },
       }}
     >
@@ -131,9 +132,9 @@ export const SmartInsightCard: React.FC<SmartInsightCardProps> = ({
               sx={{
                 width: 40,
                 height: 40,
-                borderRadius: 2,
-                bgcolor: config.color,
-                color: 'white',
+                borderRadius: 1,
+                bgcolor: '#f3f4f6',
+                color: '#6b7280',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -142,7 +143,7 @@ export const SmartInsightCard: React.FC<SmartInsightCardProps> = ({
               {config.icon}
             </Box>
             <Box>
-              <Typography variant="h6" fontWeight={700} sx={{ color: config.color }}>
+              <Typography variant="h6" fontWeight={600} sx={{ color: '#111827' }}>
                 {title}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
@@ -150,10 +151,11 @@ export const SmartInsightCard: React.FC<SmartInsightCardProps> = ({
                   label={`${confidence}% Confidence`}
                   size="small"
                   sx={{
-                    bgcolor: `${config.color}20`,
-                    color: config.color,
-                    fontWeight: 600,
+                    bgcolor: '#f3f4f6',
+                    color: '#6b7280',
+                    fontWeight: 500,
                     fontSize: '0.7rem',
+                    border: '1px solid #e5e7eb',
                   }}
                 />
                 {actionable && (
@@ -162,10 +164,11 @@ export const SmartInsightCard: React.FC<SmartInsightCardProps> = ({
                     label="Actionable"
                     size="small"
                     sx={{
-                      bgcolor: '#8b5cf620',
-                      color: '#8b5cf6',
-                      fontWeight: 600,
+                      bgcolor: '#f3f4f6',
+                      color: '#6b7280',
+                      fontWeight: 500,
                       fontSize: '0.7rem',
+                      border: '1px solid #e5e7eb',
                     }}
                   />
                 )}
@@ -205,8 +208,8 @@ export const SmartInsightCard: React.FC<SmartInsightCardProps> = ({
               endIcon={expanded ? <ExpandLess /> : <ExpandMore />}
               onClick={() => setExpanded(!expanded)}
               sx={{
-                color: config.color,
-                fontWeight: 600,
+                color: '#374151',
+                fontWeight: 500,
                 fontSize: '0.875rem',
                 mb: 1,
               }}
@@ -214,18 +217,18 @@ export const SmartInsightCard: React.FC<SmartInsightCardProps> = ({
               {expanded ? 'Hide' : 'View'} Recommended Actions ({actions.length})
             </Button>
             <Collapse in={expanded}>
-              <List dense sx={{ bgcolor: 'background.paper', borderRadius: 1, p: 1 }}>
+              <List dense sx={{ bgcolor: '#fafafa', borderRadius: 1, p: 1, border: '1px solid #e5e7eb' }}>
                 {actions.map((action, idx) => (
                   <ListItem
                     key={idx}
                     sx={{
                       py: 1,
                       borderBottom: idx < actions.length - 1 ? '1px solid' : 'none',
-                      borderColor: 'divider',
+                      borderColor: '#e5e7eb',
                     }}
                   >
                     <ListItemIcon sx={{ minWidth: 36 }}>
-                      <PlayArrow sx={{ color: config.color, fontSize: 20 }} />
+                      <PlayArrow sx={{ color: '#6b7280', fontSize: 20 }} />
                     </ListItemIcon>
                     <ListItemText
                       primary={action}
