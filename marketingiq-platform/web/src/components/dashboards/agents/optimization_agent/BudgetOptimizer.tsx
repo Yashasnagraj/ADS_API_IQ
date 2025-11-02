@@ -389,6 +389,73 @@ const BudgetOptimizer: React.FC = () => {
 
       {incrementalData && budgetImpactSummary && (
         <>
+          {/* Impact Summary Cards */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">Expected Revenue Increase</Typography>
+                      <Typography variant="h4" fontWeight={700} color="text.primary">
+                        ₹{budgetImpactSummary.totalExpectedRevenue.toFixed(0)}
+                      </Typography>
+                    </Box>
+                    <TrendingUp sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">Avg Incremental ROAS</Typography>
+                      <Typography variant="h4" fontWeight={700} color="text.primary">
+                        {budgetImpactSummary.avgROAS.toFixed(2)}x
+                      </Typography>
+                    </Box>
+                    <Insights sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">Campaigns to Scale</Typography>
+                      <Typography variant="h4" fontWeight={700} color="text.primary">
+                        {budgetImpactSummary.campaignsToIncrease}
+                      </Typography>
+                    </Box>
+                    <TrendingUp sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Campaigns to Reduce</Typography>
+                      <Typography variant="h4" fontWeight={700}>
+                        {budgetImpactSummary.campaignsToDecrease}
+                      </Typography>
+                    </Box>
+                    <TrendingDown sx={{ fontSize: 50, opacity: 0.7 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
           {/* AI Intelligence */}
           <Box sx={{ mb: 4 }}>
             <Typography variant="h5" fontWeight={600} gutterBottom sx={{ mb: 3 }}>
@@ -586,73 +653,6 @@ const BudgetOptimizer: React.FC = () => {
             </Grid>
           </Box>
 
-          {/* Impact Summary Cards */}
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Expected Revenue Increase</Typography>
-                      <Typography variant="h4" fontWeight={700} color="text.primary">
-                        ${budgetImpactSummary.totalExpectedRevenue.toFixed(0)}
-                      </Typography>
-                    </Box>
-                    <TrendingUp sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Avg Incremental ROAS</Typography>
-                      <Typography variant="h4" fontWeight={700} color="text.primary">
-                        {budgetImpactSummary.avgROAS.toFixed(2)}x
-                      </Typography>
-                    </Box>
-                    <Insights sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Campaigns to Scale</Typography>
-                      <Typography variant="h4" fontWeight={700} color="text.primary">
-                        {budgetImpactSummary.campaignsToIncrease}
-                      </Typography>
-                    </Box>
-                    <TrendingUp sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Campaigns to Reduce</Typography>
-                      <Typography variant="h4" fontWeight={700}>
-                        {budgetImpactSummary.campaignsToDecrease}
-                      </Typography>
-                    </Box>
-                    <TrendingDown sx={{ fontSize: 50, opacity: 0.7 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-
           {/* Current vs Recommended Budget Visualization */}
           <Card sx={{ mb: 4 }}>
             <CardContent>
@@ -728,7 +728,7 @@ const BudgetOptimizer: React.FC = () => {
                             color={rec.expected_revenue_increase > 0 ? 'success.main' : 'error.main'}
                             fontWeight={600}
                           >
-                            {rec.expected_revenue_increase > 0 ? '+' : ''}${rec.expected_revenue_increase.toFixed(0)}
+                            {rec.expected_revenue_increase > 0 ? '+' : ''}₹{rec.expected_revenue_increase.toFixed(0)}
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
@@ -773,7 +773,7 @@ const BudgetOptimizer: React.FC = () => {
                 </Alert>
                 <Alert severity="info" icon={<Timeline />}>
                   <AlertTitle>Expected Impact</AlertTitle>
-                  By following these recommendations, you can expect an additional revenue of ${budgetImpactSummary.totalExpectedRevenue.toFixed(0)} while maintaining the same total budget.
+                  By following these recommendations, you can expect an additional revenue of ₹{budgetImpactSummary.totalExpectedRevenue.toFixed(0)} while maintaining the same total budget.
                 </Alert>
               </Box>
             </CardContent>
