@@ -325,7 +325,7 @@ const AlertsDashboard: React.FC = () => {
 
     const escalationRisk = criticalAlerts.length > 3 ? 'High' : warningAlerts.length > 5 ? 'Medium' : 'Low';
 
-    const predictive = `Alert Trend Forecast:\n\nEscalation Risk Assessment:\n• Risk level: ${escalationRisk}\n• ${criticalAlerts.length} critical alerts unresolved (avg age: ${hoursSinceOldest.toFixed(1)}h)\n• Alert velocity: ${recentAlerts.length} new alerts in 24h\n\nPredicted Impact:\n• If unaddressed: ${criticalAlerts.length > 0 ? `Potential revenue loss $${(criticalAlerts.length * 500).toFixed(0)}/day` : 'Minimal financial impact'}\n• Response time SLA: ${alertSummary.actionRequired > 5 ? 'At risk' : 'On track'}\n\nTrend Analysis:\n• Alert frequency ${recentAlerts.length > 5 ? 'increasing' : recentAlerts.length > 2 ? 'stable' : 'decreasing'}\n• Pattern recognition: ${mostAffectedMetric[1] > 3 ? `Recurring ${mostAffectedMetric[0]} issues` : 'Isolated incidents'}`;
+    const predictive = `Alert Trend Forecast:\n\nEscalation Risk Assessment:\n• Risk level: ${escalationRisk}\n• ${criticalAlerts.length} critical alerts unresolved (avg age: ${hoursSinceOldest.toFixed(1)}h)\n• Alert velocity: ${recentAlerts.length} new alerts in 24h\n\nPredicted Impact:\n• If unaddressed: ${criticalAlerts.length > 0 ? `Potential revenue loss ₹${(criticalAlerts.length * 500).toFixed(0)}/day` : 'Minimal financial impact'}\n• Response time SLA: ${alertSummary.actionRequired > 5 ? 'At risk' : 'On track'}\n\nTrend Analysis:\n• Alert frequency ${recentAlerts.length > 5 ? 'increasing' : recentAlerts.length > 2 ? 'stable' : 'decreasing'}\n• Pattern recognition: ${mostAffectedMetric[1] > 3 ? `Recurring ${mostAffectedMetric[0]} issues` : 'Isolated incidents'}`;
 
     // 4. PRESCRIPTIVE: Alert response recommendations
     const recommendations: string[] = [];
@@ -591,54 +591,54 @@ const AlertsDashboard: React.FC = () => {
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #f44336 0%, #e91e63 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Critical Alerts</Typography>
-                  <Typography variant="h2" fontWeight={700}>{alertSummary.critical}</Typography>
+                  <Typography variant="body2" color="text.secondary">Critical Alerts</Typography>
+                  <Typography variant="h2" fontWeight={700} color="text.primary">{alertSummary.critical}</Typography>
                 </Box>
-                <ErrorIcon sx={{ fontSize: 60, opacity: 0.7 }} />
+                <ErrorIcon sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #ff9800 0%, #fb8c00 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Warning Alerts</Typography>
-                  <Typography variant="h2" fontWeight={700}>{alertSummary.warning}</Typography>
+                  <Typography variant="body2" color="text.secondary">Warning Alerts</Typography>
+                  <Typography variant="h2" fontWeight={700} color="text.primary">{alertSummary.warning}</Typography>
                 </Box>
-                <WarningIcon sx={{ fontSize: 60, opacity: 0.7 }} />
+                <WarningIcon sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Info Alerts</Typography>
-                  <Typography variant="h2" fontWeight={700}>{alertSummary.info}</Typography>
+                  <Typography variant="body2" color="text.secondary">Info Alerts</Typography>
+                  <Typography variant="h2" fontWeight={700} color="text.primary">{alertSummary.info}</Typography>
                 </Box>
-                <InfoIcon sx={{ fontSize: 60, opacity: 0.7 }} />
+                <InfoIcon sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Action Required</Typography>
-                  <Typography variant="h2" fontWeight={700}>{alertSummary.actionRequired}</Typography>
+                  <Typography variant="body2" color="text.secondary">Action Required</Typography>
+                  <Typography variant="h2" fontWeight={700} color="text.primary">{alertSummary.actionRequired}</Typography>
                 </Box>
                 <Notifications sx={{ fontSize: 60, opacity: 0.7 }} />
               </Box>

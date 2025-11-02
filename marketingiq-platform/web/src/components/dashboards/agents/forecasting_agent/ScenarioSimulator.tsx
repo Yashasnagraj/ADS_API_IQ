@@ -259,10 +259,10 @@ const ScenarioSimulator: React.FC = () => {
     const asymmetryRatio = revenueUpside / revenueDownside;
 
     // 1. DESCRIPTIVE: Summary of scenario outcomes
-    const descriptive = `Scenario Comparison Overview:\n\nRevenue Scenarios (${forecastDays}-day):\n• Best case: $${best.revenue.toFixed(0)} (+${((best.revenue / realistic.revenue - 1) * 100).toFixed(0)}% vs realistic)\n• Realistic: $${realistic.revenue.toFixed(0)} (base scenario)\n• Worst case: $${worst.revenue.toFixed(0)} (${((worst.revenue / realistic.revenue - 1) * 100).toFixed(0)}% vs realistic)\n• Total variance: $${revenueRange.toFixed(0)}\n\nROAS Scenarios:\n• Best: ${best.roas.toFixed(2)}x | Realistic: ${realistic.roas.toFixed(2)}x | Worst: ${worst.roas.toFixed(2)}x\n• ROAS range: ${roasRange.toFixed(2)}x spread\n\nConversion Scenarios:\n• Best: ${best.conversions.toFixed(0)} | Realistic: ${realistic.conversions.toFixed(0)} | Worst: ${worst.conversions.toFixed(0)}`;
+    const descriptive = `Scenario Comparison Overview:\n\nRevenue Scenarios (${forecastDays}-day):\n• Best case: ₹${best.revenue.toFixed(0)} (+${((best.revenue / realistic.revenue - 1) * 100).toFixed(0)}% vs realistic)\n• Realistic: ₹${realistic.revenue.toFixed(0)} (base scenario)\n• Worst case: ₹${worst.revenue.toFixed(0)} (${((worst.revenue / realistic.revenue - 1) * 100).toFixed(0)}% vs realistic)\n• Total variance: ₹${revenueRange.toFixed(0)}\n\nROAS Scenarios:\n• Best: ${best.roas.toFixed(2)}x | Realistic: ${realistic.roas.toFixed(2)}x | Worst: ${worst.roas.toFixed(2)}x\n• ROAS range: ${roasRange.toFixed(2)}x spread\n\nConversion Scenarios:\n• Best: ${best.conversions.toFixed(0)} | Realistic: ${realistic.conversions.toFixed(0)} | Worst: ${worst.conversions.toFixed(0)}`;
 
     // 2. DIAGNOSTIC: Explains variance and scenario drivers
-    let diagnostic = `Scenario Variance Analysis:\n\nRisk Profile:\n• Revenue volatility: ${volatilityIndex.toFixed(0)}% variance from baseline\n• Upside potential: $${revenueUpside.toFixed(0)} (${((revenueUpside / realistic.revenue) * 100).toFixed(0)}%)\n• Downside risk: $${revenueDownside.toFixed(0)} (${((revenueDownside / realistic.revenue) * 100).toFixed(0)}%)\n• Risk asymmetry: ${asymmetryRatio.toFixed(2)}:1 ${asymmetryRatio > 1 ? '(upside-biased)' : '(downside-biased)'}\n\nKey Drivers:`;
+    let diagnostic = `Scenario Variance Analysis:\n\nRisk Profile:\n• Revenue volatility: ${volatilityIndex.toFixed(0)}% variance from baseline\n• Upside potential: ₹${revenueUpside.toFixed(0)} (${((revenueUpside / realistic.revenue) * 100).toFixed(0)}%)\n• Downside risk: ₹${revenueDownside.toFixed(0)} (${((revenueDownside / realistic.revenue) * 100).toFixed(0)}%)\n• Risk asymmetry: ${asymmetryRatio.toFixed(2)}:1 ${asymmetryRatio > 1 ? '(upside-biased)' : '(downside-biased)'}\n\nKey Drivers:`;
 
     if (best.ctr > realistic.ctr) {
       diagnostic += `\n• Best case assumes CTR improvement to ${best.ctr.toFixed(2)}% (creative refresh success)\n• Realistic case maintains ${realistic.ctr.toFixed(2)}% CTR (steady performance)`;
@@ -273,7 +273,7 @@ const ScenarioSimulator: React.FC = () => {
     }
 
     // 3. PREDICTIVE: Probability-weighted forecasts and trends
-    let predictive = `Probability-Weighted Forecast:\n\nExpected Value Analysis:\n• Expected revenue: $${expectedRevenue.toFixed(0)} (probability-weighted)\n• Expected ROAS: ${expectedROAS.toFixed(2)}x\n• Confidence interval: $${worst.revenue.toFixed(0)} to $${best.revenue.toFixed(0)}\n\nScenario Probabilities:\n• Best case (${(probabilityBest * 100).toFixed(0)}%): Market conditions favorable, creative performs exceptionally\n• Realistic (${(probabilityRealistic * 100).toFixed(0)}%): Normal market conditions, steady performance\n• Worst case (${(probabilityWorst * 100).toFixed(0)}%): Market headwinds, competitive pressure\n\nRisk-Adjusted Projections:`;
+    let predictive = `Probability-Weighted Forecast:\n\nExpected Value Analysis:\n• Expected revenue: ₹${expectedRevenue.toFixed(0)} (probability-weighted)\n• Expected ROAS: ${expectedROAS.toFixed(2)}x\n• Confidence interval: ₹${worst.revenue.toFixed(0)} to ₹${best.revenue.toFixed(0)}\n\nScenario Probabilities:\n• Best case (${(probabilityBest * 100).toFixed(0)}%): Market conditions favorable, creative performs exceptionally\n• Realistic (${(probabilityRealistic * 100).toFixed(0)}%): Normal market conditions, steady performance\n• Worst case (${(probabilityWorst * 100).toFixed(0)}%): Market headwinds, competitive pressure\n\nRisk-Adjusted Projections:`;
 
     if (volatilityIndex > 30) {
       predictive += `\n• High variance (${volatilityIndex.toFixed(0)}%) indicates significant uncertainty\n• Recommend hedging strategies and conservative budgeting\n• Monitor daily performance against forecast bands`;
@@ -288,13 +288,13 @@ const ScenarioSimulator: React.FC = () => {
 
     if (asymmetryRatio > 1.3) {
       recommendations.push(`1. Pursue aggressive strategy - upside (${((revenueUpside / realistic.revenue) * 100).toFixed(0)}%) outweighs downside (${((revenueDownside / realistic.revenue) * 100).toFixed(0)}%)`);
-      recommendations.push(`2. Increase budgets by 15-20% to capture $${revenueUpside.toFixed(0)} upside potential`);
+      recommendations.push(`2. Increase budgets by 15-20% to capture ₹${revenueUpside.toFixed(0)} upside potential`);
     } else if (asymmetryRatio < 0.8) {
       recommendations.push(`1. Adopt defensive strategy - downside risk exceeds upside potential`);
-      recommendations.push(`2. Reduce budgets by 10-15% to limit $${revenueDownside.toFixed(0)} exposure`);
+      recommendations.push(`2. Reduce budgets by 10-15% to limit ₹${revenueDownside.toFixed(0)} exposure`);
     } else {
       recommendations.push(`1. Maintain balanced approach - symmetrical risk/reward profile`);
-      recommendations.push(`2. Target realistic scenario ($${realistic.revenue.toFixed(0)}) with ±15% buffer`);
+      recommendations.push(`2. Target realistic scenario (₹${realistic.revenue.toFixed(0)}) with ±15% buffer`);
     }
 
     if (volatilityIndex > 25) {
@@ -305,10 +305,10 @@ const ScenarioSimulator: React.FC = () => {
 
     const bestCaseROI = (best.revenue - realistic.revenue);
     const worstCaseLoss = (realistic.revenue - worst.revenue);
-    recommendations.push(`4. Prepare contingency plans for $${worstCaseLoss.toFixed(0)} downside and $${bestCaseROI.toFixed(0)} upside scenarios`);
+    recommendations.push(`4. Prepare contingency plans for ₹${worstCaseLoss.toFixed(0)} downside and ₹${bestCaseROI.toFixed(0)} upside scenarios`);
 
     const expectedGain = expectedRevenue > realistic.revenue ? expectedRevenue - realistic.revenue : 0;
-    const prescriptive = `Strategic Recommendations:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact:\n• Probability-weighted gain: $${expectedGain.toFixed(0)}\n• Optimal target: $${expectedRevenue.toFixed(0)} revenue\n• Confidence: ${volatilityIndex < 20 ? '91%' : '84%'}`;
+    const prescriptive = `Strategic Recommendations:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact:\n• Probability-weighted gain: ₹${expectedGain.toFixed(0)}\n• Optimal target: ₹${expectedRevenue.toFixed(0)} revenue\n• Confidence: ${volatilityIndex < 20 ? '91%' : '84%'}`;
 
     return {
       descriptive: {
@@ -377,37 +377,37 @@ const ScenarioSimulator: React.FC = () => {
       {/* Scenario Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>Best Case Revenue</Typography>
-              <Typography variant="h3" fontWeight={700}>${scenarioMetrics.best.revenue.toFixed(0)}</Typography>
-              <Typography variant="caption">ROAS: {scenarioMetrics.best.roas.toFixed(2)}x</Typography>
+              <Typography variant="body2" color="text.secondary">Best Case Revenue</Typography>
+              <Typography variant="h3" fontWeight={700} color="text.primary">₹{scenarioMetrics.best.revenue.toFixed(0)}</Typography>
+              <Typography variant="caption" color="text.secondary">ROAS: {scenarioMetrics.best.roas.toFixed(2)}x</Typography>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>Realistic Revenue</Typography>
-              <Typography variant="h3" fontWeight={700}>${scenarioMetrics.realistic.revenue.toFixed(0)}</Typography>
-              <Typography variant="caption">ROAS: {scenarioMetrics.realistic.roas.toFixed(2)}x</Typography>
+              <Typography variant="body2" color="text.secondary">Realistic Revenue</Typography>
+              <Typography variant="h3" fontWeight={700} color="text.primary">₹{scenarioMetrics.realistic.revenue.toFixed(0)}</Typography>
+              <Typography variant="caption" color="text.secondary">ROAS: {scenarioMetrics.realistic.roas.toFixed(2)}x</Typography>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>Worst Case Revenue</Typography>
-              <Typography variant="h3" fontWeight={700}>${scenarioMetrics.worst.revenue.toFixed(0)}</Typography>
-              <Typography variant="caption">ROAS: {scenarioMetrics.worst.roas.toFixed(2)}x</Typography>
+              <Typography variant="body2" color="text.secondary">Worst Case Revenue</Typography>
+              <Typography variant="h3" fontWeight={700} color="text.primary">₹{scenarioMetrics.worst.revenue.toFixed(0)}</Typography>
+              <Typography variant="caption" color="text.secondary">ROAS: {scenarioMetrics.worst.roas.toFixed(2)}x</Typography>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>Revenue Range</Typography>
               <Typography variant="h3" fontWeight={700}>
@@ -639,7 +639,7 @@ const ScenarioSimulator: React.FC = () => {
               <YAxis label={{ value: 'Revenue ($)', angle: -90, position: 'insideLeft' }} />
               <Tooltip
                 labelFormatter={(value) => `Date: ${value}`}
-                formatter={(value: any) => `$${value.toFixed(0)}`}
+                formatter={(value: any) => `₹${value.toFixed(0)}`}
               />
               <Legend />
               <Area type="monotone" dataKey="best_case" stackId="1" stroke="#43e97b" fill="#43e97b" fillOpacity={0.3} name="Best Case" />

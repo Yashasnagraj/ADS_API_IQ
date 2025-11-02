@@ -163,8 +163,8 @@ export const GoogleAdsDashboard: React.FC = () => {
                 <YAxis yAxisId="right" orientation="right" />
                 <Tooltip />
                 <Legend />
-                <Bar yAxisId="left" dataKey="spend" fill="#1E88E5" name="Spend ($)" />
-                <Bar yAxisId="left" dataKey="revenue" fill="#26A69A" name="Revenue ($)" />
+                <Bar yAxisId="left" dataKey="spend" fill="#1E88E5" name="Spend (₹)" />
+                <Bar yAxisId="left" dataKey="revenue" fill="#26A69A" name="Revenue (₹)" />
               </BarChart>
             </ResponsiveContainer>
           </Paper>

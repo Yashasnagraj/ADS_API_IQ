@@ -108,7 +108,89 @@ const AdGroupsDashboard: React.FC = () => {
       }
 
       const data = await response.json();
-      setAdGroups(data.ad_groups || []);
+      
+      // Deduplicate ad groups by ad_group_id to prevent duplicates
+      const adGroupsArray = data.ad_groups || [];
+      const uniqueAdGroupsMap = new Map<number, AdGroup>();
+      const nameToIdMap = new Map<string, number>(); // Track name->ID mapping for fallback deduplication
+      
+      adGroupsArray.forEach((ag: any) => {
+        const adGroupId = ag.ad_group_id || ag.adgroup_id || ag.id;
+        const adGroupName = ag.adgroup_name || ag.name || ag.ad_group_name || '';
+        
+        if (adGroupId) {
+          const existingAdGroup = uniqueAdGroupsMap.get(adGroupId);
+          
+          if (!existingAdGroup) {
+            // First occurrence - add it
+            uniqueAdGroupsMap.set(adGroupId, {
+              ad_group_id: adGroupId,
+              adgroup_name: adGroupName || `Ad Group ${adGroupId}`,
+              status: ag.status || 'UNKNOWN',
+              cpc_bid_micros: ag.cpc_bid_micros !== undefined ? ag.cpc_bid_micros : null,
+              metrics: {
+                clicks: ag.metrics?.clicks || ag.clicks || 0,
+                impressions: ag.metrics?.impressions || ag.impressions || 0,
+                cost: ag.metrics?.cost || ag.cost || 0,
+                conversions: ag.metrics?.conversions || ag.conversions || 0,
+                ctr: ag.metrics?.ctr || ag.ctr || 0,
+                avg_cpc: ag.metrics?.avg_cpc || ag.avg_cpc || 0,
+              },
+            });
+            
+            // Track name mapping
+            if (adGroupName) {
+              nameToIdMap.set(adGroupName.toLowerCase(), adGroupId);
+            }
+          } else {
+            // Duplicate ID found - merge metrics (sum them) and keep the most recent status
+            existingAdGroup.metrics.clicks += (ag.metrics?.clicks || ag.clicks || 0);
+            existingAdGroup.metrics.impressions += (ag.metrics?.impressions || ag.impressions || 0);
+            existingAdGroup.metrics.cost += (ag.metrics?.cost || ag.cost || 0);
+            existingAdGroup.metrics.conversions += (ag.metrics?.conversions || ag.conversions || 0);
+            
+            // Recalculate CTR and avg_cpc from merged totals
+            existingAdGroup.metrics.ctr = existingAdGroup.metrics.impressions > 0
+              ? (existingAdGroup.metrics.clicks / existingAdGroup.metrics.impressions) * 100
+              : 0;
+            existingAdGroup.metrics.avg_cpc = existingAdGroup.metrics.clicks > 0
+              ? existingAdGroup.metrics.cost / existingAdGroup.metrics.clicks
+              : 0;
+            
+            // Update status and bid if the new one has values
+            if (ag.status && ag.status !== 'UNKNOWN') {
+              existingAdGroup.status = ag.status;
+            }
+            if (ag.cpc_bid_micros !== undefined && ag.cpc_bid_micros !== null) {
+              existingAdGroup.cpc_bid_micros = ag.cpc_bid_micros;
+            }
+          }
+        } else if (adGroupName) {
+          // Fallback: deduplicate by name if ID is missing
+          const existingIdForName = nameToIdMap.get(adGroupName.toLowerCase());
+          if (existingIdForName) {
+            const existingAdGroup = uniqueAdGroupsMap.get(existingIdForName);
+            if (existingAdGroup) {
+              // Merge metrics with existing ad group that has the same name
+              existingAdGroup.metrics.clicks += (ag.metrics?.clicks || ag.clicks || 0);
+              existingAdGroup.metrics.impressions += (ag.metrics?.impressions || ag.impressions || 0);
+              existingAdGroup.metrics.cost += (ag.metrics?.cost || ag.cost || 0);
+              existingAdGroup.metrics.conversions += (ag.metrics?.conversions || ag.conversions || 0);
+              
+              existingAdGroup.metrics.ctr = existingAdGroup.metrics.impressions > 0
+                ? (existingAdGroup.metrics.clicks / existingAdGroup.metrics.impressions) * 100
+                : 0;
+              existingAdGroup.metrics.avg_cpc = existingAdGroup.metrics.clicks > 0
+                ? existingAdGroup.metrics.cost / existingAdGroup.metrics.clicks
+                : 0;
+            }
+          }
+        }
+      });
+      
+      // Convert map to array and sort by ad_group_id for consistency
+      const uniqueAdGroups = Array.from(uniqueAdGroupsMap.values()).sort((a, b) => a.ad_group_id - b.ad_group_id);
+      setAdGroups(uniqueAdGroups);
     } catch (err: any) {
       console.error('Error fetching ad groups:', err);
       setError(err.message || 'Failed to load ad groups');
@@ -179,10 +261,10 @@ const AdGroupsDashboard: React.FC = () => {
   // Bid distribution
   const bidDistribution = useMemo(() => {
     const bins: Record<string, number> = {
-      '$0-0.50': 0,
-      '$0.51-1.00': 0,
-      '$1.01-2.00': 0,
-      '$2.01+': 0,
+      '₹0-0.50': 0,
+      '₹0.51-1.00': 0,
+      '₹1.01-2.00': 0,
+      '₹2.01+': 0,
       'No Bid': 0,
     };
 
@@ -192,13 +274,13 @@ const AdGroupsDashboard: React.FC = () => {
       } else {
         const bidDollars = ag.cpc_bid_micros / 1_000_000;
         if (bidDollars <= 0.50) {
-          bins['$0-0.50']++;
+          bins['₹0-0.50']++;
         } else if (bidDollars <= 1.00) {
-          bins['$0.51-1.00']++;
+          bins['₹0.51-1.00']++;
         } else if (bidDollars <= 2.00) {
-          bins['$1.01-2.00']++;
+          bins['₹1.01-2.00']++;
         } else {
-          bins['$2.01+']++;
+          bins['₹2.01+']++;
         }
       }
     });
@@ -232,7 +314,7 @@ const AdGroupsDashboard: React.FC = () => {
     const industryAvgBid = 1.75;
 
     // 1. DESCRIPTIVE
-    const descriptive = `Your ${adGroups.length} ad groups generated ${kpiMetrics.totalClicks.toLocaleString()} total clicks with ${kpiMetrics.avgCTR}% average CTR. ${kpiMetrics.activeAdGroups} ad groups are active, ${kpiMetrics.pausedAdGroups} paused. Average CPC bid is $${kpiMetrics.avgBid}. ${topPerformer ? `Top performer: "${topPerformer.adgroup_name}" with ${topPerformer.metrics.ctr.toFixed(2)}% CTR.` : ''} Average ${avgClicksPerAdGroup.toFixed(0)} clicks per ad group.`;
+    const descriptive = `Your ${adGroups.length} ad groups generated ${kpiMetrics.totalClicks.toLocaleString()} total clicks with ${kpiMetrics.avgCTR}% average CTR. ${kpiMetrics.activeAdGroups} ad groups are active, ${kpiMetrics.pausedAdGroups} paused. Average CPC bid is ₹${kpiMetrics.avgBid}. ${topPerformer ? `Top performer: "${topPerformer.adgroup_name}" with ${topPerformer.metrics.ctr.toFixed(2)}% CTR.` : ''} Average ${avgClicksPerAdGroup.toFixed(0)} clicks per ad group.`;
 
     // 2. DIAGNOSTIC
     let diagnostic = '';
@@ -276,7 +358,7 @@ const AdGroupsDashboard: React.FC = () => {
     // Bid optimization
     if (kpiMetrics.avgBid > industryAvgBid) {
       const savings = (kpiMetrics.avgBid - industryAvgBid) * kpiMetrics.totalClicks;
-      recommendations.push(`1. Reduce average bid from $${kpiMetrics.avgBid} to $${industryAvgBid} benchmark (-$${savings.toFixed(0)}/month savings)`);
+      recommendations.push(`1. Reduce average bid from ₹${kpiMetrics.avgBid} to ₹${industryAvgBid} benchmark (-₹${savings.toFixed(0)}/month savings)`);
     } else if (topPerformer && kpiMetrics.avgCTR > industryAvgCTR) {
       recommendations.push(`1. Increase bids on top ${Math.ceil(adGroups.length * 0.2)} performers (+15% potential click volume)`);
     }
@@ -294,7 +376,7 @@ const AdGroupsDashboard: React.FC = () => {
     // Top performer scaling
     if (topPerformer && topPerformer.metrics.ctr > industryAvgCTR * 1.5) {
       const budgetIncrease = avgSpendPerAdGroup * 0.3;
-      recommendations.push(`4. Scale "${topPerformer.adgroup_name}" budget by $${budgetIncrease.toFixed(0)} (+$${(budgetIncrease * 4).toFixed(0)} expected revenue at 4x ROAS)`);
+      recommendations.push(`4. Scale "${topPerformer.adgroup_name}" budget by ₹${budgetIncrease.toFixed(0)} (+₹${(budgetIncrease * 4).toFixed(0)} expected revenue at 4x ROAS)`);
     }
 
     const prescriptive = recommendations.length > 0
@@ -339,84 +421,84 @@ const AdGroupsDashboard: React.FC = () => {
       {/* KPIs */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Ad Groups</Typography>
-                  <Typography variant="h4" fontWeight={700}>{kpiMetrics.totalAdGroups}</Typography>
+                  <Typography variant="body2" color="text.secondary">Total Ad Groups</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.totalAdGroups}</Typography>
                 </Box>
-                <Group sx={{ fontSize: 40, opacity: 0.7 }} />
+                <Group sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Active</Typography>
-                  <Typography variant="h4" fontWeight={700}>{kpiMetrics.activeAdGroups}</Typography>
+                  <Typography variant="body2" color="text.secondary">Active</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.activeAdGroups}</Typography>
                 </Box>
-                <CheckCircle sx={{ fontSize: 40, opacity: 0.7 }} />
+                <CheckCircle sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Paused</Typography>
-                  <Typography variant="h4" fontWeight={700}>{kpiMetrics.pausedAdGroups}</Typography>
+                  <Typography variant="body2" color="text.secondary">Paused</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.pausedAdGroups}</Typography>
                 </Box>
-                <Pause sx={{ fontSize: 40, opacity: 0.7 }} />
+                <Pause sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg CPC Bid</Typography>
-                  <Typography variant="h4" fontWeight={700}>${kpiMetrics.avgBid}</Typography>
+                  <Typography variant="body2" color="text.secondary">Avg CPC Bid</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">₹{kpiMetrics.avgBid}</Typography>
                 </Box>
-                <MonetizationOn sx={{ fontSize: 40, opacity: 0.7 }} />
+                <MonetizationOn sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Clicks</Typography>
-                  <Typography variant="h4" fontWeight={700}>{kpiMetrics.totalClicks.toLocaleString()}</Typography>
+                  <Typography variant="body2" color="text.secondary">Total Clicks</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.totalClicks.toLocaleString()}</Typography>
                 </Box>
-                <TrendingUp sx={{ fontSize: 40, opacity: 0.7 }} />
+                <TrendingUp sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg CTR</Typography>
-                  <Typography variant="h4" fontWeight={700}>{kpiMetrics.avgCTR}%</Typography>
+                  <Typography variant="body2" color="text.secondary">Avg CTR</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.avgCTR}%</Typography>
                 </Box>
-                <Speed sx={{ fontSize: 40, opacity: 0.7 }} />
+                <Speed sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
@@ -729,14 +811,14 @@ const AdGroupsDashboard: React.FC = () => {
                       </TableCell>
                       <TableCell align="right">
                         {adGroup.cpc_bid_micros !== null
-                          ? `$${(adGroup.cpc_bid_micros / 1_000_000).toFixed(2)}`
+                          ? `₹${(adGroup.cpc_bid_micros / 1_000_000).toFixed(2)}`
                           : '-'}
                       </TableCell>
                       <TableCell align="right">{adGroup.metrics.impressions.toLocaleString()}</TableCell>
                       <TableCell align="right">{adGroup.metrics.clicks.toLocaleString()}</TableCell>
                       <TableCell align="right">{adGroup.metrics.ctr.toFixed(2)}%</TableCell>
-                      <TableCell align="right">${adGroup.metrics.cost.toFixed(2)}</TableCell>
-                      <TableCell align="right">${adGroup.metrics.avg_cpc.toFixed(2)}</TableCell>
+                      <TableCell align="right">₹{adGroup.metrics.cost.toFixed(2)}</TableCell>
+                      <TableCell align="right">₹{adGroup.metrics.avg_cpc.toFixed(2)}</TableCell>
                       <TableCell align="right">{adGroup.metrics.conversions.toFixed(1)}</TableCell>
                     </TableRow>
                   ))

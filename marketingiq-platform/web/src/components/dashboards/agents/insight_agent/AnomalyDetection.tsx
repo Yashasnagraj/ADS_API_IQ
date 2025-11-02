@@ -52,6 +52,9 @@ import {
   Timeline,
   Lightbulb,
   TrendingFlat,
+  Campaign as CampaignIcon,
+  Visibility,
+  Speed,
 } from '@mui/icons-material';
 import { useFilters } from '../../../../context/FilterContext';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -84,18 +87,73 @@ interface AnomalyDetectionResponse {
   };
 }
 
+interface Campaign {
+  campaign_id: string;
+  campaign_name: string;
+  status: string;
+  platform: string;
+  metrics: {
+    clicks: number;
+    impressions: number;
+    cost: number;
+    conversions: number;
+    ctr: number;
+    avg_cpc: number;
+  };
+}
+
+interface KPIMetrics {
+  totalCampaigns: number;
+  totalSpend: number;
+  totalClicks: number;
+  totalImpressions: number;
+  avgCTR: number;
+  avgCPC: number;
+}
+
 const AnomalyDetection: React.FC = () => {
   const { filters } = useFilters();
   const [anomalyData, setAnomalyData] = useState<AnomalyDetectionResponse | null>(null);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
+  // Check if customer has multi-platform data (Customer 1 = Emcee Sons)
+  const isMultiPlatform = filters.customerId === '1';
+
   useEffect(() => {
     fetchAnomalies();
-  }, [filters.customerId, selectedDate]);
+    fetchCampaigns();
+  }, [filters.customerId, selectedDate, filters.dateRange]);
 
   const fetchAnomalies = async () => {
+    if (!filters.customerId) {
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams({
+        customer_id: filters.customerId,
+        date: selectedDate,
+      });
+
+      const response = await fetch(`http://localhost:8000/api/v1/ai/anomalies?${params}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setAnomalyData(data);
+      } else {
+        // Don't set error for anomaly API failures, just log
+        console.warn('Anomaly API not available:', response.statusText);
+      }
+    } catch (err: any) {
+      console.warn('Error fetching anomalies:', err);
+      // Don't block the UI if anomaly API fails
+    }
+  };
+
+  const fetchCampaigns = async () => {
     if (!filters.customerId) {
       setLoading(false);
       return;
@@ -107,24 +165,111 @@ const AnomalyDetection: React.FC = () => {
     try {
       const params = new URLSearchParams({
         customer_id: filters.customerId,
-        date: selectedDate,
+        date_range: filters.dateRange || 'LAST_30_DAYS',
       });
 
-      const response = await fetch(`http://localhost:8000/api/v1/ai/anomalies?${params}`);
+      const response = await fetch(`http://localhost:8000/api/v1/warehouse/campaigns?${params}`);
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch anomalies: ${response.statusText}`);
+        throw new Error(`Failed to fetch campaigns: ${response.statusText}`);
       }
 
       const data = await response.json();
-      setAnomalyData(data);
+
+      // Map campaigns and add platform info
+      const mappedCampaigns = (data.campaigns || []).map((camp: any) => ({
+        campaign_id: camp.campaign_id,
+        campaign_name: camp.campaign_name,
+        status: camp.status,
+        platform: 'Google Ads',
+        metrics: camp.metrics || {
+          clicks: 0,
+          impressions: 0,
+          cost: 0,
+          conversions: 0,
+          ctr: 0,
+          avg_cpc: 0,
+        },
+      }));
+
+      // If multi-platform (Customer 1), fetch Meta campaigns too
+      if (isMultiPlatform) {
+        try {
+          const metaResponse = await fetch(
+            `http://localhost:8000/api/v1/warehouse/meta/campaigns?${params}`
+          );
+
+          if (metaResponse.ok) {
+            const metaData = await metaResponse.json();
+            const metaCampaigns = (metaData.campaigns || []).map((camp: any) => ({
+              campaign_id: camp.campaign_id,
+              campaign_name: camp.name,
+              status: camp.status,
+              platform: 'Meta Ads',
+              metrics: {
+                clicks: 0,
+                impressions: 0,
+                cost: 0,
+                conversions: 0,
+                ctr: 0,
+                avg_cpc: 0,
+              },
+            }));
+            mappedCampaigns.push(...metaCampaigns);
+          }
+        } catch (metaError) {
+          console.warn('Could not fetch Meta campaigns:', metaError);
+        }
+      }
+
+      setCampaigns(mappedCampaigns);
     } catch (err: any) {
-      console.error('Error fetching anomalies:', err);
-      setError(err.message || 'Failed to load anomaly data');
+      console.error('Error fetching campaigns:', err);
+      setError(err.message || 'Failed to load campaign data');
     } finally {
       setLoading(false);
     }
   };
+
+  // Calculate KPIs from campaign data
+  const kpiMetrics = useMemo((): KPIMetrics => {
+    if (campaigns.length === 0) {
+      return {
+        totalCampaigns: 0,
+        totalSpend: 0,
+        totalClicks: 0,
+        totalImpressions: 0,
+        avgCTR: 0,
+        avgCPC: 0,
+      };
+    }
+
+    const totals = campaigns.reduce(
+      (acc, camp) => ({
+        spend: acc.spend + (camp.metrics.cost || 0),
+        clicks: acc.clicks + (camp.metrics.clicks || 0),
+        impressions: acc.impressions + (camp.metrics.impressions || 0),
+      }),
+      { spend: 0, clicks: 0, impressions: 0 }
+    );
+
+    const avgCTR = totals.impressions > 0
+      ? (totals.clicks / totals.impressions) * 100
+      : 0;
+
+    const avgCPC = totals.clicks > 0
+      ? totals.spend / totals.clicks
+      : 0;
+
+    return {
+      totalCampaigns: campaigns.length,
+      totalSpend: totals.spend,
+      totalClicks: totals.clicks,
+      totalImpressions: totals.impressions,
+      avgCTR: Number(avgCTR.toFixed(2)),
+      avgCPC: Number(avgCPC.toFixed(2)),
+    };
+  }, [campaigns]);
 
   const getSeverityIcon = (severity: string) => {
     switch (severity.toLowerCase()) {
@@ -272,7 +417,7 @@ const AnomalyDetection: React.FC = () => {
     const riskLevel = criticalCount >= 3 ? 'HIGH' : criticalCount >= 1 ? 'MEDIUM' : 'LOW';
     const projectedImpact = criticalCount * 500 + warningCount * 200; // Revenue at risk
 
-    let predictive = `Performance Forecast:\n\nRisk Assessment:\n• Current risk level: ${riskLevel}\n• Estimated revenue at risk: $${projectedImpact.toLocaleString()}/day\n• If unresolved, expect ${(totalAnomalies * 1.5).toFixed(0)} anomalies within 48 hours\n\nTrend Projection:`;
+    let predictive = `Performance Forecast:\n\nRisk Assessment:\n• Current risk level: ${riskLevel}\n• Estimated revenue at risk: ₹${projectedImpact.toLocaleString()}/day\n• If unresolved, expect ${(totalAnomalies * 1.5).toFixed(0)} anomalies within 48 hours\n\nTrend Projection:`;
 
     if (criticalCount > 2) {
       predictive += `\n• ⚠️ Critical anomaly cascade detected - immediate intervention required\n• Projected performance degradation: ${(criticalCount * 15).toFixed(0)}% within 7 days`;
@@ -308,7 +453,7 @@ const AnomalyDetection: React.FC = () => {
     }
 
     const expectedRecovery = criticalCount > 0 ? '72 hours' : '24 hours';
-    const prescriptive = `Strategic Recommendations:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact:\n• Anomaly resolution time: ${expectedRecovery}\n• Estimated recovery: $${projectedImpact.toLocaleString()} revenue protected\n• Confidence: ${criticalCount > 2 ? '92%' : '85%'}`;
+    const prescriptive = `Strategic Recommendations:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact:\n• Anomaly resolution time: ${expectedRecovery}\n• Estimated recovery: ₹${projectedImpact.toLocaleString()} revenue protected\n• Confidence: ${criticalCount > 2 ? '92%' : '85%'}`;
 
     return {
       descriptive: {
@@ -373,9 +518,102 @@ const AnomalyDetection: React.FC = () => {
         </Alert>
       )}
 
-      {!anomalyData && !loading && (
+      {/* KPI Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={2}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Total Campaigns</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.totalCampaigns}</Typography>
+                </Box>
+                <CampaignIcon sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={2}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Total Spend</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">₹{kpiMetrics.totalSpend.toFixed(0)}</Typography>
+                </Box>
+                <AttachMoney sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={2}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Total Clicks</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.totalClicks.toLocaleString()}</Typography>
+                </Box>
+                <Mouse sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={2}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Impressions</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.totalImpressions.toLocaleString()}</Typography>
+                </Box>
+                <Visibility sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={2}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Avg CTR</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.avgCTR}%</Typography>
+                </Box>
+                <TrendingUp sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={2}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Avg CPC</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">₹{kpiMetrics.avgCPC.toFixed(2)}</Typography>
+                </Box>
+                <Speed sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {!anomalyData && !loading && campaigns.length === 0 && (
         <Alert severity="info">
-          No anomaly data available. Please select a customer to view anomalies.
+          No data available. Please select a customer to view data.
+        </Alert>
+      )}
+
+      {!anomalyData && campaigns.length > 0 && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          No anomaly data available for the selected date. Campaign KPIs are shown above.
         </Alert>
       )}
 
@@ -384,56 +622,56 @@ const AnomalyDetection: React.FC = () => {
           {/* Summary Cards */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Anomalies</Typography>
-                      <Typography variant="h3" fontWeight={700}>{anomalyData.total_anomalies}</Typography>
+                      <Typography variant="body2" color="text.secondary">Total Anomalies</Typography>
+                      <Typography variant="h3" fontWeight={700} color="text.primary">{anomalyData.total_anomalies}</Typography>
                     </Box>
-                    <Warning sx={{ fontSize: 50, opacity: 0.7 }} />
+                    <Warning sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Critical</Typography>
-                      <Typography variant="h3" fontWeight={700}>{anomalyData.critical_count}</Typography>
+                      <Typography variant="body2" color="text.secondary">Critical</Typography>
+                      <Typography variant="h3" fontWeight={700} color="text.primary">{anomalyData.critical_count}</Typography>
                     </Box>
-                    <ErrorIcon sx={{ fontSize: 50, opacity: 0.7 }} />
+                    <ErrorIcon sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Warnings</Typography>
-                      <Typography variant="h3" fontWeight={700}>{anomalyData.warning_count}</Typography>
+                      <Typography variant="body2" color="text.secondary">Warnings</Typography>
+                      <Typography variant="h3" fontWeight={700} color="text.primary">{anomalyData.warning_count}</Typography>
                     </Box>
-                    <Warning sx={{ fontSize: 50, opacity: 0.7 }} />
+                    <Warning sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Campaigns Affected</Typography>
-                      <Typography variant="h3" fontWeight={700}>{anomalyData.summary?.campaigns_affected || 0}</Typography>
+                      <Typography variant="body2" color="text.secondary">Campaigns Affected</Typography>
+                      <Typography variant="h3" fontWeight={700} color="text.primary">{anomalyData.summary?.campaigns_affected || 0}</Typography>
                     </Box>
-                    <TrendingDown sx={{ fontSize: 50, opacity: 0.7 }} />
+                    <TrendingDown sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                   </Box>
                 </CardContent>
               </Card>

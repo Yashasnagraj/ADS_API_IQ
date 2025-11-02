@@ -363,43 +363,36 @@ const CTRForecast: React.FC = () => {
       {forecastSummary && (
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+            <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Current CTR</Typography>
-                    <Typography variant="h3" fontWeight={700}>{forecastSummary.currentCTR.toFixed(2)}%</Typography>
+                    <Typography variant="body2" color="text.secondary">Current CTR</Typography>
+                    <Typography variant="h3" fontWeight={700} color="text.primary">{forecastSummary.currentCTR.toFixed(2)}%</Typography>
                   </Box>
-                  <Speed sx={{ fontSize: 50, opacity: 0.7 }} />
+                  <Speed sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{
-              background: forecastSummary.trend === 'increasing'
-                ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
-                : forecastSummary.trend === 'decreasing'
-                ? 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
-                : 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-              color: 'white'
-            }}>
+            <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Forecasted CTR</Typography>
-                    <Typography variant="h3" fontWeight={700}>{forecastSummary.forecastedCTR.toFixed(2)}%</Typography>
-                    <Typography variant="caption">
+                    <Typography variant="body2" color="text.secondary">Forecasted CTR</Typography>
+                    <Typography variant="h3" fontWeight={700} color="text.primary">{forecastSummary.forecastedCTR.toFixed(2)}%</Typography>
+                    <Typography variant="caption" color="text.secondary">
                       {forecastSummary.change > 0 ? '+' : ''}{forecastSummary.changePct.toFixed(1)}%
                     </Typography>
                   </Box>
                   {forecastSummary.trend === 'increasing' ? (
-                    <TrendingUp sx={{ fontSize: 50, opacity: 0.7 }} />
+                    <TrendingUp sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                   ) : forecastSummary.trend === 'decreasing' ? (
-                    <TrendingDown sx={{ fontSize: 50, opacity: 0.7 }} />
+                    <TrendingDown sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                   ) : (
-                    <Timeline sx={{ fontSize: 50, opacity: 0.7 }} />
+                    <Timeline sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                   )}
                 </Box>
               </CardContent>
@@ -407,29 +400,29 @@ const CTRForecast: React.FC = () => {
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+            <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Forecast Period</Typography>
-                    <Typography variant="h3" fontWeight={700}>{forecastPeriod}</Typography>
-                    <Typography variant="caption">days ahead</Typography>
+                    <Typography variant="body2" color="text.secondary">Forecast Period</Typography>
+                    <Typography variant="h3" fontWeight={700} color="text.primary">{forecastPeriod}</Typography>
+                    <Typography variant="caption" color="text.secondary">days ahead</Typography>
                   </Box>
-                  <CalendarToday sx={{ fontSize: 50, opacity: 0.7 }} />
+                  <CalendarToday sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', color: 'white' }}>
+            <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Confidence</Typography>
-                    <Typography variant="h3" fontWeight={700}>{(forecastSummary.confidence * 100).toFixed(0)}%</Typography>
+                    <Typography variant="body2" color="text.secondary">Confidence</Typography>
+                    <Typography variant="h3" fontWeight={700} color="text.primary">{(forecastSummary.confidence * 100).toFixed(0)}%</Typography>
                   </Box>
-                  <Insights sx={{ fontSize: 50, opacity: 0.7 }} />
+                  <Insights sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                 </Box>
               </CardContent>
             </Card>

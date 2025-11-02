@@ -281,10 +281,10 @@ const SpendForecast: React.FC = () => {
     const behindCampaigns = campaignPacing.filter(c => c.pacing_status === 'behind');
 
     // 1. DESCRIPTIVE: Summary of spend and budget state
-    const descriptive = `Spend Forecast Overview:\n• Total spent to date: $${totalSpent.toLocaleString()} (${utilizationPct.toFixed(1)}% of budget)\n• Monthly budget: $${totalBudget.toLocaleString()}\n• Budget remaining: $${budgetRemaining.toLocaleString()}\n• Current pacing: ${pacingPct.toFixed(0)}% (${status.toUpperCase()})\n\nPacing Breakdown:\n• ${pacingSummary.ahead} campaigns pacing ahead\n• ${pacingSummary.behind} campaigns pacing behind\n• ${pacingSummary.onTrack} campaigns on track\n\nBurn Rate Analysis:\n• Daily spend: $${dailyBurnRate.toFixed(0)}/day\n• Target rate: $${targetDailyRate.toFixed(0)}/day\n• Forecasted EOM spend: $${totalForecasted.toLocaleString()}`;
+    const descriptive = `Spend Forecast Overview:\n• Total spent to date: ₹${totalSpent.toLocaleString()} (${utilizationPct.toFixed(1)}% of budget)\n• Monthly budget: ₹${totalBudget.toLocaleString()}\n• Budget remaining: ₹${budgetRemaining.toLocaleString()}\n• Current pacing: ${pacingPct.toFixed(0)}% (${status.toUpperCase()})\n\nPacing Breakdown:\n• ${pacingSummary.ahead} campaigns pacing ahead\n• ${pacingSummary.behind} campaigns pacing behind\n• ${pacingSummary.onTrack} campaigns on track\n\nBurn Rate Analysis:\n• Daily spend: ₹${dailyBurnRate.toFixed(0)}/day\n• Target rate: ₹${targetDailyRate.toFixed(0)}/day\n• Forecasted EOM spend: ₹${totalForecasted.toLocaleString()}`;
 
     // 2. DIAGNOSTIC: Root cause of pacing issues
-    let diagnostic = `Root Cause Analysis:\n\nBudget Pacing Drivers:\n• Pacing ${status === 'ahead' ? 'ahead' : status === 'behind' ? 'behind' : 'on track'} at ${pacingPct.toFixed(0)}%\n• Daily burn rate ${dailyBurnRate > targetDailyRate ? 'exceeds' : dailyBurnRate < targetDailyRate ? 'below' : 'matches'} target ($${dailyBurnRate.toFixed(0)} vs $${targetDailyRate.toFixed(0)})\n• Budget utilization: ${utilizationPct.toFixed(1)}% consumed\n\nCampaign-Level Analysis:`;
+    let diagnostic = `Root Cause Analysis:\n\nBudget Pacing Drivers:\n• Pacing ${status === 'ahead' ? 'ahead' : status === 'behind' ? 'behind' : 'on track'} at ${pacingPct.toFixed(0)}%\n• Daily burn rate ${dailyBurnRate > targetDailyRate ? 'exceeds' : dailyBurnRate < targetDailyRate ? 'below' : 'matches'} target (₹${dailyBurnRate.toFixed(0)} vs ₹${targetDailyRate.toFixed(0)})\n• Budget utilization: ${utilizationPct.toFixed(1)}% consumed\n\nCampaign-Level Analysis:`;
 
     if (pacingSummary.ahead > 0) {
       const avgOverpacing = aheadCampaigns.reduce((sum, c) => sum + (c.pacing_pct - 100), 0) / aheadCampaigns.length;
@@ -297,12 +297,12 @@ const SpendForecast: React.FC = () => {
     }
 
     // 3. PREDICTIVE: Forecast budget outcomes
-    let predictive = `Performance Forecast:\n\nEnd-of-Month Projections:\n• Forecasted total spend: $${totalForecasted.toLocaleString()}\n• Budget ${totalForecasted > totalBudget ? 'overrun' : totalForecasted < totalBudget * 0.95 ? 'underutilization' : 'on target'}: $${Math.abs(totalBudget - totalForecasted).toLocaleString()}\n• Projected utilization: ${((totalForecasted / totalBudget) * 100).toFixed(1)}%\n\nRisk Assessment:`;
+    let predictive = `Performance Forecast:\n\nEnd-of-Month Projections:\n• Forecasted total spend: ₹${totalForecasted.toLocaleString()}\n• Budget ${totalForecasted > totalBudget ? 'overrun' : totalForecasted < totalBudget * 0.95 ? 'underutilization' : 'on target'}: ₹${Math.abs(totalBudget - totalForecasted).toLocaleString()}\n• Projected utilization: ${((totalForecasted / totalBudget) * 100).toFixed(1)}%\n\nRisk Assessment:`;
 
     if (projectedOverrun > 0) {
-      predictive += `\n• ⚠️ Budget overrun risk: $${projectedOverrun.toLocaleString()} (${((projectedOverrun / totalBudget) * 100).toFixed(0)}% over)\n• At current pace, campaigns will exhaust budgets in ${Math.round(daysRemaining * 0.8)} days\n• Requires immediate spend throttling to avoid overspend`;
+      predictive += `\n• ⚠️ Budget overrun risk: ₹${projectedOverrun.toLocaleString()} (${((projectedOverrun / totalBudget) * 100).toFixed(0)}% over)\n• At current pace, campaigns will exhaust budgets in ${Math.round(daysRemaining * 0.8)} days\n• Requires immediate spend throttling to avoid overspend`;
     } else if (projectedUnderutilization > 0) {
-      predictive += `\n• Budget underutilization: $${projectedUnderutilization.toLocaleString()} unused (${((projectedUnderutilization / totalBudget) * 100).toFixed(0)}% waste)\n• Opportunity cost of ${Math.round(projectedUnderutilization * 0.2)} potential conversions\n• Requires budget reallocation or bid increases`;
+      predictive += `\n• Budget underutilization: ₹${projectedUnderutilization.toLocaleString()} unused (${((projectedUnderutilization / totalBudget) * 100).toFixed(0)}% waste)\n• Opportunity cost of ${Math.round(projectedUnderutilization * 0.2)} potential conversions\n• Requires budget reallocation or bid increases`;
     } else {
       predictive += `\n• Pacing is optimal - expect full budget utilization\n• Stable spend trajectory through month-end\n• Minimal waste or overrun risk`;
     }
@@ -311,10 +311,10 @@ const SpendForecast: React.FC = () => {
     const recommendations: string[] = [];
 
     if (projectedOverrun > 0) {
-      recommendations.push(`1. URGENT: Reduce bids by 15-20% on ${pacingSummary.ahead} ahead campaigns to prevent $${projectedOverrun.toLocaleString()} overrun`);
-      recommendations.push(`2. Set daily budget caps at $${(targetDailyRate * 0.9).toFixed(0)}/day per campaign to control spend`);
+      recommendations.push(`1. URGENT: Reduce bids by 15-20% on ${pacingSummary.ahead} ahead campaigns to prevent ₹${projectedOverrun.toLocaleString()} overrun`);
+      recommendations.push(`2. Set daily budget caps at ₹${(targetDailyRate * 0.9).toFixed(0)}/day per campaign to control spend`);
     } else if (projectedUnderutilization > totalBudget * 0.1) {
-      recommendations.push(`1. Increase bids by 10-15% on ${pacingSummary.behind} behind campaigns to utilize $${projectedUnderutilization.toLocaleString()} remaining budget`);
+      recommendations.push(`1. Increase bids by 10-15% on ${pacingSummary.behind} behind campaigns to utilize ₹${projectedUnderutilization.toLocaleString()} remaining budget`);
       recommendations.push(`2. Expand targeting or add new keywords to increase impression share`);
     } else {
       recommendations.push(`1. Maintain current pacing - spending is optimized for full utilization`);
@@ -322,17 +322,17 @@ const SpendForecast: React.FC = () => {
 
     if (pacingSummary.ahead > 0) {
       const wasted = aheadCampaigns.reduce((sum, c) => sum + (c.forecasted_eom_spend - c.monthly_budget), 0);
-      recommendations.push(`3. Reallocate $${Math.abs(wasted).toFixed(0)} from overspent campaigns to underperforming ones`);
+      recommendations.push(`3. Reallocate ₹${Math.abs(wasted).toFixed(0)} from overspent campaigns to underperforming ones`);
     }
 
     if (pacingSummary.behind > 0 && pacingSummary.ahead === 0) {
       recommendations.push(`3. Launch new ad groups or campaigns to absorb unused budget capacity`);
     }
 
-    recommendations.push(`4. Monitor daily spend at $${targetDailyRate.toFixed(0)}/day benchmark - adjust bids if variance exceeds 15%`);
+    recommendations.push(`4. Monitor daily spend at ₹${targetDailyRate.toFixed(0)}/day benchmark - adjust bids if variance exceeds 15%`);
 
     const expectedSavings = projectedOverrun > 0 ? projectedOverrun * 0.8 : projectedUnderutilization * 0.5;
-    const prescriptive = `Strategic Recommendations:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact:\n• Budget optimization: $${expectedSavings.toLocaleString()} ${projectedOverrun > 0 ? 'savings' : 'revenue opportunity'}\n• Utilization improvement: ${projectedOverrun > 0 ? 'prevent overrun' : `+${((projectedUnderutilization / totalBudget) * 100).toFixed(0)}% utilization`}\n• Confidence: 89%`;
+    const prescriptive = `Strategic Recommendations:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact:\n• Budget optimization: ₹${expectedSavings.toLocaleString()} ${projectedOverrun > 0 ? 'savings' : 'revenue opportunity'}\n• Utilization improvement: ${projectedOverrun > 0 ? 'prevent overrun' : `+${((projectedUnderutilization / totalBudget) * 100).toFixed(0)}% utilization`}\n• Confidence: 89%`;
 
     return {
       descriptive: {
@@ -374,42 +374,35 @@ const SpendForecast: React.FC = () => {
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Spent to Date</Typography>
-                  <Typography variant="h3" fontWeight={700}>${pacingSummary.totalSpent.toLocaleString()}</Typography>
-                  <Typography variant="caption">{pacingSummary.utilizationPct.toFixed(1)}% of budget</Typography>
+                  <Typography variant="body2" color="text.secondary">Spent to Date</Typography>
+                  <Typography variant="h3" fontWeight={700} color="text.primary">₹{pacingSummary.totalSpent.toLocaleString()}</Typography>
+                  <Typography variant="caption" color="text.secondary">{pacingSummary.utilizationPct.toFixed(1)}% of budget</Typography>
                 </Box>
-                <AttachMoney sx={{ fontSize: 50, opacity: 0.7 }} />
+                <AttachMoney sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{
-            background: pacingSummary.status === 'ahead'
-              ? 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
-              : pacingSummary.status === 'behind'
-              ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-              : 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-            color: 'white'
-          }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Pacing Status</Typography>
-                  <Typography variant="h3" fontWeight={700}>{pacingSummary.pacingPct.toFixed(0)}%</Typography>
-                  <Typography variant="caption">{pacingSummary.status.toUpperCase()}</Typography>
+                  <Typography variant="body2" color="text.secondary">Pacing Status</Typography>
+                  <Typography variant="h3" fontWeight={700} color="text.primary">{pacingSummary.pacingPct.toFixed(0)}%</Typography>
+                  <Typography variant="caption" color="text.secondary">{pacingSummary.status.toUpperCase()}</Typography>
                 </Box>
                 {pacingSummary.status === 'ahead' ? (
-                  <TrendingUp sx={{ fontSize: 50, opacity: 0.7 }} />
+                  <TrendingUp sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                 ) : pacingSummary.status === 'behind' ? (
-                  <TrendingDown sx={{ fontSize: 50, opacity: 0.7 }} />
+                  <TrendingDown sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                 ) : (
-                  <CheckCircle sx={{ fontSize: 50, opacity: 0.7 }} />
+                  <CheckCircle sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                 )}
               </Box>
             </CardContent>
@@ -417,31 +410,31 @@ const SpendForecast: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Forecasted EOM Spend</Typography>
-                  <Typography variant="h3" fontWeight={700}>${pacingSummary.totalForecasted.toLocaleString()}</Typography>
-                  <Typography variant="caption">
+                  <Typography variant="body2" color="text.secondary">Forecasted EOM Spend</Typography>
+                  <Typography variant="h3" fontWeight={700} color="text.primary">₹{pacingSummary.totalForecasted.toLocaleString()}</Typography>
+                  <Typography variant="caption" color="text.secondary">
                     {((pacingSummary.totalForecasted / pacingSummary.totalBudget) * 100).toFixed(0)}% of budget
                   </Typography>
                 </Box>
-                <Timeline sx={{ fontSize: 50, opacity: 0.7 }} />
+                <Timeline sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Monthly Budget</Typography>
-                  <Typography variant="h3" fontWeight={700}>${pacingSummary.totalBudget.toLocaleString()}</Typography>
+                  <Typography variant="body2" color="text.secondary">Monthly Budget</Typography>
+                  <Typography variant="h3" fontWeight={700} color="text.primary">₹{pacingSummary.totalBudget.toLocaleString()}</Typography>
                 </Box>
-                <CalendarToday sx={{ fontSize: 50, opacity: 0.7 }} />
+                <CalendarToday sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
@@ -687,10 +680,10 @@ const SpendForecast: React.FC = () => {
                   return `${date.getMonth() + 1}/${date.getDate()}`;
                 }}
               />
-              <YAxis yAxisId="left" label={{ value: 'Cumulative Spend ($)', angle: -90, position: 'insideLeft' }} />
+              <YAxis yAxisId="left" label={{ value: 'Cumulative Spend (₹)', angle: -90, position: 'insideLeft' }} />
               <Tooltip
                 labelFormatter={(value) => `Date: ${value}`}
-                formatter={(value: any) => `$${value.toFixed(0)}`}
+                formatter={(value: any) => `₹${value.toFixed(0)}`}
               />
               <Legend />
 
@@ -754,8 +747,8 @@ const SpendForecast: React.FC = () => {
                 {campaignPacing.map((campaign) => (
                   <TableRow key={campaign.campaign_id} hover>
                     <TableCell>{campaign.campaign_name}</TableCell>
-                    <TableCell align="right">${campaign.monthly_budget.toLocaleString()}</TableCell>
-                    <TableCell align="right">${campaign.spent_to_date.toLocaleString()}</TableCell>
+                    <TableCell align="right">₹{campaign.monthly_budget.toLocaleString()}</TableCell>
+                    <TableCell align="right">₹{campaign.spent_to_date.toLocaleString()}</TableCell>
                     <TableCell align="center">
                       <Box sx={{ width: '100%', mr: 1 }}>
                         <LinearProgress
@@ -776,7 +769,7 @@ const SpendForecast: React.FC = () => {
                         color={campaign.pacing_status === 'ahead' ? 'warning' : campaign.pacing_status === 'behind' ? 'info' : 'success'}
                       />
                     </TableCell>
-                    <TableCell align="right">${campaign.forecasted_eom_spend.toLocaleString()}</TableCell>
+                    <TableCell align="right">₹{campaign.forecasted_eom_spend.toLocaleString()}</TableCell>
                     <TableCell align="center">
                       <Chip
                         label={campaign.pacing_status.toUpperCase()}
