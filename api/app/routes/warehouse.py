@@ -1011,38 +1011,58 @@ def get_meta_campaigns_from_db(
     date_range: str = Query("last_30d", description="Date range (not used for campaigns, but kept for API consistency)")
 ):
     """
-    Get Meta campaigns from database (avoids API rate limits)
-    
-    Returns campaigns stored in meta_campaigns table
+    Get Meta campaigns from database with performance metrics
+
+    Returns campaigns with aggregated performance data from meta_insights
     """
     try:
         conn = sqlite3.connect(str(WAREHOUSE_DB))
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        
+
         cursor.execute("""
-            SELECT 
-                campaign_id,
-                account_id,
-                customer_id,
-                name,
-                status,
-                effective_status,
-                objective,
-                daily_budget,
-                lifetime_budget,
-                budget_remaining,
-                bid_strategy,
-                buying_type,
-                created_time,
-                updated_time,
-                start_time,
-                stop_time
-            FROM meta_campaigns
-            WHERE customer_id = ?
-            ORDER BY updated_time DESC
+            SELECT
+                c.campaign_id,
+                c.account_id,
+                c.customer_id,
+                c.name,
+                c.status,
+                c.effective_status,
+                c.objective,
+                c.daily_budget,
+                c.lifetime_budget,
+                c.budget_remaining,
+                c.bid_strategy,
+                c.buying_type,
+                c.created_time,
+                c.updated_time,
+                c.start_time,
+                c.stop_time,
+                COALESCE(SUM(i.impressions), 0) as impressions,
+                COALESCE(SUM(i.clicks), 0) as clicks,
+                COALESCE(SUM(i.spend), 0) as cost,
+                COALESCE(SUM(i.conversions), 0) as conversions,
+                COALESCE(SUM(i.purchase_value), 0) as conversion_value,
+                CASE
+                    WHEN SUM(i.impressions) > 0
+                    THEN (CAST(SUM(i.clicks) AS FLOAT) / SUM(i.impressions)) * 100
+                    ELSE 0
+                END as ctr,
+                CASE
+                    WHEN SUM(i.clicks) > 0
+                    THEN SUM(i.spend) / SUM(i.clicks)
+                    ELSE 0
+                END as cpc
+            FROM meta_campaigns c
+            LEFT JOIN meta_insights i ON c.campaign_id = i.campaign_id AND i.customer_id = c.customer_id
+            WHERE c.customer_id = ?
+            GROUP BY c.campaign_id, c.name, c.status, c.effective_status, c.objective,
+                     c.daily_budget, c.lifetime_budget, c.budget_remaining, c.bid_strategy,
+                     c.buying_type, c.created_time, c.updated_time, c.start_time, c.stop_time,
+                     c.account_id, c.customer_id
+            ORDER BY c.updated_time DESC
         """, (customer_id,))
-        
+
         campaigns = []
         for row in cursor.fetchall():
             campaigns.append({
@@ -1061,16 +1081,23 @@ def get_meta_campaigns_from_db(
                 "created_time": row["created_time"],
                 "updated_time": row["updated_time"],
                 "start_time": row["start_time"],
-                "stop_time": row["stop_time"]
+                "stop_time": row["stop_time"],
+                "impressions": int(row["impressions"]),
+                "clicks": int(row["clicks"]),
+                "cost": float(row["cost"]),
+                "conversions": float(row["conversions"]),
+                "conversion_value": float(row["conversion_value"]),
+                "ctr": float(row["ctr"]),
+                "cpc": float(row["cpc"])
             })
-        
+
         conn.close()
-        
+
         return {
             "campaigns": campaigns,
             "total_count": len(campaigns)
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error querying Meta campaigns: {str(e)}")
 

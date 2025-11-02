@@ -146,12 +146,12 @@ const CampaignsDashboard: React.FC = () => {
               status: camp.status,
               platform: 'Meta Ads',
               metrics: {
-                clicks: 0,
-                impressions: 0,
-                cost: 0,
-                conversions: 0,
-                ctr: 0,
-                avg_cpc: 0,
+                clicks: camp.clicks || 0,
+                impressions: camp.impressions || 0,
+                cost: camp.cost || 0,
+                conversions: camp.conversions || 0,
+                ctr: camp.ctr || 0,
+                avg_cpc: camp.cpc || 0,
               },
             }));
             mappedCampaigns.push(...metaCampaigns);

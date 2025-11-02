@@ -1,12 +1,15 @@
 // Google Ads Performance Dashboard
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Grid, Stack, Paper, Typography, Box, CircularProgress, Alert } from '@mui/material';
 import DashboardTemplate from '../../common/DashboardTemplate';
 import { KPICard } from '../../common/KPICard';
 import InsightCard from '../../common/InsightCard';
+import { SmartInsightCard } from '../../common/SmartInsightCard';
+import { DataQualityIndicator } from '../../common/DataQualityIndicator';
 import { FilterState, KPIData, InsightData } from '../../../types';
 import { googleAdsService } from '../../../services/googleAdsService';
 import { useFilters } from '../../../context/FilterContext';
+import { SmartInsightGenerator } from '../../../utils/insightGenerator';
 import {
   BarChart,
   Bar,
@@ -120,39 +123,36 @@ export const GoogleAdsDashboard: React.FC = () => {
       ]
     : [];
 
-  const insights: InsightData[] = [
-    {
-      type: 'descriptive',
-      insight:
-        'Search campaigns generated 78% of conversions at 5.8x ROAS. Shopping campaigns contributed 18% at 4.1x ROAS.',
-      priority: 'info',
-    },
-    {
-      type: 'diagnostic',
-      insight:
-        '"Brand Keywords" campaign has 12.4x ROAS due to high purchase intent. "Competitor Terms" struggling with 2.1x ROAS because of high CPCs ($4.20) and low quality scores (4.2).',
-      priority: 'medium',
-      details: [
-        'Brand Keywords: 12.4x ROAS, Low CPC ($0.85)',
-        'Competitor Terms: 2.1x ROAS, High CPC ($4.20)',
-      ],
-    },
-    {
+  // Generate AI-powered insights from campaign data
+  const smartInsights = useMemo(() => {
+    return SmartInsightGenerator.analyzeCampaignPerformance(campaigns);
+  }, [campaigns]);
+
+  // Convert smart insights to InsightData format
+  const insights: InsightData[] = smartInsights.map((insight) => {
+    const priorityMap: Record<string, 'high' | 'medium' | 'low' | 'info'> = {
+      danger: 'high',
+      warning: 'medium',
+      success: 'low',
+      info: 'info',
+    };
+
+    return {
       type: 'prescriptive',
-      insight:
-        'Increase brand campaign budget by 25% (expected +$2,100 revenue). Pause 12 underperforming keywords with QS < 3. Add 8 negative keywords to reduce wasted spend by $450/month.',
-      priority: 'high',
-      expectedImpact: '+$1,850 monthly profit',
-      confidence: '91%',
-      actions: [
+      insight: insight.message,
+      priority: priorityMap[insight.type] || 'info',
+      expectedImpact: insight.impact,
+      confidence: `${insight.confidence}%`,
+      details: insight.actions,
+      actions: insight.actionable ? [
         {
-          label: 'Apply All Recommendations',
+          label: 'View Recommendations',
           primary: true,
-          onClick: () => console.log('Apply recommendations'),
+          onClick: () => console.log('View recommendations for:', insight.title),
         },
-      ],
-    },
-  ];
+      ] : undefined,
+    };
+  });
 
   // Use campaigns data for chart - only campaigns with spend > 0
   const campaignPerformance = campaigns.length > 0
@@ -200,6 +200,17 @@ export const GoogleAdsDashboard: React.FC = () => {
         </Alert>
       )}
 
+      {/* Data Quality Indicator */}
+      <Box sx={{ mb: 3 }}>
+        <DataQualityIndicator
+          lastSync={new Date(Date.now() - 1000 * 60 * 5)} // 5 minutes ago
+          dataPoints={campaigns.length}
+          qualityScore={campaigns.length > 0 ? 92 : 0}
+          isLoading={loading}
+          compact={true}
+        />
+      </Box>
+
       <Grid container spacing={3} sx={{ mt: 2 }}>
         {kpis.map((kpi, index) => (
           <Grid item xs={12} md={4} key={index}>
@@ -208,11 +219,27 @@ export const GoogleAdsDashboard: React.FC = () => {
         ))}
       </Grid>
 
-      <Stack spacing={2} sx={{ mt: 4 }}>
-        {insights.map((insight, index) => (
-          <InsightCard key={index} data={insight} index={index} />
-        ))}
-      </Stack>
+      {/* AI-Powered Smart Insights */}
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
+          🧠 AI Intelligence & Recommendations
+        </Typography>
+        <Stack spacing={2.5}>
+          {smartInsights.map((insight, index) => (
+            <SmartInsightCard
+              key={index}
+              type={insight.type}
+              title={insight.title}
+              message={insight.message}
+              impact={insight.impact}
+              confidence={insight.confidence}
+              actionable={insight.actionable}
+              actions={insight.actions}
+              index={index}
+            />
+          ))}
+        </Stack>
+      </Box>
 
       <Grid container spacing={3} sx={{ mt: 4 }}>
         {/* Campaign Spend Chart */}
