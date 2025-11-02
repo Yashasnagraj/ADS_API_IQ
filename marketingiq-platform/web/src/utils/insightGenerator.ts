@@ -434,7 +434,7 @@ export class SmartInsightGenerator {
         type: 'success',
         title: 'Scalable High-Performance Website',
         message: `${sessions.toLocaleString()} monthly sessions converting at ${conversion_rate.toFixed(2)}% = strong foundation for growth. You have the traffic volume and conversion efficiency to scale profitably.`,
-        impact: 'Ready to scale: each 1,000 additional sessions = ~${Math.floor(1000 * (conversion_rate / 100))} conversions',
+        impact: `Ready to scale: each 1,000 additional sessions = ~${Math.floor(1000 * (conversion_rate / 100))} conversions`,
         confidence: 93,
         actionable: true,
         actions: [
