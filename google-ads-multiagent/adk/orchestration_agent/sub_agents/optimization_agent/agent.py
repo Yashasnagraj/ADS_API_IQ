@@ -11,7 +11,7 @@ import json
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from data_agent.db_client import DatabaseClient
+from data_agent.warehouse_client import WarehouseClient
 
 
 class OptimizationMode(Enum):
@@ -37,7 +37,7 @@ class OptimizationAgent:
         self.data_agent = data_agent
         self.insight_agent = insight_agent
         self.name = "OptimizationAgent"
-        self.db_client = DatabaseClient()
+        self.warehouse_client = WarehouseClient()
 
         # Safety settings
         self.mode = OptimizationMode.DRY_RUN  # Default to safe mode
@@ -98,9 +98,19 @@ class OptimizationAgent:
             Bid optimization recommendations
         """
         try:
-            # Fetch campaign and keyword data
-            campaigns_data = self.db_client.fetch_campaigns()
-            keywords_data = self.db_client.fetch_keywords()
+            # Validate customer_id
+            if not customer_id:
+                return {
+                    'status': 'error',
+                    'message': 'customer_id is required for bid optimization'
+                }
+
+            # Fetch campaign and keyword data for specific customer
+            campaigns_data = self.warehouse_client.fetch_campaigns(customer_id=int(customer_id))
+
+            # Note: WarehouseClient doesn't have fetch_keywords, so we'll use campaigns for now
+            # Keywords optimization can be added when keyword table is populated
+            keywords_data = {'keywords': []}
 
             if "error" in campaigns_data or "error" in keywords_data:
                 return {
@@ -221,8 +231,15 @@ class OptimizationAgent:
             Budget optimization recommendations
         """
         try:
-            # Fetch campaign performance data
-            campaigns_data = self.db_client.fetch_campaigns()
+            # Validate customer_id
+            if not customer_id:
+                return {
+                    'status': 'error',
+                    'message': 'customer_id is required for budget optimization'
+                }
+
+            # Fetch campaign performance data for specific customer
+            campaigns_data = self.warehouse_client.fetch_campaigns(customer_id=int(customer_id))
 
             if "error" in campaigns_data:
                 return {
@@ -335,8 +352,15 @@ class OptimizationAgent:
             Budget allocation recommendations
         """
         try:
-            # Fetch campaign data
-            campaigns_data = self.db_client.fetch_campaigns()
+            # Validate customer_id
+            if not customer_id:
+                return {
+                    'status': 'error',
+                    'message': 'customer_id is required for budget allocation recommendation'
+                }
+
+            # Fetch campaign data for specific customer
+            campaigns_data = self.warehouse_client.fetch_campaigns(customer_id=int(customer_id))
 
             if "error" in campaigns_data:
                 return {
@@ -478,53 +502,45 @@ class OptimizationAgent:
             Keyword optimization recommendations
         """
         try:
-            # Fetch keyword and search term data
-            keywords_data = self.db_client.fetch_keywords()
-
-            if "error" in keywords_data:
+            # Validate customer_id
+            if not customer_id:
                 return {
                     'status': 'error',
-                    'message': 'Failed to fetch keyword data'
+                    'message': 'customer_id is required for keyword optimization'
                 }
 
-            keywords = pd.DataFrame(keywords_data.get('keywords', []))
+            # For now, keyword optimization will use campaign-level data
+            # When keyword table is populated, we can add granular keyword analysis
+            campaigns_data = self.warehouse_client.fetch_campaigns(customer_id=int(customer_id))
+
+            if "error" in campaigns_data:
+                return {
+                    'status': 'error',
+                    'message': 'Failed to fetch campaign data for keyword optimization'
+                }
+
+            campaigns = pd.DataFrame(campaigns_data.get('campaigns', []))
             recommendations = []
 
-            # Pause low-performing keywords
-            if not keywords.empty:
-                low_performers = keywords[
-                    (keywords['quality_score'] < self.thresholds['min_quality_score']) &
-                    (keywords['conversions'] == 0) &
-                    (keywords['cost'] > 50)
+            # Identify low-performing campaigns that need keyword review
+            if not campaigns.empty:
+                low_performers = campaigns[
+                    (campaigns['ctr'] < 1.0) &
+                    (campaigns['conversions'] == 0) &
+                    (campaigns['cost'] > 50)
                 ]
 
-                for _, keyword in low_performers.iterrows():
+                for _, campaign in low_performers.iterrows():
                     recommendations.append({
-                        'type': 'pause_keyword',
-                        'keyword': keyword.get('text', 'Unknown'),
-                        'reason': f'Low QS ({keyword["quality_score"]}), no conversions, ${keyword["cost"]:.2f} spent',
-                        'expected_savings': round(keyword['cost'], 2)
+                        'type': 'review_campaign_keywords',
+                        'campaign': campaign['name'],
+                        'reason': f'Low CTR ({campaign["ctr"]:.2f}%), no conversions, ${campaign["cost"]:.2f} spent',
+                        'expected_savings': round(campaign['cost'] * 0.3, 2),  # Estimate 30% savings
+                        'action': 'Review and add negative keywords, pause low-quality keywords'
                     })
 
-            # Add negative keywords
-            if add_negative_keywords:
-                # Fetch search terms for negative keyword analysis
-                search_terms_response = self.db_client.fetch_search_terms()
-
-                if "error" not in search_terms_response:
-                    search_terms = search_terms_response.get('search_terms', [])
-
-                    # Identify wasted spend terms
-                    for term in search_terms:
-                        if term.get('conversions', 0) == 0 and term.get('cost', 0) > 25:
-                            recommendations.append({
-                                'type': 'add_negative_keyword',
-                                'keyword': term.get('search_term'),
-                                'match_type': 'EXACT',
-                                'wasted_spend': round(term.get('cost', 0), 2),
-                                'impressions': term.get('impressions', 0),
-                                'reason': 'No conversions with significant spend'
-                            })
+            # Note: When keyword and search_terms tables are populated,
+            # we can add granular keyword pause and negative keyword recommendations
 
             # Apply changes based on mode
             result = self._apply_optimizations(recommendations, 'keyword')

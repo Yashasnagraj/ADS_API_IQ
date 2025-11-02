@@ -13,7 +13,7 @@ warnings.filterwarnings('ignore')
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from data_agent.db_client import DatabaseClient
+from data_agent.warehouse_client import WarehouseClient
 
 
 class ForecastingAgent:
@@ -30,7 +30,7 @@ class ForecastingAgent:
         """
         self.data_agent = data_agent
         self.name = "ForecastingAgent"
-        self.db_client = DatabaseClient()
+        self.warehouse_client = WarehouseClient()
 
         # ML models cache
         self.models = {}
@@ -60,119 +60,59 @@ class ForecastingAgent:
             CTR predictions
         """
         try:
-            # Fetch ML features
-            ml_features = self.db_client.fetch_ml_features(entity_type="campaign")
-
-            if "error" in ml_features:
-                # Fall back to simple forecasting
-                campaigns_data = self.db_client.fetch_campaigns()
-
-                if "error" in campaigns_data:
-                    return {
-                        'status': 'error',
-                        'message': 'Failed to fetch data for CTR prediction'
-                    }
-
-                campaigns = pd.DataFrame(campaigns_data.get('campaigns', []))
-
-                if campaigns.empty:
-                    return {
-                        'status': 'success',
-                        'predictions': [],
-                        'message': 'No campaigns found'
-                    }
-
-                # Simple moving average prediction
-                predictions = []
-                for _, campaign in campaigns.iterrows():
-                    current_ctr = campaign.get('ctr', 0)
-
-                    # Simple trend estimation
-                    if current_ctr > 2.5:
-                        trend = -0.05  # Likely to decrease
-                    elif current_ctr < 1.0:
-                        trend = 0.05  # Likely to increase
-                    else:
-                        trend = 0  # Stable
-
-                    predicted_ctr = current_ctr + (trend * forecast_days)
-                    predicted_ctr = max(0.1, min(10.0, predicted_ctr))  # Bound between 0.1% and 10%
-
-                    predictions.append({
-                        'campaign': campaign['name'],
-                        'current_ctr': round(current_ctr, 2),
-                        'predicted_ctr': round(predicted_ctr, 2),
-                        'change_percent': round(trend * forecast_days / current_ctr * 100, 1) if current_ctr > 0 else 0,
-                        'confidence': 'low',
-                        'method': 'simple_trend'
-                    })
-
+            # Validate customer_id
+            if not customer_id:
                 return {
-                    'status': 'success',
-                    'predictions': predictions,
-                    'forecast_period': f'{forecast_days} days',
-                    'generated_at': datetime.now().isoformat()
+                    'status': 'error',
+                    'message': 'customer_id is required for CTR prediction'
                 }
 
-            # Use ML features for prediction
-            features_df = pd.DataFrame(ml_features.get('features', []))
+            # Note: WarehouseClient doesn't have fetch_ml_features yet
+            # Fall back to campaign-based forecasting
+            campaigns_data = self.warehouse_client.fetch_campaigns(customer_id=int(customer_id))
 
-            if features_df.empty:
+            if "error" in campaigns_data:
+                return {
+                    'status': 'error',
+                    'message': 'Failed to fetch data for CTR prediction'
+                }
+
+            campaigns = pd.DataFrame(campaigns_data.get('campaigns', []))
+
+            if campaigns.empty:
                 return {
                     'status': 'success',
                     'predictions': [],
-                    'message': 'No features available for ML prediction'
+                    'message': 'No campaigns found for this customer'
                 }
 
-            if use_ml:
-                # Train ML model if not cached
-                if 'ctr_model' not in self.models:
-                    self._train_ctr_model(features_df)
+            # Simple moving average prediction
+            predictions = []
+            for _, campaign in campaigns.iterrows():
+                current_ctr = campaign.get('ctr', 0)
 
-                # Prepare features for prediction
-                feature_cols = [col for col in features_df.columns if col not in ['campaign_id', 'campaign_name', 'ctr']]
-                X = features_df[feature_cols].fillna(0)
+                # Simple trend estimation
+                if current_ctr > 2.5:
+                    trend = -0.05  # Likely to decrease
+                elif current_ctr < 1.0:
+                    trend = 0.05  # Likely to increase
+                else:
+                    trend = 0  # Stable
 
-                # Make predictions
-                if 'ctr_model' in self.models and self.models['ctr_model']:
-                    predicted_ctrs = self.models['ctr_model'].predict(X)
+                predicted_ctr = current_ctr + (trend * forecast_days)
+                predicted_ctr = max(0.1, min(10.0, predicted_ctr))  # Bound between 0.1% and 10%
 
-                    predictions = []
-                    for idx, row in features_df.iterrows():
-                        predicted_ctr = predicted_ctrs[idx]
-                        current_ctr = row.get('ctr', 0)
+                predictions.append({
+                    'campaign': campaign['name'],
+                    'current_ctr': round(current_ctr, 2),
+                    'predicted_ctr': round(predicted_ctr, 2),
+                    'change_percent': round(trend * forecast_days / current_ctr * 100, 1) if current_ctr > 0 else 0,
+                    'confidence': 'medium',
+                    'method': 'simple_trend'
+                })
 
-                        # Apply time decay factor
-                        time_factor = 1 + (forecast_days * 0.01)  # 1% change per day
-                        predicted_ctr *= time_factor
-
-                        # Bound predictions
-                        predicted_ctr = max(0.1, min(10.0, predicted_ctr))
-
-                        predictions.append({
-                            'campaign': row.get('campaign_name', f'Campaign_{row.get("campaign_id", idx)}'),
-                            'current_ctr': round(current_ctr, 2),
-                            'predicted_ctr': round(predicted_ctr, 2),
-                            'change_percent': round((predicted_ctr - current_ctr) / current_ctr * 100, 1) if current_ctr > 0 else 0,
-                            'confidence': self._calculate_confidence(row, 'ctr'),
-                            'method': 'random_forest',
-                            'factors': {
-                                'impressions_impact': round(row.get('impressions_sum', 0) / 10000, 2),
-                                'quality_impact': 'positive' if row.get('ctr', 0) > 2 else 'neutral'
-                            }
-                        })
-
-                    return {
-                        'status': 'success',
-                        'predictions': predictions,
-                        'forecast_period': f'{forecast_days} days',
-                        'model_type': 'random_forest',
-                        'model_accuracy': self.models.get('ctr_model_accuracy', 'N/A'),
-                        'generated_at': datetime.now().isoformat()
-                    }
-
-            # Fallback to statistical prediction
-            predictions = self._statistical_ctr_forecast(features_df, forecast_days)
+            # Note: ML-based predictions will be enabled when ml_features table is populated
+            # For now, using statistical trend forecasting
 
             return {
                 'status': 'success',
@@ -208,8 +148,15 @@ class ForecastingAgent:
             Spend forecast
         """
         try:
-            # Fetch campaign performance data
-            campaigns_data = self.db_client.fetch_campaigns()
+            # Validate customer_id
+            if not customer_id:
+                return {
+                    'status': 'error',
+                    'message': 'customer_id is required for spend forecasting'
+                }
+
+            # Fetch campaign performance data for specific customer
+            campaigns_data = self.warehouse_client.fetch_campaigns(customer_id=int(customer_id))
 
             if "error" in campaigns_data:
                 return {
@@ -223,7 +170,7 @@ class ForecastingAgent:
                 return {
                     'status': 'success',
                     'forecast': {},
-                    'message': 'No campaigns found'
+                    'message': 'No campaigns found for this customer'
                 }
 
             # Calculate current spend metrics
@@ -341,8 +288,15 @@ class ForecastingAgent:
             Conversion predictions
         """
         try:
-            # Fetch campaign data
-            campaigns_data = self.db_client.fetch_campaigns()
+            # Validate customer_id
+            if not customer_id:
+                return {
+                    'status': 'error',
+                    'message': 'customer_id is required for conversion prediction'
+                }
+
+            # Fetch campaign data for specific customer
+            campaigns_data = self.warehouse_client.fetch_campaigns(customer_id=int(customer_id))
 
             if "error" in campaigns_data:
                 return {
@@ -356,7 +310,7 @@ class ForecastingAgent:
                 return {
                     'status': 'success',
                     'predictions': [],
-                    'message': 'No campaigns found'
+                    'message': 'No campaigns found for this customer'
                 }
 
             # Apply scenario adjustments if provided
@@ -455,6 +409,13 @@ class ForecastingAgent:
             Scenario analysis results
         """
         try:
+            # Validate customer_id
+            if not customer_id:
+                return {
+                    'status': 'error',
+                    'message': 'customer_id is required for scenario analysis'
+                }
+
             # Default scenarios if none provided
             if not scenarios:
                 scenarios = [

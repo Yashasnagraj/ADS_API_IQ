@@ -277,16 +277,73 @@ def get_top_performers(metric: str = "roas") -> Dict[str, Any]:
 
 
 # Tool functions for Insight Agent
-def analyze_performance_trends(data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def analyze_performance_trends(customer_id: Optional[str] = None, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Analyze performance trends in campaign data.
 
     Args:
+        customer_id: Customer ID filter (required)
         data: Campaign performance data (optional, will fetch if not provided)
 
     Returns:
         Performance trend analysis with INR currency formatting
     """
+    # Validate customer_id
+    if not customer_id:
+        return {
+            'status': 'error',
+            'message': 'customer_id is required for trend analysis',
+            'trends': None
+        }
+
+    # Use warehouse if available
+    if warehouse_client:
+        try:
+            cust_id = int(customer_id) if customer_id and str(customer_id).isdigit() else None
+            campaigns_data = warehouse_client.fetch_campaigns(customer_id=cust_id)
+
+            if "error" in campaigns_data:
+                return campaigns_data
+
+            campaigns = campaigns_data.get("campaigns", [])
+
+            if not campaigns:
+                return {
+                    "status": "success",
+                    "insights": [f"No campaign data found for customer {customer_id}"],
+                    "trends_data": [],
+                    "customer_id": customer_id
+                }
+
+            # Analyze trends from warehouse data
+            insights = []
+            total_clicks = sum(c.get('clicks', 0) for c in campaigns)
+            total_conversions = sum(c.get('conversions', 0) for c in campaigns)
+            total_cost = sum(c.get('cost', 0) for c in campaigns)
+            avg_ctr = sum(c.get('ctr', 0) for c in campaigns) / len(campaigns) if campaigns else 0
+            avg_cpc = total_cost / total_clicks if total_clicks > 0 else 0
+
+            insights.append(f"Total clicks: {total_clicks:,}")
+            insights.append(f"Total conversions: {total_conversions}")
+            insights.append(f"Average CTR: {avg_ctr:.2f}%")
+            insights.append(f"Average CPC: ₹{avg_cpc:.2f}")
+
+            # Identify top performers
+            if campaigns:
+                top_campaign = max(campaigns, key=lambda x: x.get('conversions', 0))
+                insights.append(f"Top campaign: {top_campaign.get('name', 'Unknown')} ({top_campaign.get('conversions', 0)} conversions)")
+
+            return {
+                "status": "success",
+                "customer_id": customer_id,
+                "trends_data": campaigns,
+                "insights": insights
+            }
+        except Exception as e:
+            logger.error(f"Error analyzing trends from warehouse: {e}")
+            return {"error": str(e), "status": "failed"}
+
+    # Fallback to API
     trends = make_api_request("/metrics/trends")
     by_day = make_api_request("/metrics/by-day-of-week")
 
@@ -321,6 +378,7 @@ def analyze_performance_trends(data: Optional[Dict[str, Any]] = None) -> Dict[st
 
         return {
             "status": "success",
+            "customer_id": customer_id,
             "trends_data": trends,
             "day_of_week_performance": by_day,
             "insights": insights if insights else ["Analyzing historical trends for patterns"]
@@ -328,16 +386,83 @@ def analyze_performance_trends(data: Optional[Dict[str, Any]] = None) -> Dict[st
     return {"status": "error", "message": "Failed to fetch trends data"}
 
 
-def detect_anomalies(data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def detect_anomalies(customer_id: Optional[str] = None, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Detect anomalies in campaign performance using real data.
 
     Args:
+        customer_id: Customer ID filter (required)
         data: Campaign performance data (optional)
 
     Returns:
         Detected anomalies and recommendations
     """
+    # Validate customer_id
+    if not customer_id:
+        return {
+            'status': 'error',
+            'message': 'customer_id is required for anomaly detection',
+            'anomalies': []
+        }
+
+    # Use warehouse if available
+    if warehouse_client:
+        try:
+            cust_id = int(customer_id) if customer_id and str(customer_id).isdigit() else None
+            campaigns_data = warehouse_client.fetch_campaigns(customer_id=cust_id)
+
+            if "error" in campaigns_data:
+                return campaigns_data
+
+            campaigns = campaigns_data.get("campaigns", [])
+            anomalies = []
+            recommendations = []
+
+            # Check for campaigns with unusual patterns
+            for campaign in campaigns:
+                ctr = campaign.get('ctr', 0)
+                conversions = campaign.get('conversions', 0)
+                cost = campaign.get('cost', 0)
+                roas = campaign.get('roas', 0)
+
+                # Low CTR detection
+                if ctr < 1.0 and ctr > 0:
+                    anomalies.append({
+                        "type": "low_ctr",
+                        "campaign": campaign.get('name', 'Unknown'),
+                        "ctr": ctr
+                    })
+                    recommendations.append(f"Campaign '{campaign.get('name', 'Unknown')}' has low CTR ({ctr:.2f}%) - review ad copy and targeting")
+
+                # High cost with no conversions
+                if cost > 100 and conversions == 0:
+                    anomalies.append({
+                        "type": "no_conversions",
+                        "campaign": campaign.get('name', 'Unknown'),
+                        "cost": cost
+                    })
+                    recommendations.append(f"Campaign '{campaign.get('name', 'Unknown')}' has spent ₹{cost:.2f} with no conversions - review landing page and targeting")
+
+                # Poor ROAS
+                if roas > 0 and roas < 1:
+                    anomalies.append({
+                        "type": "low_roas",
+                        "campaign": campaign.get('name', 'Unknown'),
+                        "roas": roas
+                    })
+                    recommendations.append(f"Campaign '{campaign.get('name', 'Unknown')}' has low ROAS ({roas:.2f}) - consider pausing or optimizing")
+
+            return {
+                "status": "success",
+                "customer_id": customer_id,
+                "anomalies": anomalies,
+                "recommendations": recommendations if recommendations else ["All metrics within expected ranges"]
+            }
+        except Exception as e:
+            logger.error(f"Error detecting anomalies from warehouse: {e}")
+            return {"error": str(e), "status": "failed"}
+
+    # Fallback to API
     # Get underperforming keywords as anomalies
     underperformers = make_api_request("/keywords/underperformers")
 
@@ -369,21 +494,74 @@ def detect_anomalies(data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 
     return {
         "status": "success",
+        "customer_id": customer_id,
         "anomalies": anomalies,
         "recommendations": recommendations if recommendations else ["All metrics within expected ranges"]
     }
 
 
-def calculate_roi(data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def calculate_roi(customer_id: Optional[str] = None, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Calculate ROI metrics for campaigns using real data.
 
     Args:
+        customer_id: Customer ID filter (required)
         data: Campaign performance data (optional)
 
     Returns:
         ROI calculations and metrics
     """
+    # Validate customer_id
+    if not customer_id:
+        return {
+            'status': 'error',
+            'message': 'customer_id is required for ROI calculation'
+        }
+
+    # Use warehouse if available
+    if warehouse_client:
+        try:
+            cust_id = int(customer_id) if customer_id and str(customer_id).isdigit() else None
+            campaigns_data = warehouse_client.fetch_campaigns(customer_id=cust_id)
+
+            if "error" in campaigns_data:
+                return campaigns_data
+
+            campaigns = campaigns_data.get("campaigns", [])
+
+            # Calculate aggregate metrics
+            total_cost = sum(c.get('cost', 0) for c in campaigns)
+            total_conversions = sum(c.get('conversions', 0) for c in campaigns)
+            total_conversion_value = sum(c.get('conversion_value', 0) for c in campaigns)
+            total_clicks = sum(c.get('clicks', 0) for c in campaigns)
+
+            roi = 0
+            roas = 0
+            cost_per_conversion = 0
+            cpc = 0
+
+            if total_cost > 0:
+                roi = ((total_conversion_value - total_cost) / total_cost) * 100 if total_conversion_value else 0
+                roas = total_conversion_value / total_cost if total_conversion_value else 0
+                cost_per_conversion = total_cost / total_conversions if total_conversions > 0 else total_cost
+                cpc = total_cost / total_clicks if total_clicks > 0 else 0
+
+            return {
+                "status": "success",
+                "customer_id": customer_id,
+                "roi_percentage": round(roi, 2),
+                "roas": round(roas, 2),
+                "cost_per_conversion": round(cost_per_conversion, 2),
+                "avg_cpc": round(cpc, 2),
+                "total_cost": round(total_cost, 2),
+                "total_conversions": total_conversions,
+                "total_conversion_value": round(total_conversion_value, 2) if total_conversion_value else 0
+            }
+        except Exception as e:
+            logger.error(f"Error calculating ROI from warehouse: {e}")
+            return {"error": str(e), "status": "failed"}
+
+    # Fallback to API
     summary = make_api_request("/metrics/summary")
 
     if "error" not in summary:
@@ -402,6 +580,7 @@ def calculate_roi(data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 
         return {
             "status": "success",
+            "customer_id": customer_id,
             "roi_percentage": round(roi, 2),
             "roas": round(roas, 2),
             "cost_per_conversion": round(cost_per_conversion, 2),
@@ -431,16 +610,71 @@ def compare_time_periods(period1_start: Optional[str] = None, period1_end: Optio
 
 
 # Tool functions for Optimization Agent
-def optimize_bids(data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def optimize_bids(customer_id: Optional[str] = None, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Generate bid optimization recommendations based on real performance data.
 
     Args:
+        customer_id: Customer ID filter (required)
         data: Campaign performance data (optional)
 
     Returns:
         Bid optimization recommendations
     """
+    # Validate customer_id
+    if not customer_id:
+        return {
+            'status': 'error',
+            'message': 'customer_id is required for bid optimization'
+        }
+
+    # Use warehouse if available
+    if warehouse_client:
+        try:
+            cust_id = int(customer_id) if customer_id and str(customer_id).isdigit() else None
+            campaigns_data = warehouse_client.fetch_campaigns(customer_id=cust_id)
+
+            if "error" in campaigns_data:
+                return campaigns_data
+
+            campaigns = campaigns_data.get("campaigns", [])
+            recommendations = []
+
+            for campaign in campaigns:
+                cpc = campaign.get('cpc', 0)
+                conversions = campaign.get('conversions', 0)
+                clicks = campaign.get('clicks', 0)
+                conv_rate = (conversions / clicks * 100) if clicks > 0 else 0
+
+                if conv_rate > 5:  # High converting campaign
+                    recommendations.append({
+                        "campaign_id": campaign.get('id'),
+                        "campaign_name": campaign.get('name'),
+                        "current_avg_cpc": round(cpc, 2),
+                        "recommended_action": "increase_bid",
+                        "recommended_bid_adjustment": "+20%",
+                        "rationale": f"High conversion rate ({conv_rate:.2f}%) - increase bids to capture more traffic"
+                    })
+                elif conv_rate < 1 and cpc > 2:  # Low converting, expensive campaign
+                    recommendations.append({
+                        "campaign_id": campaign.get('id'),
+                        "campaign_name": campaign.get('name'),
+                        "current_avg_cpc": round(cpc, 2),
+                        "recommended_action": "decrease_bid",
+                        "recommended_bid_adjustment": "-30%",
+                        "rationale": f"Low conversion rate ({conv_rate:.2f}%) with high CPC - reduce bids to improve efficiency"
+                    })
+
+            return {
+                "status": "success",
+                "customer_id": customer_id,
+                "recommendations": recommendations if recommendations else [{"message": "No bid adjustments needed at this time"}]
+            }
+        except Exception as e:
+            logger.error(f"Error optimizing bids from warehouse: {e}")
+            return {"error": str(e), "status": "failed"}
+
+    # Fallback to API
     campaigns = make_api_request("/campaigns")
     recommendations = []
 
@@ -472,20 +706,79 @@ def optimize_bids(data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 
     return {
         "status": "success",
+        "customer_id": customer_id,
         "recommendations": recommendations if recommendations else [{"message": "No bid adjustments needed at this time"}]
     }
 
 
-def optimize_budgets(data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def optimize_budgets(customer_id: Optional[str] = None, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Generate budget optimization recommendations based on real performance.
 
     Args:
+        customer_id: Customer ID filter (required)
         data: Campaign performance data (optional)
 
     Returns:
         Budget optimization recommendations
     """
+    # Validate customer_id
+    if not customer_id:
+        return {
+            'status': 'error',
+            'message': 'customer_id is required for budget optimization'
+        }
+
+    # Use warehouse if available
+    if warehouse_client:
+        try:
+            cust_id = int(customer_id) if customer_id and str(customer_id).isdigit() else None
+            campaigns_data = warehouse_client.fetch_campaigns(customer_id=cust_id)
+
+            if "error" in campaigns_data:
+                return campaigns_data
+
+            campaigns = campaigns_data.get("campaigns", [])
+            recommendations = []
+
+            # Sort by ROAS to find top performers
+            sorted_campaigns = sorted(campaigns, key=lambda x: x.get('roas', 0), reverse=True)
+
+            # Recommend budget increases for top performers
+            for campaign in sorted_campaigns[:3]:  # Top 3 campaigns
+                if campaign.get('roas', 0) > 2:
+                    recommendations.append({
+                        "campaign_id": campaign.get('id'),
+                        "campaign_name": campaign.get('name'),
+                        "current_spend": round(campaign.get('cost', 0), 2),
+                        "recommended_action": "increase_budget",
+                        "recommended_change": "+30%",
+                        "rationale": f"Top performing campaign with ROAS of {campaign.get('roas', 0):.2f}"
+                    })
+
+            # Find underperformers to reduce budget
+            for campaign in campaigns:
+                roas = campaign.get('roas', 0)
+                if roas < 1 and campaign.get('cost', 0) > 100:  # Poor ROAS and significant spend
+                    recommendations.append({
+                        "campaign_id": campaign.get('id'),
+                        "campaign_name": campaign.get('name'),
+                        "current_spend": round(campaign.get('cost', 0), 2),
+                        "recommended_action": "decrease_budget",
+                        "recommended_change": "-50%",
+                        "rationale": f"Poor ROAS ({roas:.2f}) - reallocate budget to better performing campaigns"
+                    })
+
+            return {
+                "status": "success",
+                "customer_id": customer_id,
+                "recommendations": recommendations if recommendations else [{"message": "Current budget allocation is optimal"}]
+            }
+        except Exception as e:
+            logger.error(f"Error optimizing budgets from warehouse: {e}")
+            return {"error": str(e), "status": "failed"}
+
+    # Fallback to API
     top_performers = make_api_request("/campaigns/top-performers", params={"metric": "roas"})
     all_campaigns = make_api_request("/campaigns")
     recommendations = []
@@ -518,6 +811,7 @@ def optimize_budgets(data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 
     return {
         "status": "success",
+        "customer_id": customer_id,
         "recommendations": recommendations if recommendations else [{"message": "Current budget allocation is optimal"}]
     }
 
@@ -576,16 +870,77 @@ def optimize_keywords(data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 
 
 # Tool functions for Forecasting Agent
-def forecast_performance(days: int = 30) -> Dict[str, Any]:
+def forecast_performance(customer_id: Optional[str] = None, days: int = 30) -> Dict[str, Any]:
     """
     Forecast future campaign performance based on current metrics.
 
     Args:
+        customer_id: Customer ID filter (required)
         days: Number of days to forecast (default 30)
 
     Returns:
         Performance forecasts
     """
+    # Validate customer_id
+    if not customer_id:
+        return {
+            'status': 'error',
+            'message': 'customer_id is required for performance forecasting'
+        }
+
+    # Use warehouse if available
+    if warehouse_client:
+        try:
+            cust_id = int(customer_id) if customer_id and str(customer_id).isdigit() else None
+            campaigns_data = warehouse_client.fetch_campaigns(customer_id=cust_id)
+
+            if "error" in campaigns_data:
+                return campaigns_data
+
+            campaigns = campaigns_data.get("campaigns", [])
+
+            # Calculate aggregate metrics
+            total_clicks = sum(c.get('clicks', 0) for c in campaigns)
+            total_impressions = sum(c.get('impressions', 0) for c in campaigns)
+            total_cost = sum(c.get('cost', 0) for c in campaigns)
+            total_conversions = sum(c.get('conversions', 0) for c in campaigns)
+            avg_ctr = sum(c.get('ctr', 0) for c in campaigns) / len(campaigns) if campaigns else 0
+            avg_cpc = total_cost / total_clicks if total_clicks > 0 else 0
+
+            # Calculate daily averages (assuming 30-day period)
+            avg_daily_clicks = total_clicks / 30
+            avg_daily_impressions = total_impressions / 30
+            avg_daily_cost = total_cost / 30
+            avg_daily_conversions = total_conversions / 30
+
+            # Project forward for requested period
+            forecast = {
+                "status": "success",
+                "customer_id": customer_id,
+                "forecast_period": f"{days} days",
+                "based_on": "Last 30 days average performance",
+                "predicted_metrics": {
+                    "impressions": round(avg_daily_impressions * days),
+                    "clicks": round(avg_daily_clicks * days),
+                    "conversions": round(avg_daily_conversions * days, 1),
+                    "cost": round(avg_daily_cost * days, 2),
+                    "ctr": round(avg_ctr, 2),
+                    "avg_cpc": round(avg_cpc, 2)
+                },
+                "daily_averages": {
+                    "impressions": round(avg_daily_impressions),
+                    "clicks": round(avg_daily_clicks),
+                    "conversions": round(avg_daily_conversions, 2),
+                    "cost": round(avg_daily_cost, 2)
+                },
+                "confidence": "medium"
+            }
+            return forecast
+        except Exception as e:
+            logger.error(f"Error forecasting performance from warehouse: {e}")
+            return {"error": str(e), "status": "failed"}
+
+    # Fallback to API
     summary = make_api_request("/metrics/summary")
 
     if "error" not in summary:
@@ -604,6 +959,7 @@ def forecast_performance(days: int = 30) -> Dict[str, Any]:
         # Project forward for requested period
         forecast = {
             "status": "success",
+            "customer_id": customer_id,
             "forecast_period": f"{days} days",
             "based_on": "Last 30 days average performance",
             "predicted_metrics": {
