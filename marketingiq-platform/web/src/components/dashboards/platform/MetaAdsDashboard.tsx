@@ -6,6 +6,7 @@ import { KPICard } from '../../common/KPICard';
 import InsightCard from '../../common/InsightCard';
 import { FilterState, KPIData } from '../../../types';
 import { metaAdsService } from '../../../services/metaAdsService';
+import { useFilters } from '../../../context/FilterContext';
 import {
   BarChart,
   Bar,
@@ -32,10 +33,7 @@ interface MetaCampaign {
 }
 
 export const MetaAdsDashboard: React.FC = () => {
-  const [filters, setFilters] = useState<FilterState>({
-    customer_id: 1,
-    date_range: 'last_30d',
-  });
+  const { filters } = useFilters();
 
   const [loading, setLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<MetaCampaign[]>([]);
@@ -44,13 +42,15 @@ export const MetaAdsDashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!filters.customerId) return;
+
       setLoading(true);
       setError(null);
       try {
         // Fetch campaigns and metrics in parallel
         const [campaignsData, metricsData] = await Promise.all([
-          metaAdsService.getCampaigns(filters.customer_id, filters.date_range),
-          metaAdsService.getInsightsSummary(filters.customer_id, filters.date_range),
+          metaAdsService.getCampaigns(Number(filters.customerId), filters.dateRange),
+          metaAdsService.getInsightsSummary(Number(filters.customerId), filters.dateRange),
         ]);
 
         // Ensure campaigns is always an array
@@ -68,7 +68,7 @@ export const MetaAdsDashboard: React.FC = () => {
     };
 
     fetchData();
-  }, [filters]);
+  }, [filters.customerId, filters.dateRange]);
 
   // Generate KPIs from real data (using standard field names)
   const kpis: KPIData[] = metrics
@@ -202,48 +202,102 @@ export const MetaAdsDashboard: React.FC = () => {
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Campaign Status Distribution
+              Campaign Spend Distribution
             </Typography>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                Total Campaigns: {Array.isArray(campaigns) ? campaigns.length : 0}
-              </Typography>
-            </Box>
             <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={statusDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={(entry: any) => `${entry.status}: ${entry.count}`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="count"
-                >
-                  {statusDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
+              <BarChart data={Array.isArray(campaigns) ? campaigns
+                .filter(c => (c.cost || 0) > 0)
+                .sort((a, b) => (b.cost || 0) - (a.cost || 0))
+                .slice(0, 5)
+                .map(c => ({
+                  name: (c.name || '').substring(0, 20) + '...',
+                  spend: parseFloat((c.cost || 0).toFixed(2)),
+                })) : []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip formatter={(value: any) => `₹${parseFloat(value).toFixed(2)}`} />
+                <Legend />
+                <Bar dataKey="spend" fill="#1E88E5" name="Spend (₹)" />
+              </BarChart>
             </ResponsiveContainer>
           </Paper>
         </Grid>
 
+        {/* Clicks vs Impressions */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Campaigns by Objective
+              Clicks vs Impressions
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={objectiveData}>
+              <BarChart data={Array.isArray(campaigns) ? campaigns
+                .filter(c => (c.impressions || 0) > 0)
+                .slice(0, 5)
+                .map(c => ({
+                  name: (c.name || '').substring(0, 20) + '...',
+                  clicks: c.clicks || 0,
+                  impressions: c.impressions || 0,
+                })) : []}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="objective" angle={-45} textAnchor="end" height={100} />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
                 <YAxis />
-                <Tooltip />
+                <Tooltip formatter={(value: any) => parseFloat(value).toLocaleString()} />
                 <Legend />
-                <Bar dataKey="count" fill="#1E88E5" name="Campaign Count" />
+                <Bar dataKey="clicks" fill="#26A69A" name="Clicks" />
+                <Bar dataKey="impressions" fill="#FFA726" name="Impressions" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* CTR Comparison */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Campaign CTR Comparison
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={Array.isArray(campaigns) ? campaigns
+                .filter(c => (c.ctr || 0) > 0)
+                .sort((a, b) => (b.ctr || 0) - (a.ctr || 0))
+                .slice(0, 5)
+                .map(c => ({
+                  name: (c.name || '').substring(0, 20) + '...',
+                  ctr: parseFloat((c.ctr || 0).toFixed(2)),
+                })) : []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip formatter={(value: any) => `${parseFloat(value).toFixed(2)}%`} />
+                <Legend />
+                <Bar dataKey="ctr" fill="#EF5350" name="CTR (%)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* Conversions */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Conversions by Campaign
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={Array.isArray(campaigns) ? campaigns
+                .filter(c => (c.conversions || 0) > 0)
+                .sort((a, b) => (b.conversions || 0) - (a.conversions || 0))
+                .slice(0, 5)
+                .map(c => ({
+                  name: (c.name || '').substring(0, 20) + '...',
+                  conversions: parseFloat((c.conversions || 0).toFixed(2)),
+                })) : []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip formatter={(value: any) => parseFloat(value).toFixed(2)} />
+                <Legend />
+                <Bar dataKey="conversions" fill="#66BB6A" name="Conversions" />
               </BarChart>
             </ResponsiveContainer>
           </Paper>

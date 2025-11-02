@@ -1,10 +1,13 @@
 // E-Commerce Performance Dashboard
-import React, { useState } from 'react';
-import { Grid, Stack, Paper, Typography, Box } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Grid, Stack, Paper, Typography, Box, CircularProgress, Alert } from '@mui/material';
 import DashboardTemplate from '../../common/DashboardTemplate';
 import { KPICard } from '../../common/KPICard';
 import InsightCard from '../../common/InsightCard';
-import { FilterState, KPIData, InsightData } from '../../../types';
+import { FilterState, KPIData, InsightData, UnifiedMetrics } from '../../../types';
+import { useFilters } from '../../../context/FilterContext';
+import { unifiedService } from '../../../services/unifiedService';
+import { googleAdsService } from '../../../services/googleAdsService';
 import {
   BarChart,
   Bar,
@@ -22,49 +25,79 @@ import {
 } from 'recharts';
 
 export const EcommerceDashboard: React.FC = () => {
-  const [filters, setFilters] = useState<FilterState>({
-    customer_id: 1,
-    date_range: 'last_30d',
-  });
+  const { filters } = useFilters();
+  const [metrics, setMetrics] = useState<UnifiedMetrics | null>(null);
+  const [googleMetrics, setGoogleMetrics] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const kpis: KPIData[] = [
-    {
-      title: 'Total Revenue',
-      value: '49,400',
-      prefix: '$',
-      change: 18,
-    },
-    {
-      title: 'Total Orders',
-      value: 1898,
-      change: 15,
-      isHighlighted: true,
-      color: 'success',
-    },
-    {
-      title: 'Avg. Order Value',
-      value: '26.03',
-      prefix: '$',
-      change: 3,
-    },
-    {
-      title: 'Cart Abandonment',
-      value: '42%',
-      change: -5,
-      trend: 'down',
-    },
-    {
-      title: 'Customer LTV',
-      value: 142,
-      prefix: '$',
-      change: 8,
-    },
-    {
-      title: 'Repeat Purchase Rate',
-      value: '28%',
-      change: 4,
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!filters.customerId) return;
+
+      setLoading(true);
+      setError(null);
+      try {
+        const [unifiedData, googleData] = await Promise.all([
+          unifiedService.getUnifiedMetrics(Number(filters.customerId), filters.dateRange),
+          googleAdsService.getMetricsSummary(Number(filters.customerId), filters.dateRange),
+        ]);
+
+        setMetrics(unifiedData);
+        setGoogleMetrics(googleData);
+      } catch (err: any) {
+        console.error('Error fetching ecommerce data:', err);
+        setError(err.message || 'Failed to load ecommerce data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [filters.customerId, filters.dateRange]);
+
+  const kpis: KPIData[] = (metrics && googleMetrics)
+    ? [
+        {
+          title: 'Total Revenue',
+          value: (googleMetrics.conversion_value || 0).toFixed(0),
+          prefix: '₹',
+          change: 18,
+        },
+        {
+          title: 'Total Orders',
+          value: (googleMetrics.conversions || 0).toFixed(0),
+          change: 15,
+          isHighlighted: true,
+          color: 'success',
+        },
+        {
+          title: 'Avg. Order Value',
+          value: googleMetrics.conversions > 0
+            ? (googleMetrics.conversion_value / googleMetrics.conversions).toFixed(2)
+            : '0',
+          prefix: '₹',
+          change: 3,
+        },
+        {
+          title: 'Total Spend',
+          value: (googleMetrics.spend || 0).toFixed(0),
+          prefix: '₹',
+          change: -5,
+        },
+        {
+          title: 'ROAS',
+          value: (googleMetrics.roas || 0).toFixed(1),
+          suffix: 'x',
+          change: 8,
+        },
+        {
+          title: 'Conversion Rate',
+          value: `${((googleMetrics.conversions / googleMetrics.clicks) * 100 || 0).toFixed(1)}%`,
+          change: 4,
+        },
+      ]
+    : [];
 
   const insights: InsightData[] = [
     {
@@ -115,11 +148,25 @@ export const EcommerceDashboard: React.FC = () => {
 
   const COLORS = ['#1E88E5', '#26A69A', '#FFA726', '#EF5350'];
 
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
     <DashboardTemplate
       title="E-Commerce Performance Dashboard"
       subtitle="Revenue, orders, and product performance across all marketing channels. Track your e-commerce KPIs and identify top-selling products."
     >
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
       <Grid container spacing={3} sx={{ mt: 2 }}>
         {kpis.map((kpi, index) => (
           <Grid item xs={12} md={4} key={index}>

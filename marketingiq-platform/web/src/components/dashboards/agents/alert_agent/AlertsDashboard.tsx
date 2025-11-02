@@ -391,6 +391,65 @@ const AlertsDashboard: React.FC = () => {
         </Typography>
       </Box>
 
+      {/* Summary Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Critical Alerts</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{alertSummary.critical}</Typography>
+                </Box>
+                <ErrorIcon sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Warning Alerts</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{alertSummary.warning}</Typography>
+                </Box>
+                <WarningIcon sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Info Alerts</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{alertSummary.info}</Typography>
+                </Box>
+                <InfoIcon sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Action Required</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{alertSummary.actionRequired}</Typography>
+                </Box>
+                <Notifications sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
       {/* AI Intelligence */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h5" fontWeight={600} gutterBottom sx={{ mb: 3 }}>
@@ -587,65 +646,6 @@ const AlertsDashboard: React.FC = () => {
           </Grid>
         </Grid>
       </Box>
-
-      {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Critical Alerts</Typography>
-                  <Typography variant="h2" fontWeight={700} color="text.primary">{alertSummary.critical}</Typography>
-                </Box>
-                <ErrorIcon sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Warning Alerts</Typography>
-                  <Typography variant="h2" fontWeight={700} color="text.primary">{alertSummary.warning}</Typography>
-                </Box>
-                <WarningIcon sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Info Alerts</Typography>
-                  <Typography variant="h2" fontWeight={700} color="text.primary">{alertSummary.info}</Typography>
-                </Box>
-                <InfoIcon sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Action Required</Typography>
-                  <Typography variant="h2" fontWeight={700} color="text.primary">{alertSummary.actionRequired}</Typography>
-                </Box>
-                <Notifications sx={{ fontSize: 60, opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
 
       {/* Filters */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
