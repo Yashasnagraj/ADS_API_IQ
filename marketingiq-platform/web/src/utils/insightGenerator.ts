@@ -33,6 +33,9 @@ interface InsightResult {
   confidence: number;
   actionable: boolean;
   actions?: string[];
+  impactScore?: number; // 0-100 for visualization
+  whyItMatters?: string; // Contextual explanation
+  category?: 'Performance' | 'Spend' | 'Conversion' | 'General';
 }
 
 /**
@@ -81,14 +84,17 @@ export class SmartInsightGenerator {
         type: 'success',
         title: 'Exceptional Return on Ad Spend',
         message: `Your campaigns are generating ${overallROAS.toFixed(2)}x ROAS—${((overallROAS / benchmarkROAS - 1) * 100).toFixed(0)}% above industry average. This means every ₹1 spent returns ₹${overallROAS.toFixed(2)}, significantly outperforming competitors at ${benchmarkROAS}x.`,
-        impact: `Estimated ${(totalConversionValue - totalSpend).toFixed(0)} excess profit vs. average performance`,
+        impact: `+₹${(totalConversionValue - totalSpend).toFixed(0)} profit above average`,
         confidence: 94,
         actionable: true,
         actions: [
           'Scale budget by 20-30% on top-performing campaigns',
           'Expand to similar audience segments',
           'Test higher-funnel awareness campaigns with this proven formula'
-        ]
+        ],
+        impactScore: 85,
+        whyItMatters: 'High ROAS indicates your targeting, messaging, and product-market fit are all aligned. This is the foundation for sustainable growth—you can confidently increase spend knowing it will generate profitable returns.',
+        category: 'Performance'
       });
     } else if (overallROAS < benchmarkROAS * 0.7) {
       const roasGap = benchmarkROAS - overallROAS;
@@ -98,7 +104,7 @@ export class SmartInsightGenerator {
         type: 'danger',
         title: 'ROAS Below Industry Standard',
         message: `Current ${overallROAS.toFixed(2)}x ROAS is ${((1 - overallROAS / benchmarkROAS) * 100).toFixed(0)}% below the ${benchmarkROAS}x industry benchmark. Analysis shows this is likely driven by high CPCs (₹${avgCPC.toFixed(2)}) or low conversion rates (${conversionRate.toFixed(2)}%).`,
-        impact: `Improving to benchmark could unlock ₹${potentialGain.toFixed(0)} additional monthly revenue`,
+        impact: `+₹${potentialGain.toFixed(0)}/month potential revenue`,
         confidence: 88,
         actionable: true,
         actions: [
@@ -106,7 +112,10 @@ export class SmartInsightGenerator {
           'Review landing page experience—conversion rate is the bottleneck',
           'Test lower-cost keywords with similar intent',
           'Consider audience exclusions to reduce wasted spend'
-        ]
+        ],
+        impactScore: 78,
+        whyItMatters: 'Low ROAS means you\'re spending more to acquire customers than they\'re worth. This is unsustainable—every day of inaction compounds losses. Immediate optimization is critical to profitability.',
+        category: 'Performance'
       });
     }
 
@@ -130,7 +139,7 @@ export class SmartInsightGenerator {
         type: 'warning',
         title: 'Ad Relevance Needs Improvement',
         message: `${avgCTR.toFixed(2)}% CTR falls ${((1 - avgCTR / benchmarkCTR) * 100).toFixed(0)}% below the ${benchmarkCTR}% industry standard. This suggests a mismatch between ad creative and audience intent, resulting in ${totalImpressions.toLocaleString()} impressions but only ${totalClicks.toLocaleString()} clicks.`,
-        impact: 'Low CTR increases CPCs and reduces campaign efficiency by 15-25%',
+        impact: '-15-25% campaign efficiency',
         confidence: 86,
         actionable: true,
         actions: [
@@ -138,7 +147,10 @@ export class SmartInsightGenerator {
           'Add emotional triggers (urgency, social proof, benefits)',
           'Test responsive search ads with 8+ headline variations',
           'Review negative keywords—are you showing for irrelevant searches?'
-        ]
+        ],
+        impactScore: 65,
+        whyItMatters: 'Low CTR signals to Google that your ads aren\'t relevant, which increases your costs per click and reduces ad visibility. Improving CTR creates a virtuous cycle of lower costs and better placement.',
+        category: 'Performance'
       });
     }
 
@@ -165,7 +177,7 @@ export class SmartInsightGenerator {
         type: 'danger',
         title: 'Conversion Funnel Leaking Revenue',
         message: `Only ${conversionRate.toFixed(2)}% of clicks convert vs. ${benchmarkConversionRate}% industry average. This means you're losing ~${missedConversions} potential customers monthly. Root cause: likely landing page friction, unclear value prop, or targeting mismatch.`,
-        impact: `Fixing conversion rate could add ${missedConversions} conversions/month = ~₹${(missedConversions * (totalConversionValue / totalConversions)).toFixed(0)} revenue`,
+        impact: `+${missedConversions} conversions/month = ~₹${(missedConversions * (totalConversionValue / Math.max(totalConversions, 1))).toFixed(0)} potential revenue`,
         confidence: 89,
         actionable: true,
         actions: [
@@ -174,7 +186,10 @@ export class SmartInsightGenerator {
           'Add trust signals: reviews, guarantees, security badges',
           'Test different offers (discount vs. free shipping vs. limited time)',
           'Check mobile experience—50%+ traffic is mobile'
-        ]
+        ],
+        impactScore: 82,
+        whyItMatters: 'Every visitor you lose is wasted ad spend. Since you\'re already paying to get clicks, fixing your conversion rate is the highest-leverage optimization—it doesn\'t cost more traffic, just better conversion.',
+        category: 'Conversion'
       });
     }
 
@@ -428,6 +443,422 @@ export class SmartInsightGenerator {
           'Implement advanced personalization and segmentation',
           'Test premium features or upsells'
         ]
+      });
+    }
+
+    return insights.sort((a, b) => {
+      const severityOrder = { danger: 0, warning: 1, success: 2, info: 3 };
+      return severityOrder[a.type] - severityOrder[b.type];
+    });
+  }
+
+  /**
+   * Analyze unified cross-platform performance
+   */
+  static analyzeUnifiedPerformance(
+    metrics: any,
+    platformComparison: any[]
+  ): InsightResult[] {
+    const insights: InsightResult[] = [];
+
+    if (!metrics || !platformComparison || platformComparison.length === 0) {
+      return [{
+        type: 'info',
+        title: 'Connect Multiple Platforms',
+        message: 'Connect your marketing platforms to unlock cross-channel insights and budget allocation recommendations.',
+        impact: 'Setup required',
+        confidence: 100,
+        actionable: false,
+        category: 'General'
+      }];
+    }
+
+    const {
+      total_spend = 0,
+      blended_roas = 0,
+      total_conversions = 0,
+      best_platform = null,
+    } = metrics;
+
+    // Industry benchmarks for cross-platform
+    const benchmarkBlendedROAS = 2.5;
+    const optimalPlatformDiversity = 0.4; // 40% budget concentration is healthy
+
+    // Calculate platform diversity (budget concentration)
+    const platformBudgets = platformComparison.map(p => p.spend || 0);
+    const totalBudget = platformBudgets.reduce((sum, b) => sum + b, 0);
+    const budgetShares = platformBudgets.map(b => b / totalBudget);
+    const budgetConcentration = Math.max(...budgetShares);
+
+    // 1. Blended ROAS Analysis
+    if (blended_roas > benchmarkBlendedROAS * 1.3) {
+      insights.push({
+        type: 'success',
+        title: 'Outstanding Cross-Platform ROAS',
+        message: `Your ${blended_roas.toFixed(2)}x blended ROAS across ${platformComparison.length} platforms is ${((blended_roas / benchmarkBlendedROAS - 1) * 100).toFixed(0)}% above the ${benchmarkBlendedROAS}x industry benchmark. Total spend of ₹${total_spend.toLocaleString()} is generating ${total_conversions} conversions—your multi-channel strategy is working exceptionally well.`,
+        impact: `+₹${((blended_roas - benchmarkBlendedROAS) * total_spend).toFixed(0)} profit above average`,
+        confidence: 91,
+        actionable: true,
+        actions: [
+          'Scale budget proportionally across all performing platforms',
+          'Document your cross-platform attribution model',
+          'Test expanding to additional channels (TikTok, LinkedIn)',
+          'Implement cross-platform retargeting sequences'
+        ],
+        impactScore: 88,
+        whyItMatters: 'High blended ROAS proves your marketing mix is optimized. Each platform complements the others in the customer journey, from awareness to conversion.',
+        category: 'Performance'
+      });
+    } else if (blended_roas < benchmarkBlendedROAS * 0.7) {
+      const roasGap = benchmarkBlendedROAS - blended_roas;
+      const potentialGain = total_spend * roasGap;
+
+      insights.push({
+        type: 'danger',
+        title: 'Cross-Platform Efficiency Below Benchmark',
+        message: `Blended ${blended_roas.toFixed(2)}x ROAS is ${((1 - blended_roas / benchmarkBlendedROAS) * 100).toFixed(0)}% below the ${benchmarkBlendedROAS}x industry standard. Across ₹${total_spend.toLocaleString()} spend on ${platformComparison.length} platforms, you're underperforming—likely due to poor channel mix, weak attribution, or platform-specific inefficiencies.`,
+        impact: `+₹${potentialGain.toFixed(0)} potential monthly revenue`,
+        confidence: 84,
+        actionable: true,
+        actions: [
+          `Audit ${best_platform?.name || 'top platform'} first—replicate winning tactics`,
+          'Review attribution model (last-click vs. data-driven)',
+          'Pause platforms with ROAS < 1.0x immediately',
+          'Implement unified conversion tracking across platforms',
+          'Test reallocating budget to highest-performing channel'
+        ],
+        impactScore: 75,
+        whyItMatters: 'Low blended ROAS means your marketing dollars are inefficiently distributed. Every day of inaction means wasted budget that could be driving profitable growth.',
+        category: 'Performance'
+      });
+    }
+
+    // 2. Platform Diversity Analysis
+    if (budgetConcentration > 0.75) {
+      const dominantPlatform = platformComparison[budgetShares.indexOf(budgetConcentration)];
+      insights.push({
+        type: 'warning',
+        title: 'Over-Reliance on Single Platform',
+        message: `${(budgetConcentration * 100).toFixed(0)}% of your budget (₹${dominantPlatform.spend.toLocaleString()}) is concentrated on ${dominantPlatform.platform}. While consolidation can be efficient, it creates significant risk—algorithm changes, policy updates, or platform issues could devastate your acquisition.`,
+        impact: '-30-50% revenue risk if platform disrupted',
+        confidence: 88,
+        actionable: true,
+        actions: [
+          'Diversify: allocate 20-30% budget to secondary platforms',
+          'Build owned audiences (email, SMS) to reduce platform dependency',
+          'Test emerging channels as insurance',
+          'Implement multi-touch attribution to value all touchpoints'
+        ],
+        impactScore: 70,
+        whyItMatters: 'Platform diversification is business insurance. The best marketers spread risk while maintaining efficiency—aim for 40-60% on your top channel, not 75%+.',
+        category: 'Spend'
+      });
+    } else if (budgetConcentration < 0.35 && platformComparison.length > 3) {
+      insights.push({
+        type: 'warning',
+        title: 'Budget Spread Too Thin',
+        message: `Your budget is fragmented across ${platformComparison.length} platforms with only ${(budgetConcentration * 100).toFixed(0)}% on the top performer. Spreading too thin prevents platforms from reaching critical mass for algorithm optimization and makes it hard to achieve statistical significance in testing.`,
+        impact: 'Sub-optimal learning and scaling',
+        confidence: 82,
+        actionable: true,
+        actions: [
+          'Consolidate: move budget from lowest ROAS platforms to top 2-3',
+          'Set minimum viable budgets (₹10,000/month per platform)',
+          'Pause experimental channels until you scale core platforms',
+          'Focus on depth over breadth in testing'
+        ],
+        impactScore: 68,
+        whyItMatters: 'Platform algorithms need sufficient budget to learn and optimize. Too many small budgets means none of your campaigns reach their full potential.',
+        category: 'Spend'
+      });
+    }
+
+    // 3. Platform-Specific Performance Gaps
+    const platformsWithData = platformComparison.filter(p => p.spend > 0 && p.conversions > 0);
+    if (platformsWithData.length >= 2) {
+      const roasValues = platformsWithData.map(p => p.roas || 0);
+      const maxROAS = Math.max(...roasValues);
+      const minROAS = Math.min(...roasValues);
+      const roasVariance = maxROAS - minROAS;
+
+      if (roasVariance > 2.0) {
+        const bestPlatform = platformsWithData.find(p => p.roas === maxROAS);
+        const worstPlatform = platformsWithData.find(p => p.roas === minROAS);
+
+        insights.push({
+          type: 'warning',
+          title: 'Significant Platform Performance Gap',
+          message: `${bestPlatform?.platform} (${maxROAS.toFixed(2)}x ROAS) is outperforming ${worstPlatform?.platform} (${minROAS.toFixed(2)}x ROAS) by ${roasVariance.toFixed(2)}x. This ${((roasVariance / maxROAS) * 100).toFixed(0)}% gap suggests either different audience quality, creative effectiveness, or fundamentally misaligned platform-product fit.`,
+          impact: `Reallocating ₹${(worstPlatform?.spend || 0).toFixed(0)} to ${bestPlatform?.platform} could add ${((worstPlatform?.spend || 0) * (maxROAS - minROAS)).toFixed(0)} revenue`,
+          confidence: 86,
+          actionable: true,
+          actions: [
+            `Analyze ${bestPlatform?.platform} winning tactics: creative, targeting, offers`,
+            `Test ${bestPlatform?.platform} strategy on ${worstPlatform?.platform}`,
+            'Review audience overlap between platforms',
+            `Consider pausing ${worstPlatform?.platform} if ROAS < 1.0x`,
+            'Implement platform-specific optimization sprints'
+          ],
+          impactScore: 72,
+          whyItMatters: `Not all platforms work equally for every business. ${bestPlatform?.platform} is proving product-market-channel fit. Double down on what works or fix what doesn't.`,
+          category: 'Performance'
+        });
+      }
+    }
+
+    // 4. Conversion Volume vs. Efficiency Trade-off
+    if (best_platform && total_conversions > 50) {
+      const bestROASPlatform = platformComparison.reduce((best, p) =>
+        (p.roas || 0) > (best.roas || 0) ? p : best
+      );
+      const bestConversionsPlatform = platformComparison.reduce((best, p) =>
+        (p.conversions || 0) > (best.conversions || 0) ? p : best
+      );
+
+      if (bestROASPlatform.platform !== bestConversionsPlatform.platform) {
+        insights.push({
+          type: 'info',
+          title: 'Platform Strategy: Volume vs. Efficiency',
+          message: `${bestROASPlatform.platform} delivers highest efficiency (${bestROASPlatform.roas.toFixed(2)}x ROAS) while ${bestConversionsPlatform.platform} drives highest volume (${bestConversionsPlatform.conversions} conversions). This is actually healthy—${bestConversionsPlatform.platform} builds top-of-funnel awareness while ${bestROASPlatform.platform} converts high-intent users.`,
+          impact: 'Balanced funnel strategy',
+          confidence: 90,
+          actionable: true,
+          actions: [
+            `Use ${bestConversionsPlatform.platform} for awareness and remarketing pool building`,
+            `Use ${bestROASPlatform.platform} for direct response and bottom-funnel`,
+            'Implement cross-platform attribution to value assists',
+            'Test sequential messaging: awareness → consideration → conversion'
+          ],
+          impactScore: 65,
+          whyItMatters: 'Full-funnel marketing requires different platforms for different jobs. Volume platforms feed efficiency platforms through retargeting and brand building.',
+          category: 'General'
+        });
+      }
+    }
+
+    return insights.sort((a, b) => {
+      const severityOrder = { danger: 0, warning: 1, success: 2, info: 3 };
+      return severityOrder[a.type] - severityOrder[b.type];
+    });
+  }
+
+  /**
+   * Analyze e-commerce performance metrics
+   */
+  static analyzeEcommercePerformance(
+    metrics: any,
+    revenueByChannel?: any[]
+  ): InsightResult[] {
+    const insights: InsightResult[] = [];
+
+    if (!metrics) {
+      return [{
+        type: 'info',
+        title: 'Connect E-commerce Data',
+        message: 'Connect your e-commerce platform to unlock revenue, AOV, and product performance insights.',
+        impact: 'Setup required',
+        confidence: 100,
+        actionable: false,
+        category: 'General'
+      }];
+    }
+
+    const {
+      conversion_value = 0,
+      conversions = 0,
+      spend = 0,
+      clicks = 0,
+      roas = 0,
+    } = metrics;
+
+    const avgOrderValue = conversions > 0 ? conversion_value / conversions : 0;
+    const conversionRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
+
+    // E-commerce benchmarks
+    const benchmarkAOV = 3500; // ₹3,500
+    const benchmarkROAS = 4.0; // E-commerce should have higher ROAS
+    const benchmarkConversionRate = 2.5; // E-commerce conversion rate
+    const benchmarkRepeatRate = 30; // 30% repeat purchase rate
+
+    // 1. ROAS Analysis (E-commerce specific)
+    if (roas > benchmarkROAS * 1.5) {
+      insights.push({
+        type: 'success',
+        title: 'Exceptional E-commerce ROAS',
+        message: `Your ${roas.toFixed(2)}x ROAS is ${((roas / benchmarkROAS - 1) * 100).toFixed(0)}% above the ${benchmarkROAS}x e-commerce benchmark. Total spend of ₹${spend.toLocaleString()} generated ₹${conversion_value.toLocaleString()} in revenue (${conversions} orders)—your product-market fit and ad targeting are excellent.`,
+        impact: `+₹${((roas - benchmarkROAS) * spend).toFixed(0)} profit above average`,
+        confidence: 93,
+        actionable: true,
+        actions: [
+          'Scale winning product campaigns by 30-50%',
+          'Expand to similar product categories',
+          'Test dynamic product ads for cross-selling',
+          'Increase bids on high-ROAS shopping campaigns'
+        ],
+        impactScore: 90,
+        whyItMatters: 'High e-commerce ROAS means your products are resonating with your target audience. You can confidently scale ad spend knowing each rupee invested returns profitable revenue.',
+        category: 'Performance'
+      });
+    } else if (roas < benchmarkROAS * 0.6) {
+      const roasGap = benchmarkROAS - roas;
+      const potentialGain = spend * roasGap;
+
+      insights.push({
+        type: 'danger',
+        title: 'E-commerce ROAS Below Target',
+        message: `Current ${roas.toFixed(2)}x ROAS is ${((1 - roas / benchmarkROAS) * 100).toFixed(0)}% below the ${benchmarkROAS}x e-commerce standard. With ₹${spend.toLocaleString()} ad spend generating only ₹${conversion_value.toLocaleString()} revenue, you're likely facing pricing issues, wrong product-market fit, or poor ad creative.`,
+        impact: `+₹${potentialGain.toFixed(0)} potential monthly revenue`,
+        confidence: 87,
+        actionable: true,
+        actions: [
+          'Audit product pricing vs. competitors (may be too high)',
+          'Review shopping feed quality (titles, images, descriptions)',
+          'Pause low-performing SKUs and focus budget on winners',
+          'Test free shipping thresholds to increase AOV',
+          'Implement urgency tactics (limited stock, countdown timers)'
+        ],
+        impactScore: 80,
+        whyItMatters: 'Low e-commerce ROAS means customers aren\'t buying at prices that justify your ad costs. Every sale may actually be losing money when factoring in COGS and fulfillment.',
+        category: 'Performance'
+      });
+    }
+
+    // 2. Average Order Value Analysis
+    if (avgOrderValue > benchmarkAOV * 1.3) {
+      insights.push({
+        type: 'success',
+        title: 'Premium Average Order Value',
+        message: `₹${avgOrderValue.toFixed(2)} AOV is ${((avgOrderValue / benchmarkAOV - 1) * 100).toFixed(0)}% above the ₹${benchmarkAOV.toLocaleString()} benchmark. From ${conversions} orders, you're maximizing revenue per transaction—your product bundling, upsells, or premium positioning is working excellently.`,
+        impact: `+₹${((avgOrderValue - benchmarkAOV) * conversions).toFixed(0)} extra revenue`,
+        confidence: 91,
+        actionable: true,
+        actions: [
+          'Document your upsell/cross-sell strategy for replication',
+          'Test "Frequently Bought Together" product bundles',
+          'Introduce tiered pricing (Good/Better/Best)',
+          'Add premium product lines to capture high-value customers'
+        ],
+        impactScore: 75,
+        whyItMatters: 'High AOV means you\'re extracting maximum value per customer. This allows you to bid higher in auctions and still maintain profitability.',
+        category: 'Conversion'
+      });
+    } else if (avgOrderValue < benchmarkAOV * 0.7) {
+      const aovGap = benchmarkAOV - avgOrderValue;
+      const potentialRevenue = aovGap * conversions;
+
+      insights.push({
+        type: 'warning',
+        title: 'Low Average Order Value',
+        message: `₹${avgOrderValue.toFixed(2)} AOV is ${((1 - avgOrderValue / benchmarkAOV) * 100).toFixed(0)}% below the ₹${benchmarkAOV.toLocaleString()} benchmark. With ${conversions} orders, you're leaving ₹${potentialRevenue.toFixed(0)} on the table. Customers are buying, but in smaller quantities or lower-priced items.`,
+        impact: `+₹${potentialRevenue.toFixed(0)} potential revenue`,
+        confidence: 85,
+        actionable: true,
+        actions: [
+          'Implement free shipping threshold (₹500+) to encourage larger orders',
+          'Add "Complete the Look" product recommendations',
+          'Create product bundles at 10-15% discount',
+          'Test quantity discounts (Buy 2 Get 10% Off)',
+          'Introduce urgency: "Add ₹X more for free shipping"'
+        ],
+        impactScore: 72,
+        whyItMatters: 'Increasing AOV is the fastest way to scale e-commerce profitably. A 20% AOV increase means 20% more revenue from the same traffic and ad spend.',
+        category: 'Conversion'
+      });
+    }
+
+    // 3. Conversion Rate Analysis
+    if (conversionRate > benchmarkConversionRate * 1.4) {
+      insights.push({
+        type: 'success',
+        title: 'Excellent E-commerce Conversion Rate',
+        message: `${conversionRate.toFixed(2)}% conversion rate (${conversions} orders from ${clicks.toLocaleString()} clicks) is ${((conversionRate / benchmarkConversionRate - 1) * 100).toFixed(0)}% above the ${benchmarkConversionRate}% benchmark. Your product pages, pricing, and checkout flow are optimized—traffic quality is high.`,
+        impact: 'High conversion efficiency',
+        confidence: 89,
+        actionable: true,
+        actions: [
+          'Increase traffic volume to capitalize on high conversion rate',
+          'Test expanding to broader keywords while maintaining quality',
+          'Replicate winning product page structure across catalog',
+          'Implement post-purchase upsells to increase LTV'
+        ],
+        impactScore: 68,
+        whyItMatters: 'High conversion rates mean your store experience is compelling. You can afford to bid more aggressively for traffic since visitors convert at above-average rates.',
+        category: 'Conversion'
+      });
+    } else if (conversionRate < benchmarkConversionRate * 0.6) {
+      const convGap = benchmarkConversionRate - conversionRate;
+      const missedOrders = Math.floor(clicks * (convGap / 100));
+
+      insights.push({
+        type: 'danger',
+        title: 'E-commerce Conversion Funnel Broken',
+        message: `Only ${conversionRate.toFixed(2)}% of your ${clicks.toLocaleString()} clicks convert vs. ${benchmarkConversionRate}% industry average. You're losing ~${missedOrders} potential orders monthly. Root causes: likely pricing concerns, shipping costs, checkout friction, or poor product presentation.`,
+        impact: `+${missedOrders} orders/month = ₹${(missedOrders * avgOrderValue).toFixed(0)} revenue`,
+        confidence: 86,
+        actionable: true,
+        actions: [
+          'Critical: Review mobile checkout (60% of traffic is mobile)',
+          'Display shipping costs upfront (hidden costs kill conversions)',
+          'Add trust signals: reviews, ratings, security badges',
+          'Simplify checkout to 1-page (every extra step loses 10% of users)',
+          'A/B test product images (lifestyle vs. white background)',
+          'Offer guest checkout (don\'t force account creation)'
+        ],
+        impactScore: 85,
+        whyItMatters: 'Visitors are interested enough to click but not buying. Fixing conversion rate has 3x more impact than increasing traffic—you\'re already paying for the clicks.',
+        category: 'Conversion'
+      });
+    }
+
+    // 4. Revenue Channel Diversification
+    if (revenueByChannel && revenueByChannel.length > 0) {
+      const totalRevenue = revenueByChannel.reduce((sum, ch) => sum + (ch.revenue || 0), 0);
+      const topChannelRevenue = Math.max(...revenueByChannel.map(ch => ch.revenue || 0));
+      const topChannel = revenueByChannel.find(ch => ch.revenue === topChannelRevenue);
+      const channelConcentration = topChannelRevenue / totalRevenue;
+
+      if (channelConcentration > 0.7) {
+        insights.push({
+          type: 'warning',
+          title: 'Over-Reliance on Single Revenue Channel',
+          message: `${(channelConcentration * 100).toFixed(0)}% of revenue (₹${topChannelRevenue.toLocaleString()}) comes from ${topChannel?.channel}. While channel focus can be efficient, this creates major business risk—algorithm changes or policy updates could devastate sales.`,
+          impact: '-40-60% revenue risk',
+          confidence: 84,
+          actionable: true,
+          actions: [
+            'Diversify: allocate 15-20% budget to secondary channels',
+            'Build email list aggressively (owned audience)',
+            'Test influencer marketing or affiliate partnerships',
+            'Invest in SEO for long-term organic traffic',
+            'Launch referral program to reduce paid acquisition dependency'
+          ],
+          impactScore: 70,
+          whyItMatters: 'E-commerce businesses that rely on 1-2 channels are vulnerable. Platform policy changes can happen overnight—diversification is insurance against disaster.',
+          category: 'Spend'
+        });
+      }
+    }
+
+    // 5. Product Performance Insight
+    if (conversions >= 50 && avgOrderValue > 0) {
+      const estimatedProducts = Math.ceil(conversions / 100); // Rough estimate
+      insights.push({
+        type: 'info',
+        title: 'Product Portfolio Strategy',
+        message: `With ${conversions} orders and ₹${avgOrderValue.toFixed(0)} AOV, you're likely selling multiple product types. Top performers typically drive 80% of revenue. Identify your hero products and double down—cut underperformers to free up budget for winners.`,
+        impact: 'Portfolio optimization opportunity',
+        confidence: 80,
+        actionable: true,
+        actions: [
+          'Run 80/20 analysis: which 20% of SKUs drive 80% of revenue?',
+          'Pause bottom 20% of products (low margin, low volume)',
+          'Create dedicated campaigns for top 5 bestsellers',
+          'Use dynamic remarketing to show users products they viewed',
+          'Test product bundles combining hero items with complementary products'
+        ],
+        impactScore: 65,
+        whyItMatters: 'Not all products are created equal. Focusing budget on proven winners while cutting losers dramatically improves overall profitability and simplifies operations.',
+        category: 'General'
       });
     }
 

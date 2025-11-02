@@ -1,5 +1,5 @@
 // Landing Page - Complete Single Page Application
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -64,6 +64,19 @@ import {
   TiltCard,
 } from './effects';
 
+// Import centralized data constants
+import {
+  navItems,
+  platformCards,
+  featureCards,
+  quickBenefits,
+  howItWorksSteps,
+  pricingPlans,
+  faqItems,
+  testimonials,
+  contactInfo,
+} from '../../constants/landingPageData';
+
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
@@ -79,25 +92,14 @@ export const LandingPage: React.FC = () => {
   });
   const heroY = useTransform(heroScrollProgress, [0, 1], [0, 200]);
 
-  // Navigation menu items
-  const navItems = [
-    { label: 'Home', href: '#hero' },
-    { label: 'Features', href: '#features' },
-    { label: 'Platforms', href: '#platforms' },
-    { label: 'How It Works', href: '#how-it-works' },
-    { label: 'Pricing', href: '#pricing' },
-    { label: 'FAQ', href: '#faq' },
-    { label: 'Contact', href: '#contact' },
-  ];
-
-  // Smooth scroll to section
-  const scrollToSection = (href: string) => {
+  // Smooth scroll to section (optimized with useCallback)
+  const scrollToSection = useCallback((href: string) => {
     const element = document.querySelector(href);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
       setMobileMenuOpen(false);
     }
-  };
+  }, []);
 
   return (
     <Box sx={{ bgcolor: '#F8F9FA', minHeight: '100vh', position: 'relative' }}>

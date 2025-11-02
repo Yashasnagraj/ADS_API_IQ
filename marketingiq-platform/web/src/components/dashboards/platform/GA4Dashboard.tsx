@@ -6,6 +6,7 @@ import { KPICard } from '../../common/KPICard';
 import InsightCard from '../../common/InsightCard';
 import { SmartInsightCard } from '../../common/SmartInsightCard';
 import { DataQualityIndicator } from '../../common/DataQualityIndicator';
+import { SmartInsightSummary } from '../../common/SmartInsightSummary';
 import { FilterState, KPIData, InsightData, GA4Metrics, GA4SourceMedium } from '../../../types';
 import { useFilters } from '../../../context/FilterContext';
 import { ga4Service } from '../../../services/ga4Service';
@@ -216,6 +217,19 @@ export const GA4Dashboard: React.FC = () => {
           <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
             🧠 AI Intelligence & Recommendations
           </Typography>
+
+          {/* Summary Banner */}
+          <SmartInsightSummary
+            totalInsights={smartInsights.length}
+            avgConfidence={Math.round(
+              smartInsights.reduce((sum, i) => sum + i.confidence, 0) / Math.max(smartInsights.length, 1)
+            )}
+            highPriorityCount={smartInsights.filter(i => i.type === 'danger' || i.type === 'warning').length}
+            actionableCount={smartInsights.filter(i => i.actionable).length}
+            isLoading={loading}
+          />
+
+          {/* Insights by Category */}
           <Stack spacing={2.5}>
             {smartInsights.map((insight, index) => (
               <SmartInsightCard
@@ -227,6 +241,9 @@ export const GA4Dashboard: React.FC = () => {
                 confidence={insight.confidence}
                 actionable={insight.actionable}
                 actions={insight.actions}
+                impactScore={insight.impactScore}
+                whyItMatters={insight.whyItMatters}
+                category={insight.category}
                 index={index}
               />
             ))}
