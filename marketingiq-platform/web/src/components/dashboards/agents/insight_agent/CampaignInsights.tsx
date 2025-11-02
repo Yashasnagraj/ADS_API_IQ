@@ -97,20 +97,113 @@ interface AttributionData {
   touchpoints: number;
 }
 
+interface Campaign {
+  campaign_id: string;
+  campaign_name: string;
+  status: string;
+  platform: string;
+  metrics: {
+    clicks: number;
+    impressions: number;
+    cost: number;
+    conversions: number;
+    ctr: number;
+    avg_cpc: number;
+  };
+}
+
 const CampaignInsights: React.FC = () => {
   const { filters } = useFilters();
   const [incrementalData, setIncrementalData] = useState<any>(null);
   const [ltvData, setLtvData] = useState<any>(null);
   const [attributionData, setAttributionData] = useState<any>(null);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<string>('');
 
+  // Check if customer has multi-platform data (Customer 1 = Emcee Sons)
+  const isMultiPlatform = filters.customerId === '1';
+
   useEffect(() => {
     fetchAllInsights();
-  }, [filters.customerId, selectedCampaign]);
+    fetchCampaigns();
+  }, [filters.customerId, selectedCampaign, filters.dateRange]);
 
   const fetchAllInsights = async () => {
+    if (!filters.customerId) {
+      return;
+    }
+
+    setError(null);
+
+    try {
+      // Fetch PIE Incrementality
+      try {
+        const pieParams = new URLSearchParams({
+          customer_id: filters.customerId,
+          ...(selectedCampaign && { campaign_id: selectedCampaign }),
+        });
+        const pieResponse = await fetch(`http://localhost:8000/api/v1/ai/incrementality?${pieParams}`);
+
+        if (pieResponse.ok) {
+          const pieData = await pieResponse.json();
+          setIncrementalData(pieData);
+
+          // Auto-select first campaign if none selected
+          if (!selectedCampaign && pieData.predictions && pieData.predictions.length > 0) {
+            setSelectedCampaign(pieData.predictions[0].campaign_id);
+          }
+        } else {
+          console.warn('Incrementality API not available:', pieResponse.statusText);
+        }
+      } catch (err: any) {
+        console.warn('Error fetching incrementality:', err);
+      }
+
+      // Fetch LTV Data
+      try {
+        const ltvParams = new URLSearchParams({
+          customer_id: filters.customerId,
+          ...(selectedCampaign && { campaign_id: selectedCampaign }),
+        });
+        const ltvResponse = await fetch(`http://localhost:8000/api/v1/ai/ltv/predict?${ltvParams}`);
+
+        if (ltvResponse.ok) {
+          const ltv = await ltvResponse.json();
+          setLtvData(ltv);
+        } else {
+          console.warn('LTV API not available:', ltvResponse.statusText);
+        }
+      } catch (err: any) {
+        console.warn('Error fetching LTV:', err);
+      }
+
+      // Fetch Attribution
+      try {
+        const attrParams = new URLSearchParams({
+          customer_id: filters.customerId,
+          days_lookback: '30',
+        });
+        const attrResponse = await fetch(`http://localhost:8000/api/v1/ai/attribution?${attrParams}`);
+
+        if (attrResponse.ok) {
+          const attr = await attrResponse.json();
+          setAttributionData(attr);
+        } else {
+          console.warn('Attribution API not available:', attrResponse.statusText);
+        }
+      } catch (err: any) {
+        console.warn('Error fetching attribution:', err);
+      }
+
+    } catch (err: any) {
+      console.error('Error fetching campaign insights:', err);
+      // Don't set error for individual API failures
+    }
+  };
+
+  const fetchCampaigns = async () => {
     if (!filters.customerId) {
       setLoading(false);
       return;
@@ -120,59 +213,111 @@ const CampaignInsights: React.FC = () => {
     setError(null);
 
     try {
-      // Fetch PIE Incrementality
-      const pieParams = new URLSearchParams({
+      const params = new URLSearchParams({
         customer_id: filters.customerId,
-        ...(selectedCampaign && { campaign_id: selectedCampaign }),
+        date_range: filters.dateRange || 'LAST_30_DAYS',
       });
-      const pieResponse = await fetch(`http://localhost:8000/api/v1/ai/incrementality?${pieParams}`);
 
-      if (pieResponse.ok) {
-        const pieData = await pieResponse.json();
-        setIncrementalData(pieData);
+      const response = await fetch(`http://localhost:8000/api/v1/warehouse/campaigns?${params}`);
 
-        // Auto-select first campaign if none selected
-        if (!selectedCampaign && pieData.predictions && pieData.predictions.length > 0) {
-          setSelectedCampaign(pieData.predictions[0].campaign_id);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch campaigns: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Map campaigns and add platform info
+      const mappedCampaigns = (data.campaigns || []).map((camp: any) => ({
+        campaign_id: camp.campaign_id,
+        campaign_name: camp.campaign_name,
+        status: camp.status,
+        platform: 'Google Ads',
+        metrics: camp.metrics || {
+          clicks: 0,
+          impressions: 0,
+          cost: 0,
+          conversions: 0,
+          ctr: 0,
+          avg_cpc: 0,
+        },
+      }));
+
+      // If multi-platform (Customer 1), fetch Meta campaigns too
+      if (isMultiPlatform) {
+        try {
+          const metaResponse = await fetch(
+            `http://localhost:8000/api/v1/warehouse/meta/campaigns?${params}`
+          );
+
+          if (metaResponse.ok) {
+            const metaData = await metaResponse.json();
+            const metaCampaigns = (metaData.campaigns || []).map((camp: any) => ({
+              campaign_id: camp.campaign_id,
+              campaign_name: camp.name,
+              status: camp.status,
+              platform: 'Meta Ads',
+              metrics: {
+                clicks: 0,
+                impressions: 0,
+                cost: 0,
+                conversions: 0,
+                ctr: 0,
+                avg_cpc: 0,
+              },
+            }));
+            mappedCampaigns.push(...metaCampaigns);
+          }
+        } catch (metaError) {
+          console.warn('Could not fetch Meta campaigns:', metaError);
         }
       }
 
-      // Fetch LTV Data
-      const ltvParams = new URLSearchParams({
-        customer_id: filters.customerId,
-        ...(selectedCampaign && { campaign_id: selectedCampaign }),
-      });
-      const ltvResponse = await fetch(`http://localhost:8000/api/v1/ai/ltv/predict?${ltvParams}`);
+      setCampaigns(mappedCampaigns);
 
-      if (ltvResponse.ok) {
-        const ltv = await ltvResponse.json();
-        setLtvData(ltv);
+      // Auto-select first campaign if none selected and no incremental data
+      if (!selectedCampaign && mappedCampaigns.length > 0 && !incrementalData) {
+        setSelectedCampaign(mappedCampaigns[0].campaign_id);
       }
-
-      // Fetch Attribution
-      const attrParams = new URLSearchParams({
-        customer_id: filters.customerId,
-        days_lookback: '30',
-      });
-      const attrResponse = await fetch(`http://localhost:8000/api/v1/ai/attribution?${attrParams}`);
-
-      if (attrResponse.ok) {
-        const attr = await attrResponse.json();
-        setAttributionData(attr);
-      }
-
     } catch (err: any) {
-      console.error('Error fetching campaign insights:', err);
-      setError(err.message || 'Failed to load campaign insights');
+      console.error('Error fetching campaigns:', err);
+      setError(err.message || 'Failed to load campaign data');
     } finally {
       setLoading(false);
     }
   };
 
+  // Helper function to calculate average ROAS from campaigns
+  const calculateAvgROAS = (campaigns: Campaign[]): number => {
+    if (campaigns.length === 0) return 0;
+    
+    const totalSpend = campaigns.reduce((sum, camp) => sum + (camp.metrics.cost || 0), 0);
+    const totalConversions = campaigns.reduce((sum, camp) => sum + (camp.metrics.conversions || 0), 0);
+    
+    // Assume average order value of 100 if conversions > 0
+    const avgOrderValue = 100;
+    const totalRevenue = totalConversions * avgOrderValue;
+    
+    return totalSpend > 0 ? totalRevenue / totalSpend : 0;
+  };
+
   const topCampaigns = useMemo(() => {
-    if (!incrementalData || !incrementalData.predictions) return [];
-    return incrementalData.predictions.slice(0, 10);
-  }, [incrementalData]);
+    if (incrementalData && incrementalData.predictions) {
+      return incrementalData.predictions.slice(0, 10);
+    }
+    // Fallback to campaigns if incremental data not available
+    if (campaigns.length > 0) {
+      return campaigns.slice(0, 10).map((camp: any) => ({
+        campaign_id: camp.campaign_id,
+        campaign_name: camp.campaign_name,
+        predicted_incremental_roas: camp.metrics?.avg_cpc > 0 ? (camp.metrics.cost / camp.metrics.clicks) : 0,
+        incremental_conversions: camp.metrics?.conversions || 0,
+        non_incremental_conversions: 0,
+        confidence: 0.75,
+        recommendation: camp.metrics?.ctr > 2 ? 'Continue running' : 'Review performance',
+      }));
+    }
+    return [];
+  }, [incrementalData, campaigns]);
 
   const ltvSegments = useMemo(() => {
     if (!ltvData || !ltvData.segments) return [];
@@ -229,10 +374,10 @@ const CampaignInsights: React.FC = () => {
     const industryAvgLTV = 150;
 
     // 1. DESCRIPTIVE: Summary of campaign performance insights
-    const descriptive = `Campaign Intelligence Overview:\n• ${totalCampaigns} campaigns analyzed with ${avgIncrementalROAS.toFixed(2)}x average incremental ROAS\n• ${totalCustomers.toLocaleString()} customers across ${ltvSegments.length} LTV segments\n• Average customer lifetime value: $${avgLTV.toFixed(0)}\n\nIncrementality Analysis (PIE Model):\n• ${highROASCampaigns} campaigns show strong incrementality (>3x ROAS)\n• ${lowROASCampaigns} campaigns show weak incrementality (<1.5x ROAS)\n\nAttribution Insights:\n• Top performing channel: ${topChannel?.channel || 'N/A'} (${topChannel?.credit_percentage.toFixed(1) || '0'}% credit)\n• Multi-touch attribution active across ${attributionChannels.length} channels`;
+    const descriptive = `Campaign Intelligence Overview:\n• ${totalCampaigns} campaigns analyzed with ${avgIncrementalROAS.toFixed(2)}x average incremental ROAS\n• ${totalCustomers.toLocaleString()} customers across ${ltvSegments.length} LTV segments\n• Average customer lifetime value: ₹${avgLTV.toFixed(0)}\n\nIncrementality Analysis (PIE Model):\n• ${highROASCampaigns} campaigns show strong incrementality (>3x ROAS)\n• ${lowROASCampaigns} campaigns show weak incrementality (<1.5x ROAS)\n\nAttribution Insights:\n• Top performing channel: ${topChannel?.channel || 'N/A'} (${topChannel?.credit_percentage.toFixed(1) || '0'}% credit)\n• Multi-touch attribution active across ${attributionChannels.length} channels`;
 
     // 2. DIAGNOSTIC: Explains why campaigns perform differently
-    let diagnostic = `Root Cause Analysis:\n\nIncrementality Drivers:\n• Avg incremental ROAS ${avgIncrementalROAS > industryAvgROAS ? 'exceeds' : 'falls below'} industry benchmark (${avgIncrementalROAS.toFixed(2)}x vs ${industryAvgROAS}x)\n• ${highROASCampaigns} campaigns drive true net new revenue\n• ${lowROASCampaigns} campaigns likely taking credit for organic conversions\n\nCustomer Value Patterns:\n• ${highValueSegments} high-value segments identified (LTV > $${(avgLTV * 1.5).toFixed(0)})\n• Customer LTV ${avgLTV > industryAvgLTV ? 'exceeds' : 'below'} $${industryAvgLTV} industry average`;
+    let diagnostic = `Root Cause Analysis:\n\nIncrementality Drivers:\n• Avg incremental ROAS ${avgIncrementalROAS > industryAvgROAS ? 'exceeds' : 'falls below'} industry benchmark (${avgIncrementalROAS.toFixed(2)}x vs ${industryAvgROAS}x)\n• ${highROASCampaigns} campaigns drive true net new revenue\n• ${lowROASCampaigns} campaigns likely taking credit for organic conversions\n\nCustomer Value Patterns:\n• ${highValueSegments} high-value segments identified (LTV > ₹${(avgLTV * 1.5).toFixed(0)})\n• Customer LTV ${avgLTV > industryAvgLTV ? 'exceeds' : 'below'} ₹${industryAvgLTV} industry average`;
 
     if (topChannel && topChannel.credit_percentage > 50) {
       diagnostic += `\n• ⚠️ Over-reliance on ${topChannel.channel} (${topChannel.credit_percentage.toFixed(0)}% attribution credit)`;
@@ -252,7 +397,7 @@ const CampaignInsights: React.FC = () => {
       trendText = 'declining';
     }
 
-    let predictive = `Performance Forecast:\n\nRevenue Projections:\n• Campaign incrementality is ${trendText}\n• Expected monthly incremental revenue: $${expectedMonthlyRevenue.toFixed(0)}\n• Customer LTV trend: ${expectedLTVGrowth >= 0 ? '+' : ''}${expectedLTVGrowth.toFixed(1)}% vs industry\n\nRisk Assessment:\n• ${lowROASCampaigns} campaigns at risk of budget waste\n• ${highValueSegments} high-LTV segments offer scaling opportunities`;
+    let predictive = `Performance Forecast:\n\nRevenue Projections:\n• Campaign incrementality is ${trendText}\n• Expected monthly incremental revenue: ₹${expectedMonthlyRevenue.toFixed(0)}\n• Customer LTV trend: ${expectedLTVGrowth >= 0 ? '+' : ''}${expectedLTVGrowth.toFixed(1)}% vs industry\n\nRisk Assessment:\n• ${lowROASCampaigns} campaigns at risk of budget waste\n• ${highValueSegments} high-LTV segments offer scaling opportunities`;
 
     if (avgIncrementalROAS < 2.0) {
       predictive += `\n• ⚠️ Low incremental ROAS indicates heavy organic overlap`;
@@ -262,7 +407,7 @@ const CampaignInsights: React.FC = () => {
     const recommendations: string[] = [];
 
     if (lowROASCampaigns > 0) {
-      recommendations.push(`1. Reduce spend on ${lowROASCampaigns} low-incrementality campaigns - save ~$${(lowROASCampaigns * 1000).toFixed(0)}/month`);
+      recommendations.push(`1. Reduce spend on ${lowROASCampaigns} low-incrementality campaigns - save ~₹${(lowROASCampaigns * 1000).toFixed(0)}/month`);
     }
 
     if (highROASCampaigns > 0) {
@@ -270,7 +415,7 @@ const CampaignInsights: React.FC = () => {
     }
 
     if (highValueSegments > 0) {
-      recommendations.push(`3. Target ${highValueSegments} high-LTV customer segments - potential $${(avgLTV * highValueSegments * 10).toFixed(0)} lifetime value`);
+      recommendations.push(`3. Target ${highValueSegments} high-LTV customer segments - potential ₹${(avgLTV * highValueSegments * 10).toFixed(0)} lifetime value`);
     }
 
     if (topChannel && topChannel.credit_percentage > 50) {
@@ -280,7 +425,7 @@ const CampaignInsights: React.FC = () => {
     }
 
     const potentialROI = (highROASCampaigns * 1000 * 2) + (lowROASCampaigns * 1000 * 0.5);
-    const prescriptive = `Strategic Recommendations:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact:\n• Revenue opportunity: $${potentialROI.toFixed(0)}/month\n• ROAS improvement: +${(industryAvgROAS - avgIncrementalROAS > 0 ? (industryAvgROAS - avgIncrementalROAS) * 100 / avgIncrementalROAS : 20).toFixed(0)}%\n• Confidence: 88%`;
+    const prescriptive = `Strategic Recommendations:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact:\n• Revenue opportunity: ₹${potentialROI.toFixed(0)}/month\n• ROAS improvement: +${(industryAvgROAS - avgIncrementalROAS > 0 ? (industryAvgROAS - avgIncrementalROAS) * 100 / avgIncrementalROAS : 20).toFixed(0)}%\n• Confidence: 88%`;
 
     return {
       descriptive: {
@@ -328,7 +473,7 @@ const CampaignInsights: React.FC = () => {
       </Box>
 
       {/* Campaign Selector */}
-      {topCampaigns.length > 0 && (
+      {(topCampaigns.length > 0 || campaigns.length > 0) && (
         <Box sx={{ mb: 3 }}>
           <FormControl fullWidth size="small" sx={{ maxWidth: 400 }}>
             <InputLabel>Select Campaign</InputLabel>
@@ -338,7 +483,7 @@ const CampaignInsights: React.FC = () => {
               label="Select Campaign"
             >
               <MenuItem value="">All Campaigns</MenuItem>
-              {topCampaigns.map((camp: any) => (
+              {(topCampaigns.length > 0 ? topCampaigns : campaigns).map((camp: any) => (
                 <MenuItem key={camp.campaign_id} value={camp.campaign_id}>
                   {camp.campaign_name}
                 </MenuItem>
@@ -354,74 +499,81 @@ const CampaignInsights: React.FC = () => {
         </Alert>
       )}
 
-      {(!incrementalData && !ltvData && !attributionData) && !loading && (
+      {(!incrementalData && !ltvData && !attributionData && campaigns.length === 0) && !loading && (
         <Alert severity="info">
           No campaign insights available. Please select a customer to view insights.
         </Alert>
       )}
 
+      {(!incrementalData && campaigns.length > 0) && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          AI insights APIs are not available. Showing campaign data from warehouse.
+        </Alert>
+      )}
+
       {/* Summary Cards */}
-      {incrementalData && (
+      {(incrementalData || campaigns.length > 0) && (
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+            <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg Incremental ROAS</Typography>
-                    <Typography variant="h3" fontWeight={700}>
-                      {incrementalData.summary?.avg_incremental_roas?.toFixed(2) || '0'}x
+                    <Typography variant="body2" color="text.secondary">Avg Incremental ROAS</Typography>
+                    <Typography variant="h3" fontWeight={700} color="text.primary">
+                      {incrementalData?.summary?.avg_incremental_roas?.toFixed(2) || 
+                       (campaigns.length > 0 ? calculateAvgROAS(campaigns).toFixed(2) : '0')}x
                     </Typography>
                   </Box>
-                  <TrendingUp sx={{ fontSize: 50, opacity: 0.7 }} />
+                  <TrendingUp sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white' }}>
+            <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Campaigns</Typography>
-                    <Typography variant="h3" fontWeight={700}>
-                      {incrementalData.summary?.total_campaigns || 0}
+                    <Typography variant="body2" color="text.secondary">Total Campaigns</Typography>
+                    <Typography variant="h3" fontWeight={700} color="text.primary">
+                      {incrementalData?.summary?.total_campaigns || campaigns.length}
                     </Typography>
                   </Box>
-                  <Insights sx={{ fontSize: 50, opacity: 0.7 }} />
+                  <Insights sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+            <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Customer Segments</Typography>
-                    <Typography variant="h3" fontWeight={700}>
+                    <Typography variant="body2" color="text.secondary">Customer Segments</Typography>
+                    <Typography variant="h3" fontWeight={700} color="text.primary">
                       {ltvSegments.length}
                     </Typography>
                   </Box>
-                  <People sx={{ fontSize: 50, opacity: 0.7 }} />
+                  <People sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+            <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg LTV</Typography>
-                    <Typography variant="h3" fontWeight={700}>
-                      ${ltvData?.overall_metrics?.avg_customer_ltv?.toFixed(0) || '0'}
+                    <Typography variant="body2" color="text.secondary">Avg LTV</Typography>
+                    <Typography variant="h3" fontWeight={700} color="text.primary">
+                      ₹{ltvData?.overall_metrics?.avg_customer_ltv?.toFixed(0) || '0'}
                     </Typography>
                   </Box>
-                  <AttachMoney sx={{ fontSize: 50, opacity: 0.7 }} />
+                  <AttachMoney sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                 </Box>
               </CardContent>
             </Card>
@@ -772,7 +924,7 @@ const CampaignInsights: React.FC = () => {
                               {segment.segment_name}
                             </Box>
                           </TableCell>
-                          <TableCell align="right">${segment.avg_ltv.toFixed(2)}</TableCell>
+                          <TableCell align="right">₹{segment.avg_ltv.toFixed(2)}</TableCell>
                           <TableCell align="right">{segment.customer_count}</TableCell>
                           <TableCell align="right">{segment.percentage.toFixed(1)}%</TableCell>
                         </TableRow>

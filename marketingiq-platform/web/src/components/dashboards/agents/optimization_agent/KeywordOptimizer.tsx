@@ -329,7 +329,7 @@ const KeywordOptimizer: React.FC = () => {
     const industryAvgConvRate = 3.5;
 
     // 1. DESCRIPTIVE: Summary of optimization opportunities
-    const descriptive = `Portfolio Analysis:\n• ${keywords.length} keywords under management with $${performanceSummary.totalCost.toFixed(2)} total spend\n• ${bidRecommendations.length} keywords need bid adjustments (${increaseCount} increase, ${decreaseCount} decrease)\n• ${highPriorityCount} high-priority optimization opportunities identified\n\nPerformance Snapshot:\n• Average CTR: ${performanceSummary.avgCTR.toFixed(2)}% (vs ${industryAvgCTR}% benchmark)\n• Average CPC: $${performanceSummary.avgCPC.toFixed(2)}\n• Conversion Rate: ${performanceSummary.avgConversionRate.toFixed(2)}% (vs ${industryAvgConvRate}% benchmark)\n• Quality Score: ${avgQualityScore.toFixed(1)}/10 (${highQualityCount} high-quality, ${lowQualityCount} low-quality)\n\n${performanceSummary.highPerformers} keywords are high performers, ${performanceSummary.lowPerformers} need attention.`;
+    const descriptive = `Portfolio Analysis:\n• ${keywords.length} keywords under management with ₹${performanceSummary.totalCost.toFixed(2)} total spend\n• ${bidRecommendations.length} keywords need bid adjustments (${increaseCount} increase, ${decreaseCount} decrease)\n• ${highPriorityCount} high-priority optimization opportunities identified\n\nPerformance Snapshot:\n• Average CTR: ${performanceSummary.avgCTR.toFixed(2)}% (vs ${industryAvgCTR}% benchmark)\n• Average CPC: ₹${performanceSummary.avgCPC.toFixed(2)}\n• Conversion Rate: ${performanceSummary.avgConversionRate.toFixed(2)}% (vs ${industryAvgConvRate}% benchmark)\n• Quality Score: ${avgQualityScore.toFixed(1)}/10 (${highQualityCount} high-quality, ${lowQualityCount} low-quality)\n\n${performanceSummary.highPerformers} keywords are high performers, ${performanceSummary.lowPerformers} need attention.`;
 
     // 2. DIAGNOSTIC: Explains why bid changes are needed
     const ctrStatus = performanceSummary.avgCTR > industryAvgCTR ? 'exceeds' : 'falls below';
@@ -343,7 +343,7 @@ const KeywordOptimizer: React.FC = () => {
     }
 
     if (performanceSummary.avgCPC > 2.0) {
-      diagnostic += `\n• High avg CPC ($${performanceSummary.avgCPC.toFixed(2)}) suggests bid inefficiencies`;
+      diagnostic += `\n• High avg CPC (₹${performanceSummary.avgCPC.toFixed(2)}) suggests bid inefficiencies`;
     }
 
     // 3. PREDICTIVE: Forecast impact of bid changes
@@ -361,7 +361,7 @@ const KeywordOptimizer: React.FC = () => {
       trendText = 'declining (cutting losers)';
     }
 
-    let predictive = `Forecast (Next 30 Days):\n\nIf Bid Recommendations Applied:\n• Budget will be ${trendText}\n• Net monthly budget change: ${netBudgetChange >= 0 ? '+' : ''}$${netBudgetChange.toFixed(0)}\n• Expected CTR lift: +${expectedCTRLift}%\n• Expected conversion lift: +${expectedConversionLift}%\n\nRisk Assessment:\n• ${decreaseCount} keywords at risk of losing impression share (but saving budget)\n• ${increaseCount} keywords will gain visibility and traffic`;
+    let predictive = `Forecast (Next 30 Days):\n\nIf Bid Recommendations Applied:\n• Budget will be ${trendText}\n• Net monthly budget change: ${netBudgetChange >= 0 ? '+' : ''}₹${netBudgetChange.toFixed(0)}\n• Expected CTR lift: +${expectedCTRLift}%\n• Expected conversion lift: +${expectedConversionLift}%\n\nRisk Assessment:\n• ${decreaseCount} keywords at risk of losing impression share (but saving budget)\n• ${increaseCount} keywords will gain visibility and traffic`;
 
     if (lowQualityCount > keywords.length * 0.2) {
       predictive += `\n• ⚠️ ${lowQualityCount} low-QS keywords may trigger CPC increases`;
@@ -371,7 +371,7 @@ const KeywordOptimizer: React.FC = () => {
     const recommendations: string[] = [];
 
     if (highPriorityCount > 0) {
-      recommendations.push(`1. Execute ${highPriorityCount} high-priority bid changes first - expected $${(potentialSavings * 0.4).toFixed(0)} monthly savings`);
+      recommendations.push(`1. Execute ${highPriorityCount} high-priority bid changes first - expected ₹${(potentialSavings * 0.4).toFixed(0)} monthly savings`);
     }
 
     if (performanceSummary.highPerformers > 0) {
@@ -379,7 +379,7 @@ const KeywordOptimizer: React.FC = () => {
     }
 
     if (performanceSummary.lowPerformers > 0) {
-      recommendations.push(`3. Reduce or pause ${performanceSummary.lowPerformers} low performers - save $${(potentialSavings * 0.6).toFixed(0)}/month`);
+      recommendations.push(`3. Reduce or pause ${performanceSummary.lowPerformers} low performers - save ₹${(potentialSavings * 0.6).toFixed(0)}/month`);
     }
 
     if (lowQualityCount > 0) {
@@ -392,7 +392,7 @@ const KeywordOptimizer: React.FC = () => {
     }
 
     const totalROI = potentialSavings + (parseFloat(expectedConversionLift) * performanceSummary.totalCost * 0.01);
-    const prescriptive = `Recommended Optimization Actions:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact:\n• Monthly savings: $${potentialSavings.toFixed(0)}\n• Revenue lift from scaling: +${expectedConversionLift}%\n• Total ROI: $${totalROI.toFixed(0)}/month\n• Confidence: 84%`;
+    const prescriptive = `Recommended Optimization Actions:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact:\n• Monthly savings: ₹${potentialSavings.toFixed(0)}\n• Revenue lift from scaling: +${expectedConversionLift}%\n• Total ROI: ₹${totalROI.toFixed(0)}/month\n• Confidence: 84%`;
 
     return {
       descriptive: {
@@ -470,49 +470,49 @@ const KeywordOptimizer: React.FC = () => {
           {/* Performance Summary Cards */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Keywords</Typography>
-                      <Typography variant="h3" fontWeight={700}>{performanceSummary.totalKeywords}</Typography>
+                      <Typography variant="body2" color="text.secondary">Total Keywords</Typography>
+                      <Typography variant="h3" fontWeight={700} color="text.primary">{performanceSummary.totalKeywords}</Typography>
                     </Box>
-                    <Search sx={{ fontSize: 50, opacity: 0.7 }} />
+                    <Search sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg CTR</Typography>
-                      <Typography variant="h3" fontWeight={700}>{performanceSummary.avgCTR.toFixed(2)}%</Typography>
+                      <Typography variant="body2" color="text.secondary">Avg CTR</Typography>
+                      <Typography variant="h3" fontWeight={700} color="text.primary">{performanceSummary.avgCTR.toFixed(2)}%</Typography>
                     </Box>
-                    <TrendingUp sx={{ fontSize: 50, opacity: 0.7 }} />
+                    <TrendingUp sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg CPC</Typography>
-                      <Typography variant="h3" fontWeight={700}>${performanceSummary.avgCPC.toFixed(2)}</Typography>
+                      <Typography variant="body2" color="text.secondary">Avg CPC</Typography>
+                      <Typography variant="h3" fontWeight={700} color="text.primary">₹{performanceSummary.avgCPC.toFixed(2)}</Typography>
                     </Box>
-                    <AttachMoney sx={{ fontSize: 50, opacity: 0.7 }} />
+                    <AttachMoney sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
@@ -804,8 +804,8 @@ const KeywordOptimizer: React.FC = () => {
                       {bidRecommendations.slice(0, 20).map((rec, idx) => (
                         <TableRow key={idx} hover>
                           <TableCell>{rec.keyword_text}</TableCell>
-                          <TableCell align="right">${rec.current_bid.toFixed(2)}</TableCell>
-                          <TableCell align="right">${rec.recommended_bid.toFixed(2)}</TableCell>
+                          <TableCell align="right">₹{rec.current_bid.toFixed(2)}</TableCell>
+                          <TableCell align="right">₹{rec.recommended_bid.toFixed(2)}</TableCell>
                           <TableCell align="center">
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
                               {rec.bid_change > 0 ? (
@@ -892,8 +892,8 @@ const KeywordOptimizer: React.FC = () => {
                         <TableCell align="right">{kw.impressions.toLocaleString()}</TableCell>
                         <TableCell align="right">{kw.clicks.toLocaleString()}</TableCell>
                         <TableCell align="right">{kw.ctr.toFixed(2)}%</TableCell>
-                        <TableCell align="right">${kw.avg_cpc.toFixed(2)}</TableCell>
-                        <TableCell align="right">${kw.cost.toFixed(2)}</TableCell>
+                        <TableCell align="right">₹{kw.avg_cpc.toFixed(2)}</TableCell>
+                        <TableCell align="right">₹{kw.cost.toFixed(2)}</TableCell>
                         <TableCell align="right">{kw.conversion_rate.toFixed(2)}%</TableCell>
                         <TableCell align="center">
                           <Chip

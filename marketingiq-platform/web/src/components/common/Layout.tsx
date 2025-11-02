@@ -11,14 +11,32 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
+  ListItemIcon,
   IconButton,
   ListSubheader,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import CampaignIcon from '@mui/icons-material/Campaign';
+import SpellcheckIcon from '@mui/icons-material/Spellcheck';
+import GroupWorkIcon from '@mui/icons-material/GroupWork';
+import InsightsIcon from '@mui/icons-material/Insights';
+import WarningIcon from '@mui/icons-material/Warning';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import TuneIcon from '@mui/icons-material/Tune';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import ViewQuiltIcon from '@mui/icons-material/ViewQuilt';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { GlobalFilterBar } from './GlobalFilterBar';
 import { useFilters } from '../../context/FilterContext';
 import { FloatingChatButton } from '../chat/FloatingChatButton';
+import { SiGoogleads, SiGoogleanalytics, SiFacebook } from 'react-icons/si';
 
 const drawerWidth = 260;
 
@@ -40,50 +58,50 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     {
       title: 'Platform Dashboards',
       items: [
-        { text: 'Unified Dashboard', path: '/dashboard/unified' },
-        { text: 'Google Ads', path: '/dashboard/google-ads' },
-        { text: 'Meta Ads', path: '/dashboard/meta-ads' },
-        { text: 'Google Analytics', path: '/dashboard/ga4' },
-        { text: 'E-Commerce', path: '/dashboard/ecommerce' },
+        { text: 'Unified Dashboard', path: '/dashboard/unified', icon: <DashboardIcon /> },
+        { text: 'Google Ads', path: '/dashboard/google-ads', icon: <SiGoogleads /> },
+        { text: 'Meta Ads', path: '/dashboard/meta-ads', icon: <SiFacebook /> },
+        { text: 'Google Analytics', path: '/dashboard/ga4', icon: <SiGoogleanalytics /> },
+        { text: 'E-Commerce', path: '/dashboard/ecommerce', icon: <ShoppingCartIcon /> },
       ],
     },
     {
       title: 'Data Agent',
       items: [
-        { text: 'Campaigns', path: '/dashboard/data/campaigns' },
-        { text: 'Keywords', path: '/dashboard/data/keywords' },
-        { text: 'Ad Groups', path: '/dashboard/data/adgroups' },
+        { text: 'Campaigns', path: '/dashboard/data/campaigns', icon: <CampaignIcon /> },
+        { text: 'Keywords', path: '/dashboard/data/keywords', icon: <SpellcheckIcon /> },
+        { text: 'Ad Groups', path: '/dashboard/data/adgroups', icon: <GroupWorkIcon /> },
       ],
     },
     {
       title: 'Insight Agent',
       items: [
-        { text: 'Insights Summary', path: '/dashboard/insights/summary' },
-        { text: 'Anomaly Detection', path: '/dashboard/insights/anomalies' },
-        { text: 'Campaign Insights', path: '/dashboard/insights/campaigns' },
+        { text: 'Insights Summary', path: '/dashboard/insights/summary', icon: <InsightsIcon /> },
+        { text: 'Anomaly Detection', path: '/dashboard/insights/anomalies', icon: <WarningIcon /> },
+        { text: 'Campaign Insights', path: '/dashboard/insights/campaigns', icon: <AnalyticsIcon /> },
       ],
     },
     {
       title: 'Optimization Agent',
       items: [
-        { text: 'Budget Optimizer', path: '/dashboard/optimization/budget' },
-        { text: 'Keyword Optimizer', path: '/dashboard/optimization/keywords' },
-        { text: 'Campaign Simulator', path: '/dashboard/optimization/simulator' },
+        { text: 'Budget Optimizer', path: '/dashboard/optimization/budget', icon: <AccountBalanceIcon /> },
+        { text: 'Keyword Optimizer', path: '/dashboard/optimization/keywords', icon: <TuneIcon /> },
+        { text: 'Campaign Simulator', path: '/dashboard/optimization/simulator', icon: <PlayArrowIcon /> },
       ],
     },
     {
       title: 'Forecasting Agent',
       items: [
-        { text: 'CTR Forecast', path: '/dashboard/forecasting/ctr' },
-        { text: 'Spend Forecast', path: '/dashboard/forecasting/spend' },
-        { text: 'Scenario Simulator', path: '/dashboard/forecasting/scenarios' },
+        { text: 'CTR Forecast', path: '/dashboard/forecasting/ctr', icon: <TrendingUpIcon /> },
+        { text: 'Spend Forecast', path: '/dashboard/forecasting/spend', icon: <AttachMoneyIcon /> },
+        { text: 'Scenario Simulator', path: '/dashboard/forecasting/scenarios', icon: <ViewQuiltIcon /> },
       ],
     },
     {
       title: 'Alert Agent',
       items: [
-        { text: 'Alerts Dashboard', path: '/dashboard/alerts/dashboard' },
-        { text: 'Thresholds Monitor', path: '/dashboard/alerts/thresholds' },
+        { text: 'Alerts Dashboard', path: '/dashboard/alerts/dashboard', icon: <NotificationsIcon /> },
+        { text: 'Thresholds Monitor', path: '/dashboard/alerts/thresholds', icon: <SettingsIcon /> },
       ],
     },
   ];
@@ -133,6 +151,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   },
                 }}
               >
+                {item.icon && (
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 40,
+                      color: location.pathname === item.path ? 'inherit' : 'text.secondary',
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                )}
                 <ListItemText
                   primary={item.text}
                   primaryTypographyProps={{

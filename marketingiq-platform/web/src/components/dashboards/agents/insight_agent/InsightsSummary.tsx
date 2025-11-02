@@ -340,7 +340,7 @@ const InsightsSummary: React.FC = () => {
     }
 
     const potentialRevenue = totalCampaigns * avgROAS * 500; // Estimated impact
-    const prescriptive = `Strategic Action Plan:\n\n${recommendations.slice(0, 4).join('\n\n')}\n\nImplementation Timeline:\n• Week 1: Execute top recommendation (${topRec.priority} priority)\n• Week 2: Address critical anomalies and high-priority actions\n• Week 3-4: Pursue growth opportunities and optimize segments\n\nExpected Impact:\n• Potential monthly revenue opportunity: $${potentialRevenue.toFixed(0)}\n• ROAS improvement target: ${industryAvgROAS > avgROAS ? `${industryAvgROAS}x` : `${(avgROAS * 1.15).toFixed(2)}x`}\n• Success probability: ${(topRec.confidence * 90).toFixed(0)}%`;
+    const prescriptive = `Strategic Action Plan:\n\n${recommendations.slice(0, 4).join('\n\n')}\n\nImplementation Timeline:\n• Week 1: Execute top recommendation (${topRec.priority} priority)\n• Week 2: Address critical anomalies and high-priority actions\n• Week 3-4: Pursue growth opportunities and optimize segments\n\nExpected Impact:\n• Potential monthly revenue opportunity: ₹${potentialRevenue.toFixed(0)}\n• ROAS improvement target: ${industryAvgROAS > avgROAS ? `${industryAvgROAS}x` : `${(avgROAS * 1.15).toFixed(2)}x`}\n• Success probability: ${(topRec.confidence * 90).toFixed(0)}%`;
 
     return {
       descriptive: {
@@ -416,64 +416,59 @@ const InsightsSummary: React.FC = () => {
           {/* Quick Stats Overview */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Active Campaigns</Typography>
-                      <Typography variant="h4" fontWeight={700}>{insights.quick_stats.total_campaigns}</Typography>
+                      <Typography variant="body2" color="text.secondary">Active Campaigns</Typography>
+                      <Typography variant="h4" fontWeight={700} color="text.primary">{insights.quick_stats.total_campaigns}</Typography>
                     </Box>
-                    <CampaignIcon sx={{ fontSize: 40, opacity: 0.7 }} />
+                    <CampaignIcon sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg Incremental ROAS</Typography>
-                      <Typography variant="h4" fontWeight={700}>{insights.quick_stats.avg_incremental_roas.toFixed(2)}x</Typography>
+                      <Typography variant="body2" color="text.secondary">Avg Incremental ROAS</Typography>
+                      <Typography variant="h4" fontWeight={700} color="text.primary">{insights.quick_stats.avg_incremental_roas.toFixed(2)}x</Typography>
                     </Box>
-                    <TrendingUp sx={{ fontSize: 40, opacity: 0.7 }} />
+                    <TrendingUp sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Customer Segments</Typography>
-                      <Typography variant="h4" fontWeight={700}>{insights.quick_stats.total_segments}</Typography>
+                      <Typography variant="body2" color="text.secondary">Customer Segments</Typography>
+                      <Typography variant="h4" fontWeight={700} color="text.primary">{insights.quick_stats.total_segments}</Typography>
                     </Box>
-                    <Stars sx={{ fontSize: 40, opacity: 0.7 }} />
+                    <Stars sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{
-                background: insights.quick_stats.anomalies_detected > 0
-                  ? 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
-                  : 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
-                color: 'white'
-              }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Anomalies Detected</Typography>
-                      <Typography variant="h4" fontWeight={700}>{insights.quick_stats.anomalies_detected}</Typography>
+                      <Typography variant="body2" color="text.secondary">Anomalies Detected</Typography>
+                      <Typography variant="h4" fontWeight={700} color="text.primary">{insights.quick_stats.anomalies_detected}</Typography>
                     </Box>
                     {insights.quick_stats.anomalies_detected > 0 ? (
-                      <Warning sx={{ fontSize: 40, opacity: 0.7 }} />
+                      <Warning sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
                     ) : (
-                      <CheckCircle sx={{ fontSize: 40, opacity: 0.7 }} />
+                      <CheckCircle sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
                     )}
                   </Box>
                 </CardContent>

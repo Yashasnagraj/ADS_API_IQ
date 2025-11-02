@@ -242,7 +242,7 @@ const KeywordsDashboard: React.FC = () => {
     const avgCPC = kpiMetrics.totalClicks > 0 ? kpiMetrics.totalSpend / kpiMetrics.totalClicks : 0;
 
     // 1. DESCRIPTIVE: Summary of what happened
-    const descriptive = `Your ${keywords.length} keywords generated ${kpiMetrics.totalClicks.toLocaleString()} total clicks with ${kpiMetrics.avgCTR}% average CTR. ${kpiMetrics.activeKeywords} keywords are active, ${keywords.length - kpiMetrics.activeKeywords} are paused.\n\nQuality Score Breakdown:\n• High (7-10): ${highQualityCount} keywords (${((highQualityCount / keywords.length) * 100).toFixed(0)}%)\n• Medium (4-6): ${mediumQualityCount} keywords\n• Low (1-3): ${lowQualityCount} keywords\n• No Score: ${noScoreCount} keywords\n\nAverage quality score is ${kpiMetrics.avgQualityScore}/10. Match type distribution: ${matchTypePerf.map(m => `${m.type} (${m.count})`).join(', ')}. Total spend: $${kpiMetrics.totalSpend.toFixed(2)} at $${avgCPC.toFixed(2)} avg CPC.`;
+    const descriptive = `Your ${keywords.length} keywords generated ${kpiMetrics.totalClicks.toLocaleString()} total clicks with ${kpiMetrics.avgCTR}% average CTR. ${kpiMetrics.activeKeywords} keywords are active, ${keywords.length - kpiMetrics.activeKeywords} are paused.\n\nQuality Score Breakdown:\n• High (7-10): ${highQualityCount} keywords (${((highQualityCount / keywords.length) * 100).toFixed(0)}%)\n• Medium (4-6): ${mediumQualityCount} keywords\n• Low (1-3): ${lowQualityCount} keywords\n• No Score: ${noScoreCount} keywords\n\nAverage quality score is ${kpiMetrics.avgQualityScore}/10. Match type distribution: ${matchTypePerf.map(m => `${m.type} (${m.count})`).join(', ')}. Total spend: ₹${kpiMetrics.totalSpend.toFixed(2)} at ₹${avgCPC.toFixed(2)} avg CPC.`;
 
     // 2. DIAGNOSTIC: Explains why performance varies
     const ctrDelta = topPerformer && bottomPerformer
@@ -273,7 +273,7 @@ const KeywordsDashboard: React.FC = () => {
       trendText = 'declining';
     }
 
-    let predictive = `Based on current performance, expect ~${expectedMonthlyClicks.toFixed(0)} monthly clicks at $${expectedMonthlySpend.toFixed(2)} spend.\n\nTrend Analysis:\n• Performance is ${trendText} (CTR: ${kpiMetrics.avgCTR}% vs ${industryAvgCTR}% benchmark)\n• ${noScoreCount} keywords lack quality scores - performance unpredictable\n• ${lowQualityCount} keywords at risk of declining performance`;
+    let predictive = `Based on current performance, expect ~${expectedMonthlyClicks.toFixed(0)} monthly clicks at ₹${expectedMonthlySpend.toFixed(2)} spend.\n\nTrend Analysis:\n• Performance is ${trendText} (CTR: ${kpiMetrics.avgCTR}% vs ${industryAvgCTR}% benchmark)\n• ${noScoreCount} keywords lack quality scores - performance unpredictable\n• ${lowQualityCount} keywords at risk of declining performance`;
 
     if (kpiMetrics.avgQualityScore < 5) {
       predictive += `\n• ⚠️ Low average quality score (${kpiMetrics.avgQualityScore}) may trigger CPC increases`;
@@ -283,7 +283,7 @@ const KeywordsDashboard: React.FC = () => {
     const recommendations: string[] = [];
 
     if (lowQualityCount > 0) {
-      recommendations.push(`1. Pause or improve ${lowQualityCount} low-quality keywords (QS ≤3) - save ~$${(lowQualityCount * avgCPC * 10).toFixed(0)}/month`);
+      recommendations.push(`1. Pause or improve ${lowQualityCount} low-quality keywords (QS ≤3) - save ~₹${(lowQualityCount * avgCPC * 10).toFixed(0)}/month`);
     }
 
     if (noScoreCount > keywords.length * 0.1) {
@@ -307,7 +307,7 @@ const KeywordsDashboard: React.FC = () => {
     }
 
     const potentialSavings = lowQualityCount * avgCPC * 10 * 30;
-    const prescriptive = `Recommended Actions:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact: $${potentialSavings.toFixed(0)} monthly savings + 15% CTR improvement | Confidence: 87%`;
+    const prescriptive = `Recommended Actions:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact: ₹${potentialSavings.toFixed(0)} monthly savings + 15% CTR improvement | Confidence: 87%`;
 
     return {
       descriptive: {
@@ -363,84 +363,84 @@ const KeywordsDashboard: React.FC = () => {
       {/* KPIs */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Keywords</Typography>
-                  <Typography variant="h4" fontWeight={700}>{kpiMetrics.totalKeywords}</Typography>
+                  <Typography variant="body2" color="text.secondary">Total Keywords</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.totalKeywords}</Typography>
                 </Box>
-                <Spellcheck sx={{ fontSize: 40, opacity: 0.7 }} />
+                <Spellcheck sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Active Keywords</Typography>
-                  <Typography variant="h4" fontWeight={700}>{kpiMetrics.activeKeywords}</Typography>
+                  <Typography variant="body2" color="text.secondary">Active Keywords</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.activeKeywords}</Typography>
                 </Box>
-                <CheckCircle sx={{ fontSize: 40, opacity: 0.7 }} />
+                <CheckCircle sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg Quality Score</Typography>
-                  <Typography variant="h4" fontWeight={700}>{kpiMetrics.avgQualityScore}/10</Typography>
+                  <Typography variant="body2" color="text.secondary">Avg Quality Score</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.avgQualityScore}/10</Typography>
                 </Box>
-                <Star sx={{ fontSize: 40, opacity: 0.7 }} />
+                <Star sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Clicks</Typography>
-                  <Typography variant="h4" fontWeight={700}>{kpiMetrics.totalClicks.toLocaleString()}</Typography>
+                  <Typography variant="body2" color="text.secondary">Total Clicks</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.totalClicks.toLocaleString()}</Typography>
                 </Box>
-                <TrendingUp sx={{ fontSize: 40, opacity: 0.7 }} />
+                <TrendingUp sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg CTR</Typography>
-                  <Typography variant="h4" fontWeight={700}>{kpiMetrics.avgCTR}%</Typography>
+                  <Typography variant="body2" color="text.secondary">Avg CTR</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.avgCTR}%</Typography>
                 </Box>
-                <TrendingUp sx={{ fontSize: 40, opacity: 0.7 }} />
+                <TrendingUp sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Spend</Typography>
-                  <Typography variant="h4" fontWeight={700}>${kpiMetrics.totalSpend.toFixed(0)}</Typography>
+                  <Typography variant="body2" color="text.secondary">Total Spend</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">₹{kpiMetrics.totalSpend.toFixed(0)}</Typography>
                 </Box>
-                <Category sx={{ fontSize: 40, opacity: 0.7 }} />
+                <Category sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
@@ -773,7 +773,7 @@ const KeywordsDashboard: React.FC = () => {
                       <TableCell align="right">{keyword.metrics.impressions.toLocaleString()}</TableCell>
                       <TableCell align="right">{keyword.metrics.clicks.toLocaleString()}</TableCell>
                       <TableCell align="right">{keyword.metrics.ctr.toFixed(2)}%</TableCell>
-                      <TableCell align="right">${keyword.metrics.cost.toFixed(2)}</TableCell>
+                      <TableCell align="right">₹{keyword.metrics.cost.toFixed(2)}</TableCell>
                       <TableCell align="right">{keyword.metrics.conversions.toFixed(1)}</TableCell>
                     </TableRow>
                   ))

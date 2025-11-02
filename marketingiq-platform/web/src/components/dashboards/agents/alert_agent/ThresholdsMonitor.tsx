@@ -636,57 +636,57 @@ const ThresholdsMonitor: React.FC = () => {
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Thresholds</Typography>
-                  <Typography variant="h2" fontWeight={700}>{thresholdStatus.total}</Typography>
-                  <Typography variant="caption">{thresholdStatus.enabled} enabled</Typography>
+                  <Typography variant="body2" color="text.secondary">Total Thresholds</Typography>
+                  <Typography variant="h2" fontWeight={700} color="text.primary">{thresholdStatus.total}</Typography>
+                  <Typography variant="caption" color="text.secondary">{thresholdStatus.enabled} enabled</Typography>
                 </Box>
-                <Settings sx={{ fontSize: 60, opacity: 0.7 }} />
+                <Settings sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Healthy</Typography>
-                  <Typography variant="h2" fontWeight={700}>{thresholdStatus.healthy}</Typography>
-                  <Typography variant="caption">Within range</Typography>
+                  <Typography variant="body2" color="text.secondary">Healthy</Typography>
+                  <Typography variant="h2" fontWeight={700} color="text.primary">{thresholdStatus.healthy}</Typography>
+                  <Typography variant="caption" color="text.secondary">Within range</Typography>
                 </Box>
-                <CheckCircle sx={{ fontSize: 60, opacity: 0.7 }} />
+                <CheckCircle sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #ff9800 0%, #fb8c00 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Warning</Typography>
-                  <Typography variant="h2" fontWeight={700}>{thresholdStatus.warning}</Typography>
-                  <Typography variant="caption">Approaching limit</Typography>
+                  <Typography variant="body2" color="text.secondary">Warning</Typography>
+                  <Typography variant="h2" fontWeight={700} color="text.primary">{thresholdStatus.warning}</Typography>
+                  <Typography variant="caption" color="text.secondary">Approaching limit</Typography>
                 </Box>
-                <Warning sx={{ fontSize: 60, opacity: 0.7 }} />
+                <Warning sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #f44336 0%, #e91e63 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Breaching</Typography>
-                  <Typography variant="h2" fontWeight={700}>{thresholdStatus.breaching}</Typography>
+                  <Typography variant="body2" color="text.secondary">Breaching</Typography>
+                  <Typography variant="h2" fontWeight={700} color="text.primary">{thresholdStatus.breaching}</Typography>
                   <Typography variant="caption">Over threshold</Typography>
                 </Box>
                 <TrendingDown sx={{ fontSize: 60, opacity: 0.7 }} />

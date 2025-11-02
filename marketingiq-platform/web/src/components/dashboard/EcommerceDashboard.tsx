@@ -203,9 +203,9 @@ export const EcommerceDashboard: React.FC = () => {
                       <td style={{ padding: '12px' }}>{product.product}</td>
                       <td style={{ textAlign: 'right', padding: '12px' }}>{product.units}</td>
                       <td style={{ textAlign: 'right', padding: '12px' }}>
-                        ${product.revenue.toLocaleString()}
+                        ₹{product.revenue.toLocaleString()}
                       </td>
-                      <td style={{ textAlign: 'right', padding: '12px' }}>${product.aov}</td>
+                      <td style={{ textAlign: 'right', padding: '12px' }}>₹{product.aov}</td>
                     </tr>
                   ))}
                 </tbody>

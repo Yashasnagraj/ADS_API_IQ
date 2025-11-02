@@ -159,6 +159,35 @@ const CampaignsDashboard: React.FC = () => {
         } catch (metaError) {
           console.warn('Could not fetch Meta campaigns:', metaError);
         }
+
+        // Try to fetch GA4 campaigns if available
+        try {
+          const ga4Response = await fetch(
+            `http://localhost:8000/api/v1/warehouse/ga4/campaigns?${params}`
+          );
+
+          if (ga4Response.ok) {
+            const ga4Data = await ga4Response.json();
+            const ga4Campaigns = (ga4Data.campaigns || []).map((camp: any) => ({
+              campaign_id: camp.campaign_id || camp.id || `ga4_${camp.name}`,
+              campaign_name: camp.name || camp.campaign_name,
+              status: camp.status || 'ACTIVE',
+              platform: 'GA4',
+              metrics: {
+                clicks: camp.clicks || camp.metrics?.clicks || 0,
+                impressions: camp.impressions || camp.metrics?.impressions || 0,
+                cost: camp.cost || camp.metrics?.cost || 0,
+                conversions: camp.conversions || camp.metrics?.conversions || 0,
+                ctr: camp.ctr || camp.metrics?.ctr || 0,
+                avg_cpc: camp.avg_cpc || camp.metrics?.avg_cpc || 0,
+              },
+            }));
+            mappedCampaigns.push(...ga4Campaigns);
+          }
+        } catch (ga4Error) {
+          // GA4 campaigns endpoint might not exist, that's okay
+          console.warn('Could not fetch GA4 campaigns:', ga4Error);
+        }
       }
 
       setCampaigns(mappedCampaigns);
@@ -236,6 +265,30 @@ const CampaignsDashboard: React.FC = () => {
     const avgClicksPerCampaign = kpiMetrics.totalClicks / campaigns.length;
     const avgSpendPerCampaign = kpiMetrics.totalSpend / campaigns.length;
 
+    // Count campaigns by platform
+    const platformCounts = campaigns.reduce((acc: Record<string, number>, campaign) => {
+      const platform = campaign.platform || 'Google Ads';
+      acc[platform] = (acc[platform] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Format platform breakdown: GA (Google Ads), MA (Meta Ads), GA4 (Google Analytics)
+    const platformBreakdown: string[] = [];
+    if (platformCounts['Google Ads']) {
+      platformBreakdown.push(`${platformCounts['Google Ads']} GA`);
+    }
+    if (platformCounts['Meta Ads']) {
+      platformBreakdown.push(`${platformCounts['Meta Ads']} MA`);
+    }
+    if (platformCounts['GA4']) {
+      platformBreakdown.push(`${platformCounts['GA4']} GA4`);
+    }
+
+    // Format campaigns count with platform breakdown
+    const campaignsCountText = platformBreakdown.length > 0
+      ? `${campaigns.length}(${platformBreakdown.join(', ')})`
+      : `${campaigns.length}`;
+
     // Industry benchmarks
     const industryAvgCTR = 2.0;
     const industryAvgCPC = 1.50;
@@ -245,7 +298,7 @@ const CampaignsDashboard: React.FC = () => {
     const cpcDiff = ((kpiMetrics.avgCPC - industryAvgCPC) / industryAvgCPC * 100).toFixed(1);
 
     // 1. DESCRIPTIVE ANALYSIS (What Happened)
-    const descriptive = `Your ${campaigns.length} campaigns generated ${kpiMetrics.totalClicks.toLocaleString()} clicks from ${kpiMetrics.totalImpressions.toLocaleString()} impressions at $${kpiMetrics.totalSpend.toFixed(2)} total spend over the last 30 days. ${activeCampaigns.length} campaigns are active${pausedCampaigns.length > 0 ? ` with ${pausedCampaigns.length} paused` : ''}. ${topPerformer ? `Top performer: "${topPerformer.campaign_name}" with ${topPerformer.metrics.ctr.toFixed(2)}% CTR.` : ''} Average ${avgClicksPerCampaign.toFixed(0)} clicks per campaign with $${avgSpendPerCampaign.toFixed(2)} avg spend.`;
+    const descriptive = `Your ${campaignsCountText} campaigns generated ${kpiMetrics.totalClicks.toLocaleString()} clicks from ${kpiMetrics.totalImpressions.toLocaleString()} impressions at ₹${kpiMetrics.totalSpend.toFixed(2)} total spend over the last 30 days. ${activeCampaigns.length} campaigns are active${pausedCampaigns.length > 0 ? ` with ${pausedCampaigns.length} paused` : ''}. ${topPerformer ? `Top performer: "${topPerformer.campaign_name}" with ${topPerformer.metrics.ctr.toFixed(2)}% CTR.` : ''} Average ${avgClicksPerCampaign.toFixed(0)} clicks per campaign with ₹${avgSpendPerCampaign.toFixed(2)} avg spend.`;
 
     // 2. DIAGNOSTIC ANALYSIS (Why It Happened)
     let diagnostic = '';
@@ -271,7 +324,7 @@ const CampaignsDashboard: React.FC = () => {
     const projectedMonthlyClicks = (kpiMetrics.totalClicks / 30) * 30;
     const trendIndicator = kpiMetrics.avgCTR > industryAvgCTR ? 'improving' : kpiMetrics.avgCTR > industryAvgCTR * 0.8 ? 'stable' : 'declining';
 
-    let predictive = `Based on current 30-day trends, expect ~${projectedMonthlyClicks.toFixed(0)} clicks/month at $${projectedMonthlySpend.toFixed(2)} monthly spend. `;
+    let predictive = `Based on current 30-day trends, expect ~${projectedMonthlyClicks.toFixed(0)} clicks/month at ₹${projectedMonthlySpend.toFixed(2)} monthly spend. `;
 
     if (trendIndicator === 'improving') {
       predictive += `CTR trajectory is positive (${kpiMetrics.avgCTR}% trending upward). Forecasted 7-day CTR: ${(kpiMetrics.avgCTR * 1.05).toFixed(2)}%. `;
@@ -297,7 +350,7 @@ const CampaignsDashboard: React.FC = () => {
     } else if (topPerformer) {
       const budgetIncrease = avgSpendPerCampaign * 0.25;
       const expectedRevenue = budgetIncrease * topPerformer.metrics.ctr * 0.1; // Assume 10% conversion
-      recommendations.push(`1. Scale "${topPerformer.campaign_name}" budget by $${budgetIncrease.toFixed(0)} (+$${(expectedRevenue * 3).toFixed(0)} expected revenue at 3x ROAS)`);
+      recommendations.push(`1. Scale "${topPerformer.campaign_name}" budget by ₹${budgetIncrease.toFixed(0)} (+₹${(expectedRevenue * 3).toFixed(0)} expected revenue at 3x ROAS)`);
     }
 
     // Paused campaigns
@@ -308,16 +361,16 @@ const CampaignsDashboard: React.FC = () => {
     // CPC optimization
     if (kpiMetrics.avgCPC > industryAvgCPC) {
       const savings = (kpiMetrics.avgCPC - industryAvgCPC) * kpiMetrics.totalClicks;
-      recommendations.push(`3. Reduce avg CPC from $${kpiMetrics.avgCPC.toFixed(2)} to $${industryAvgCPC.toFixed(2)} benchmark (save $${savings.toFixed(0)}/month)`);
+      recommendations.push(`3. Reduce avg CPC from ₹${kpiMetrics.avgCPC.toFixed(2)} to ₹${industryAvgCPC.toFixed(2)} benchmark (save ₹${savings.toFixed(0)}/month)`);
     }
 
     // Bottom performers
     if (bottomPerformer && bottomPerformer.metrics.ctr < industryAvgCTR * 0.5) {
-      recommendations.push(`4. Pause "${bottomPerformer.campaign_name}" (CTR ${bottomPerformer.metrics.ctr.toFixed(2)}%) and reallocate $${bottomPerformer.metrics.cost.toFixed(0)} budget`);
+      recommendations.push(`4. Pause "${bottomPerformer.campaign_name}" (CTR ${bottomPerformer.metrics.ctr.toFixed(2)}%) and reallocate ₹${bottomPerformer.metrics.cost.toFixed(0)} budget`);
     }
 
     const prescriptive = recommendations.length > 0
-      ? `Recommended Actions:\n${recommendations.join('\n')}\n\nExpected Impact: +$${(kpiMetrics.totalSpend * 0.15).toFixed(0)} monthly profit | Confidence: 82%`
+      ? `Recommended Actions:\n${recommendations.join('\n')}\n\nExpected Impact: +₹${(kpiMetrics.totalSpend * 0.15).toFixed(0)} monthly profit | Confidence: 82%`
       : 'Campaigns are well-optimized. Continue monitoring performance.';
 
     return {
@@ -386,84 +439,84 @@ const CampaignsDashboard: React.FC = () => {
       {/* KPIs */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Campaigns</Typography>
-                  <Typography variant="h4" fontWeight={700}>{kpiMetrics.totalCampaigns}</Typography>
+                  <Typography variant="body2" color="text.secondary">Total Campaigns</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.totalCampaigns}</Typography>
                 </Box>
-                <CampaignIcon sx={{ fontSize: 40, opacity: 0.7 }} />
+                <CampaignIcon sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Spend</Typography>
-                  <Typography variant="h4" fontWeight={700}>${kpiMetrics.totalSpend.toFixed(0)}</Typography>
+                  <Typography variant="body2" color="text.secondary">Total Spend</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">₹{kpiMetrics.totalSpend.toFixed(0)}</Typography>
                 </Box>
-                <AttachMoney sx={{ fontSize: 40, opacity: 0.7 }} />
+                <AttachMoney sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Clicks</Typography>
-                  <Typography variant="h4" fontWeight={700}>{kpiMetrics.totalClicks.toLocaleString()}</Typography>
+                  <Typography variant="body2" color="text.secondary">Total Clicks</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.totalClicks.toLocaleString()}</Typography>
                 </Box>
-                <Mouse sx={{ fontSize: 40, opacity: 0.7 }} />
+                <Mouse sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Impressions</Typography>
-                  <Typography variant="h4" fontWeight={700}>{kpiMetrics.totalImpressions.toLocaleString()}</Typography>
+                  <Typography variant="body2" color="text.secondary">Impressions</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.totalImpressions.toLocaleString()}</Typography>
                 </Box>
-                <Visibility sx={{ fontSize: 40, opacity: 0.7 }} />
+                <Visibility sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg CTR</Typography>
-                  <Typography variant="h4" fontWeight={700}>{kpiMetrics.avgCTR}%</Typography>
+                  <Typography variant="body2" color="text.secondary">Avg CTR</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">{kpiMetrics.avgCTR}%</Typography>
                 </Box>
-                <TrendingUp sx={{ fontSize: 40, opacity: 0.7 }} />
+                <TrendingUp sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg CPC</Typography>
-                  <Typography variant="h4" fontWeight={700}>${kpiMetrics.avgCPC.toFixed(2)}</Typography>
+                  <Typography variant="body2" color="text.secondary">Avg CPC</Typography>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">₹{kpiMetrics.avgCPC.toFixed(2)}</Typography>
                 </Box>
-                <Speed sx={{ fontSize: 40, opacity: 0.7 }} />
+                <Speed sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
@@ -683,7 +736,7 @@ const CampaignsDashboard: React.FC = () => {
                 <Legend />
                 <Bar dataKey="campaigns" fill="#667eea" name="Campaigns" />
                 <Bar dataKey="clicks" fill="#4facfe" name="Clicks" />
-                <Bar dataKey="spend" fill="#f093fb" name="Spend ($)" />
+                <Bar dataKey="spend" fill="#f093fb" name="Spend (₹)" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -743,8 +796,8 @@ const CampaignsDashboard: React.FC = () => {
                       <TableCell align="right">{campaign.metrics.impressions.toLocaleString()}</TableCell>
                       <TableCell align="right">{campaign.metrics.clicks.toLocaleString()}</TableCell>
                       <TableCell align="right">{campaign.metrics.ctr.toFixed(2)}%</TableCell>
-                      <TableCell align="right">${campaign.metrics.cost.toFixed(2)}</TableCell>
-                      <TableCell align="right">${campaign.metrics.avg_cpc.toFixed(2)}</TableCell>
+                      <TableCell align="right">₹{campaign.metrics.cost.toFixed(2)}</TableCell>
+                      <TableCell align="right">₹{campaign.metrics.avg_cpc.toFixed(2)}</TableCell>
                       <TableCell align="right">{campaign.metrics.conversions.toFixed(1)}</TableCell>
                     </TableRow>
                   ))

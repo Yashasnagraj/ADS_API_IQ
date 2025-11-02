@@ -301,7 +301,7 @@ const CampaignSimulator: React.FC = () => {
     if (ctrImprovement !== 0) changedParams.push(`CTR ${ctrImprovement > 0 ? 'improvement' : 'decline'} of ${Math.abs(ctrImprovement)}%`);
     if (conversionRateChange !== 0) changedParams.push(`Conversion rate ${conversionRateChange > 0 ? 'improvement' : 'decline'} of ${Math.abs(conversionRateChange)}%`);
 
-    const descriptive = `Scenario Simulation Results:\n\nParameters Changed:\n• ${changedParams.join('\n• ')}\n\nProjected Outcomes:\n• ROAS: ${baseMetrics.roas.toFixed(2)}x → ${roasResult?.simulated.toFixed(2)}x (${roasResult && roasResult.changePct > 0 ? '+' : ''}${roasResult?.changePct.toFixed(1)}%)\n• Revenue: $${baseMetrics.revenue} → $${revenueResult?.simulated.toFixed(0)} (${revenueResult && revenueResult.changePct > 0 ? '+' : ''}${revenueResult?.changePct.toFixed(1)}%)\n• Conversions: ${baseMetrics.conversions} → ${conversionsResult?.simulated.toFixed(0)} (${conversionsResult && conversionsResult.changePct > 0 ? '+' : ''}${conversionsResult?.changePct.toFixed(1)}%)\n• Cost: $${baseMetrics.cost} → $${costResult?.simulated.toFixed(0)} (${costResult && costResult.changePct > 0 ? '+' : ''}${costResult?.changePct.toFixed(1)}%)`;
+    const descriptive = `Scenario Simulation Results:\n\nParameters Changed:\n• ${changedParams.join('\n• ')}\n\nProjected Outcomes:\n• ROAS: ${baseMetrics.roas.toFixed(2)}x → ${roasResult?.simulated.toFixed(2)}x (${roasResult && roasResult.changePct > 0 ? '+' : ''}${roasResult?.changePct.toFixed(1)}%)\n• Revenue: ₹${baseMetrics.revenue} → ₹${revenueResult?.simulated.toFixed(0)} (${revenueResult && revenueResult.changePct > 0 ? '+' : ''}${revenueResult?.changePct.toFixed(1)}%)\n• Conversions: ${baseMetrics.conversions} → ${conversionsResult?.simulated.toFixed(0)} (${conversionsResult && conversionsResult.changePct > 0 ? '+' : ''}${conversionsResult?.changePct.toFixed(1)}%)\n• Cost: ₹${baseMetrics.cost} → ₹${costResult?.simulated.toFixed(0)} (${costResult && costResult.changePct > 0 ? '+' : ''}${costResult?.changePct.toFixed(1)}%)`;
 
     // 2. DIAGNOSTIC: Why these outcomes occur
     let diagnostic = `Simulation Logic & Drivers:\n\n`;
@@ -348,7 +348,7 @@ const CampaignSimulator: React.FC = () => {
       riskFactors.push('Aggressive optimization assumptions may not materialize');
     }
 
-    let predictive = `Performance Forecast:\n\nProjected Financial Impact:\n• Net revenue change: ${revenueUplift > 0 ? '+' : ''}$${revenueUplift.toFixed(0)}\n• Cost change: ${costIncrease > 0 ? '+' : ''}$${costIncrease.toFixed(0)}\n• Net profit impact: ${netProfit > 0 ? '+' : ''}$${netProfit.toFixed(0)}\n\nForecast Confidence: ${confidenceScore}%\nRisk Level: ${riskLevel}`;
+    let predictive = `Performance Forecast:\n\nProjected Financial Impact:\n• Net revenue change: ${revenueUplift > 0 ? '+' : ''}₹${revenueUplift.toFixed(0)}\n• Cost change: ${costIncrease > 0 ? '+' : ''}₹${costIncrease.toFixed(0)}\n• Net profit impact: ${netProfit > 0 ? '+' : ''}₹${netProfit.toFixed(0)}\n\nForecast Confidence: ${confidenceScore}%\nRisk Level: ${riskLevel}`;
 
     if (riskFactors.length > 0) {
       predictive += `\n\nRisk Factors:\n• ${riskFactors.join('\n• ')}`;
@@ -378,7 +378,7 @@ const CampaignSimulator: React.FC = () => {
     }
 
     if (netProfit > 0) {
-      recommendations.push(`4. Expected ROI: +$${netProfit.toFixed(0)} profit - strong business case`);
+      recommendations.push(`4. Expected ROI: +₹${netProfit.toFixed(0)} profit - strong business case`);
     } else {
       recommendations.push(`4. Negative ROI projected - revise parameters before implementation`);
     }
@@ -769,38 +769,38 @@ const CampaignSimulator: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Conversions Change</Typography>
-                  <Typography variant="h3" fontWeight={700}>
+                  <Typography variant="body2" color="text.secondary">Conversions Change</Typography>
+                  <Typography variant="h3" fontWeight={700} color="text.primary">
                     {simulationResults.find(r => r.metric === 'Conversions')?.change.toFixed(0)}
                   </Typography>
-                  <Typography variant="caption">
+                  <Typography variant="caption" color="text.secondary">
                     {simulationResults.find(r => r.metric === 'Conversions')?.changePct.toFixed(1)}%
                   </Typography>
                 </Box>
-                <TrendingUp sx={{ fontSize: 50, opacity: 0.7 }} />
+                <TrendingUp sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', color: 'white' }}>
+          <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Cost Change</Typography>
-                  <Typography variant="h3" fontWeight={700}>
+                  <Typography variant="body2" color="text.secondary">Cost Change</Typography>
+                  <Typography variant="h3" fontWeight={700} color="text.primary">
                     ${simulationResults.find(r => r.metric === 'Cost')?.change.toFixed(0)}
                   </Typography>
-                  <Typography variant="caption">
+                  <Typography variant="caption" color="text.secondary">
                     {simulationResults.find(r => r.metric === 'Cost')?.changePct.toFixed(1)}%
                   </Typography>
                 </Box>
-                <AttachMoney sx={{ fontSize: 50, opacity: 0.7 }} />
+                <AttachMoney sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
               </Box>
             </CardContent>
           </Card>

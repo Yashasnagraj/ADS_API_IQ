@@ -241,10 +241,10 @@ const BudgetOptimizer: React.FC = () => {
       .reduce((sum, r) => sum + Math.abs(r.budget_change), 0);
 
     // 1. DESCRIPTIVE: Budget allocation analysis
-    const descriptive = `Budget Optimization Analysis:\n• Total budget allocation: $${totalBudget.toLocaleString()}\n• Portfolio-wide avg incremental ROAS: ${avgROAS.toFixed(2)}x\n• Analyzed ${totalCampaigns} campaigns for optimal allocation\n\nCurrent Budget Distribution:\n• ${toIncrease} campaigns recommended for budget increase\n• ${toDecrease} campaigns recommended for budget reduction\n• ${totalCampaigns - toIncrease - toDecrease} campaigns maintaining current levels\n\nAllocation Efficiency:\n• ${allocationEfficiency.toFixed(1)}% of budget allocated to high-ROAS campaigns (≥2.0x)\n• ${((lowROASAllocation / totalBudget) * 100).toFixed(1)}% in underperforming campaigns (<1.5x)`;
+    const descriptive = `Budget Optimization Analysis:\n• Total budget allocation: ₹${totalBudget.toLocaleString()}\n• Portfolio-wide avg incremental ROAS: ${avgROAS.toFixed(2)}x\n• Analyzed ${totalCampaigns} campaigns for optimal allocation\n\nCurrent Budget Distribution:\n• ${toIncrease} campaigns recommended for budget increase\n• ${toDecrease} campaigns recommended for budget reduction\n• ${totalCampaigns - toIncrease - toDecrease} campaigns maintaining current levels\n\nAllocation Efficiency:\n• ${allocationEfficiency.toFixed(1)}% of budget allocated to high-ROAS campaigns (≥2.0x)\n• ${((lowROASAllocation / totalBudget) * 100).toFixed(1)}% in underperforming campaigns (<1.5x)`;
 
     // 2. DIAGNOSTIC: Why budget needs reallocation
-    let diagnostic = `Root Cause of Budget Inefficiency:\n\nRO efficiency Analysis:\n• Average ROAS ${avgROAS >= 2.5 ? 'exceeds' : 'below'} optimal 2.5x benchmark\n• ${toDecrease} campaigns showing poor incremental returns (<1.5x ROAS)\n• Budget concentrated in ${toDecrease > toIncrease ? 'underperforming' : 'high-performing'} campaigns\n\nOpportunity Gaps:\n• $${potentialSavings.toFixed(0)} locked in low-efficiency campaigns\n• ${toIncrease} high-ROAS campaigns constrained by budget caps`;
+    let diagnostic = `Root Cause of Budget Inefficiency:\n\nRO efficiency Analysis:\n• Average ROAS ${avgROAS >= 2.5 ? 'exceeds' : 'below'} optimal 2.5x benchmark\n• ${toDecrease} campaigns showing poor incremental returns (<1.5x ROAS)\n• Budget concentrated in ${toDecrease > toIncrease ? 'underperforming' : 'high-performing'} campaigns\n\nOpportunity Gaps:\n• ₹${potentialSavings.toFixed(0)} locked in low-efficiency campaigns\n• ${toIncrease} high-ROAS campaigns constrained by budget caps`;
 
     if (allocationEfficiency < 50) {
       diagnostic += `\n• ⚠️ Less than 50% of budget in high-performers - major reallocation needed`;
@@ -269,10 +269,10 @@ const BudgetOptimizer: React.FC = () => {
       trendText = 'limited optimization gains';
     }
 
-    let predictive = `Budget Reallocation Forecast:\n\nRevenue Projections:\n• Expected incremental revenue lift: $${totalRevenue.toFixed(0)}\n• Optimization shows ${trendText}\n• Projected portfolio ROAS improvement: +${((avgROAS * 1.3 - avgROAS) / avgROAS * 100).toFixed(1)}%\n\nEfficiency Outlook:\n• ${toIncrease} campaigns can scale ${((toIncrease / totalCampaigns) * 100).toFixed(0)}% of portfolio\n• Budget reallocation confidence: ${allocationEfficiency > 60 ? 'High (85%)' : 'Medium (72%)'}`;
+    let predictive = `Budget Reallocation Forecast:\n\nRevenue Projections:\n• Expected incremental revenue lift: ₹${totalRevenue.toFixed(0)}\n• Optimization shows ${trendText}\n• Projected portfolio ROAS improvement: +${((avgROAS * 1.3 - avgROAS) / avgROAS * 100).toFixed(1)}%\n\nEfficiency Outlook:\n• ${toIncrease} campaigns can scale ${((toIncrease / totalCampaigns) * 100).toFixed(0)}% of portfolio\n• Budget reallocation confidence: ${allocationEfficiency > 60 ? 'High (85%)' : 'Medium (72%)'}`;
 
     if (potentialSavings > totalBudget * 0.1) {
-      predictive += `\n• Waste reduction opportunity: $${potentialSavings.toFixed(0)}/month`;
+      predictive += `\n• Waste reduction opportunity: ₹${potentialSavings.toFixed(0)}/month`;
     }
 
     // 4. PRESCRIPTIVE: Actionable budget recommendations
@@ -282,11 +282,11 @@ const BudgetOptimizer: React.FC = () => {
       const increaseAmount = budgetRecommendations
         .filter(r => r.action === 'increase')
         .reduce((sum, r) => sum + r.budget_change, 0);
-      recommendations.push(`1. Scale ${toIncrease} high-ROAS campaigns (+$${increaseAmount.toFixed(0)}) - expect +${(increaseAmount * avgROAS * 1.5).toFixed(0)} revenue`);
+      recommendations.push(`1. Scale ${toIncrease} high-ROAS campaigns (+₹${increaseAmount.toFixed(0)}) - expect +${(increaseAmount * avgROAS * 1.5).toFixed(0)} revenue`);
     }
 
     if (toDecrease > 0) {
-      recommendations.push(`2. Reduce spend on ${toDecrease} underperforming campaigns - save $${potentialSavings.toFixed(0)}/month`);
+      recommendations.push(`2. Reduce spend on ${toDecrease} underperforming campaigns - save ₹${potentialSavings.toFixed(0)}/month`);
     }
 
     if (allocationEfficiency < 70) {
@@ -296,7 +296,7 @@ const BudgetOptimizer: React.FC = () => {
     recommendations.push(`4. Reallocate savings to top ${Math.min(3, toIncrease)} performers - maximize incremental returns`);
 
     const expectedImpact = totalRevenue + revenueUplift;
-    const prescriptive = `Strategic Budget Recommendations:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact:\n• Total revenue opportunity: $${expectedImpact.toFixed(0)}/month\n• Portfolio ROAS: ${avgROAS.toFixed(2)}x → ${(avgROAS * 1.3).toFixed(2)}x\n• Budget efficiency gain: +${((avgROAS * 1.3 - avgROAS) / avgROAS * 100).toFixed(0)}%\n• Implementation confidence: 82%`;
+    const prescriptive = `Strategic Budget Recommendations:\n${recommendations.slice(0, 4).join('\n')}\n\nExpected Impact:\n• Total revenue opportunity: ₹${expectedImpact.toFixed(0)}/month\n• Portfolio ROAS: ${avgROAS.toFixed(2)}x → ${(avgROAS * 1.3).toFixed(2)}x\n• Budget efficiency gain: +${((avgROAS * 1.3 - avgROAS) / avgROAS * 100).toFixed(0)}%\n• Implementation confidence: 82%`;
 
     return {
       descriptive: {
@@ -352,7 +352,7 @@ const BudgetOptimizer: React.FC = () => {
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} md={6}>
               <TextField
-                label="Budget Amount ($)"
+                label="Budget Amount (₹)"
                 type="number"
                 value={totalBudget}
                 onChange={(e) => setTotalBudget(Number(e.target.value))}
@@ -368,7 +368,7 @@ const BudgetOptimizer: React.FC = () => {
                 max={100000}
                 step={1000}
                 valueLabelDisplay="auto"
-                valueLabelFormat={(value) => `$${value.toLocaleString()}`}
+                valueLabelFormat={(value) => `₹${value.toLocaleString()}`}
               />
             </Grid>
           </Grid>
@@ -589,55 +589,55 @@ const BudgetOptimizer: React.FC = () => {
           {/* Impact Summary Cards */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Expected Revenue Increase</Typography>
-                      <Typography variant="h4" fontWeight={700}>
+                      <Typography variant="body2" color="text.secondary">Expected Revenue Increase</Typography>
+                      <Typography variant="h4" fontWeight={700} color="text.primary">
                         ${budgetImpactSummary.totalExpectedRevenue.toFixed(0)}
                       </Typography>
                     </Box>
-                    <TrendingUp sx={{ fontSize: 50, opacity: 0.7 }} />
+                    <TrendingUp sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg Incremental ROAS</Typography>
-                      <Typography variant="h4" fontWeight={700}>
+                      <Typography variant="body2" color="text.secondary">Avg Incremental ROAS</Typography>
+                      <Typography variant="h4" fontWeight={700} color="text.primary">
                         {budgetImpactSummary.avgROAS.toFixed(2)}x
                       </Typography>
                     </Box>
-                    <Insights sx={{ fontSize: 50, opacity: 0.7 }} />
+                    <Insights sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Campaigns to Scale</Typography>
-                      <Typography variant="h4" fontWeight={700}>
+                      <Typography variant="body2" color="text.secondary">Campaigns to Scale</Typography>
+                      <Typography variant="h4" fontWeight={700} color="text.primary">
                         {budgetImpactSummary.campaignsToIncrease}
                       </Typography>
                     </Box>
-                    <TrendingUp sx={{ fontSize: 50, opacity: 0.7 }} />
+                    <TrendingUp sx={{ fontSize: 50, color: 'text.secondary', opacity: 0.7 }} />
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', color: 'white' }}>
+              <Card sx={{ background: 'white', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
@@ -665,7 +665,7 @@ const BudgetOptimizer: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="campaign" angle={-45} textAnchor="end" height={150} />
                   <YAxis />
-                  <Tooltip formatter={(value: any) => `$${value.toFixed(0)}`} />
+                  <Tooltip formatter={(value: any) => `₹${value.toFixed(0)}`} />
                   <Legend />
                   <Bar dataKey="current" fill="#667eea" name="Current Budget" />
                   <Bar dataKey="recommended" fill="#43e97b" name="Recommended Budget" />
@@ -699,8 +699,8 @@ const BudgetOptimizer: React.FC = () => {
                     {budgetRecommendations.map((rec) => (
                       <TableRow key={rec.campaign_id} hover>
                         <TableCell>{rec.campaign_name}</TableCell>
-                        <TableCell align="right">${rec.current_budget.toFixed(0)}</TableCell>
-                        <TableCell align="right">${rec.recommended_budget.toFixed(0)}</TableCell>
+                        <TableCell align="right">₹{rec.current_budget.toFixed(0)}</TableCell>
+                        <TableCell align="right">₹{rec.recommended_budget.toFixed(0)}</TableCell>
                         <TableCell align="center">
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
                             {rec.budget_change > 0 ? (
