@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: marketingiq-api
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt && cp ../marketing_warehouse.db ./marketing_warehouse.db || echo "Database not found, will use default"
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000} --workers 2
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        value: sqlite:///./marketing_warehouse.db
+      - key: API_VERSION
+        value: v1
+      - key: DEBUG
+        value: false
+      - key: LOG_LEVEL
+        value: INFO
+      - key: CORS_ORIGINS
+        value: '["*"]'
+      - key: PAGINATION_DEFAULT_LIMIT
+        value: 100
+      - key: PAGINATION_MAX_LIMIT
+        value: 1000
+    healthCheckPath: /health
