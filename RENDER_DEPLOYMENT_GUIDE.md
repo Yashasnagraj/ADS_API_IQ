@@ -30,12 +30,13 @@ Make sure your repository includes:
 
 ## Step 2: Deploy Backend Service
 
-### Option A: Using render.yaml (Recommended)
+### Option A: Using render.yaml (Backend Only)
 
 1. Go to [Render Dashboard](https://dashboard.render.com)
 2. Click **"New +"** → **"Blueprint"**
 3. Connect your GitHub repository
-4. Render will automatically detect `render.yaml` and create both services
+4. Render will automatically detect `render.yaml` and create the backend service
+5. **Note:** Frontend must be deployed separately (see Step 3)
 
 ### Option B: Manual Setup
 
@@ -103,11 +104,11 @@ Your backend will be live at: `https://marketingiq-api.onrender.com`
 
 ## Step 3: Deploy Frontend Service
 
-### Option A: Using render.yaml (Recommended)
+### Deploy Frontend Manually
 
-If you used the Blueprint method, the frontend service is already configured.
+**Note:** Render's `render.yaml` blueprint doesn't support static sites, so the frontend must be deployed separately.
 
-### Option B: Manual Setup
+### Manual Setup
 
 1. In Render Dashboard, click **"New +"** → **"Static Site"**
 2. Connect your GitHub repository

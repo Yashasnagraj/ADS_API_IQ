@@ -9,12 +9,13 @@ git commit -m "Prepare for Render deployment"
 git push
 ```
 
-### 2. Deploy via Render Blueprint (Easiest)
+### 2. Deploy Backend via Render Blueprint
 
 1. Go to https://dashboard.render.com
 2. Click **"New +"** → **"Blueprint"**
 3. Connect your GitHub repository
-4. Render will auto-detect `render.yaml` and create both services
+4. Render will auto-detect `render.yaml` and create the backend service
+5. **Note:** Frontend must be deployed separately (see Step 3 below)
 
 ### 3. Set Environment Variables
 
@@ -48,6 +49,20 @@ git push
 - `VITE_API_BASE_URL=https://marketingiq-api.onrender.com/api/v1`
 - `VITE_DATA_API_URL=https://marketingiq-api.onrender.com`
 - `VITE_AGENT_API_URL=https://marketingiq-api.onrender.com/api`
+
+### 3. Deploy Frontend Manually
+
+**Important:** Render's blueprint doesn't support static sites, so deploy the frontend separately:
+
+1. In Render Dashboard, click **"New +"** → **"Static Site"**
+2. Connect your GitHub repository
+3. Configure:
+   - **Name:** `marketingiq-frontend`
+   - **Root Directory:** `marketingiq-platform/web`
+   - **Build Command:** `npm install && npm run build`
+   - **Publish Directory:** `dist`
+4. Add environment variables (see Frontend section in Step 3 above)
+5. Click **"Create Static Site"**
 
 ### 4. Test
 

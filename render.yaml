@@ -44,20 +44,7 @@ services:
       - key: META_APP_SECRET
         sync: false
 
-  # Frontend React Service
-  - type: static
-    name: marketingiq-frontend
-    region: oregon
-    plan: free
-    buildCommand: cd marketingiq-platform/web && npm install && npm run build
-    staticPublishPath: marketingiq-platform/web/dist
-    envVars:
-      - key: VITE_API_BASE_URL
-        sync: false  # Set this after backend is deployed
-      - key: VITE_DATA_API_URL
-        sync: false  # Set this after backend is deployed
-      - key: VITE_AGENT_API_URL
-        sync: false  # Set this after backend is deployed
-      - key: VITE_CHATBOT_API_URL
-        sync: false  # Optional: Set if chatbot service is deployed
+  # Note: Frontend must be deployed separately as a Static Site
+  # Render's render.yaml blueprint doesn't support static sites
+  # See RENDER_DEPLOYMENT_GUIDE.md for frontend deployment instructions
 
