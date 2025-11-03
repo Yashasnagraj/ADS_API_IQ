@@ -1,0 +1,17 @@
+<step title="Incoming Request" date="2025-11-03T09:17:36.972" instance="54c384" url="/api/publish?type=zip&amp;async=True" method="POST" type="request" pid="768,1,16" Accept="*/*" Host="marketingiq-api-1762160248.scm.azurewebsites.net" User-Agent="AZURECLI/2.77.0 (MSI)" Accept-Encoding="gzip, deflate" Authorization="Bea..." Cache-Control="no-cache" Content-Type="application/octet-stream" Cookie="ARRAffinity=54c384d852132b627db651ce9e5744b34c70110cd59dab0de468f1d1d597e649; ARRAffinitySameSite=54c384d852132b627db651ce9e5744b34c70110cd59dab0de468f1d1d597e649" Content-Length="1503738" x-ms-client-request-id="dec85dfe-b895-11f0-a737-bc328ea36308" x-ms-artifact-checksum="4b65f8985f6401aedcb4b1e27bb6cb97e4f1a970b94bd0a7d6de34b08762ab6a" X-ARR-LOG-ID="dec85dfe-b895-11f0-a737-bc328ea36308" CLIENT-IP="49.37.249.177:50452" X-SITE-DEPLOYMENT-ID="marketingiq-api-1762160248" WAS-DEFAULT-HOSTNAME="marketingiq-api-1762160248.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/publish?type=zip&amp;async=True" X-Client-IP="49.37.249.177" X-Client-Port="50452" >
+  <step title="Cleanup Xml Logs" date="2025-11-03T09:17:36.982" /><!-- duration: 102ms -->
+  <step title="OneDeploy" date="2025-11-03T09:17:37.438" >
+    <step title="None repository commit" date="2025-11-03T09:17:37.495" >
+      <step title="Commit id: 3958c54e-68dd-4a83-857e-41c827078485" date="2025-11-03T09:17:37.505" Message="N/A" AuthorName="N/A" AuthorEmail="N/A" /><!-- duration: 10ms -->
+    </step><!-- duration: 43ms -->
+    <step title="Starting PushDeployAsync" date="2025-11-03T09:17:37.556" /><!-- duration: 14ms -->
+    <step title="Writing artifact to /tmp/zipdeploy/fa781897-74bf-4f9e-96fb-8df11ac75f68.zip" date="2025-11-03T09:17:37.678" >
+      <step title="Writing multipart request body to /tmp/zipdeploy/fa781897-74bf-4f9e-96fb-8df11ac75f68.zip" date="2025-11-03T09:17:37.719" /><!-- duration: 17ms -->
+    </step><!-- duration: 410ms -->
+    <step title="Start deployment in the background" date="2025-11-03T09:17:38.154" >
+      <step title="Acquiring Deployment Lock" date="2025-11-03T09:17:38.211" /><!-- duration: 39ms -->
+      <step title="Acquired Deployment Lock" date="2025-11-03T09:17:38.428" /><!-- duration: 10ms -->
+    </step><!-- duration: 545ms -->
+  </step><!-- duration: 1319ms -->
+  <step title="Outgoing response" date="2025-11-03T09:17:38.843" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 27ms -->
+</step><!-- duration: 1923ms -->

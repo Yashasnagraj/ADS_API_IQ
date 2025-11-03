@@ -1,0 +1,3 @@
+# Constraints file to prevent problematic packages
+# enum34 conflicts with Python 3.11's built-in enum module
+enum34==0.0.0  # This prevents enum34 from being installed

@@ -1,37 +1,12 @@
-# Google Ads API
-google-ads==24.0.0
-google-api-python-client>=2.163.0
-google-auth-httplib2>=0.2.0
-google-auth-oauthlib>=1.2.1
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+pydantic-settings
+python-dotenv
+pandas
+python-multipart
+httpx
 
-# Google Analytics 4 API
-google-analytics-data==0.18.0
+gunicorn
 
-# Meta (Facebook) Marketing API
-facebook-business==19.0.0
-
-# Database
-sqlalchemy==2.0.23
-pyodbc==5.0.1
-pymssql==2.2.11
-
-# Data Processing
-pandas==2.1.3
-numpy==1.26.2
-
-# API Framework
-fastapi==0.109.0
-uvicorn==0.25.0
-pydantic==2.5.3
-
-# Environment Management
-python-dotenv==1.0.0
-
-# Utilities
-pyyaml==6.0.1
-requests==2.31.0
-python-dateutil==2.8.2
-pytz==2023.3
-
-# Logging
-loguru==0.7.2

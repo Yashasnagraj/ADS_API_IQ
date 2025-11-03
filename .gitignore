@@ -12,6 +12,8 @@ token.json
 # Google Ads configuration (contains API keys)
 google-ads.yaml
 !google-ads.yaml.template
+**/google_ads_config.yaml
+google-ads-multiagent/config/google_ads_config.yaml
 
 # Environment variables
 .env
