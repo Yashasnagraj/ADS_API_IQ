@@ -1,12 +1,36 @@
+# Core FastAPI dependencies
 fastapi
-uvicorn
+uvicorn[standard]
+gunicorn
+
+# Database
 sqlalchemy
+
+# Configuration and validation
 pydantic
 pydantic-settings
 python-dotenv
-pandas
-python-multipart
-httpx
 
-gunicorn
+# Data processing
+pandas
+numpy
+
+# HTTP client
+httpx
+python-multipart
+
+# Google Ads API
+google-ads>=23.0.0
+
+# Meta (Facebook) Ads API
+facebook-business
+
+# Logging
+loguru
+
+# Google Analytics 4
+google-analytics-data
+
+# Shopify API (if needed)
+# shopifyapi
 
