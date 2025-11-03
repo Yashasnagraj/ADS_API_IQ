@@ -16,8 +16,9 @@ class Settings(BaseSettings):
     DEBUG: bool = Field(default=False, env="DEBUG")
 
     # Database - Connected to marketing_warehouse.db
+    # On Render, database is copied to api directory during build
     DATABASE_URL: str = Field(
-        default=f"sqlite:///{Path(__file__).parent.parent.parent.parent / 'marketing_warehouse.db'}",
+        default="sqlite:///./marketing_warehouse.db",
         env="DATABASE_URL"
     )
 

@@ -1,0 +1,87 @@
+================================================================================
+🚨 URGENT: UPDATE START COMMAND IN RENDER
+================================================================================
+
+The issue: uvicorn can't find the 'app' module because it's running from wrong dir
+
+SOLUTION: Update Start Command to include 'cd api &&' prefix
+
+================================================================================
+GO TO RENDER DASHBOARD NOW
+================================================================================
+
+1. Go to: https://dashboard.render.com
+2. Click your service: marketingiq-api
+3. Click: Settings tab
+4. Scroll to: "Build & Deploy" section
+5. Find: "Start Command" field
+
+6. CHANGE FROM:
+   python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000} --workers 2
+
+7. CHANGE TO:
+   cd /opt/render/project/src/api && python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000} --workers 2
+
+8. Click: "Save Changes" (at bottom)
+9. Click: "Manual Deploy" → "Deploy latest commit"
+
+================================================================================
+COPY-PASTE THIS EXACT COMMAND:
+================================================================================
+
+cd /opt/render/project/src/api && python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000} --workers 2
+
+================================================================================
+WHAT THIS DOES:
+================================================================================
+
+- cd /opt/render/project/src/api → Changes to api directory first
+- && → Then runs uvicorn
+- python -m uvicorn app.main:app → Starts the FastAPI app
+- --host 0.0.0.0 → Binds to all interfaces
+- --port ${PORT:-10000} → Uses Render's port (or 10000 default)
+- --workers 2 → Runs 2 worker processes
+
+================================================================================
+EXPECTED LOGS AFTER FIX:
+================================================================================
+
+✅ Using Python version 3.12.0
+✅ Running build command...
+✅ Successfully installed fastapi uvicorn...
+✅ Build successful 🎉
+✅ Deploying...
+✅ Running 'cd /opt/render/project/src/api && python -m uvicorn...'
+✅ INFO:     Started server process [55]
+✅ INFO:     Waiting for application startup.
+✅ INFO:     Application startup complete.
+✅ INFO:     Uvicorn running on http://0.0.0.0:10000
+
+Then your service status will show: 🟢 Live
+
+================================================================================
+TEST IMMEDIATELY:
+================================================================================
+
+https://your-backend-url.onrender.com/health
+
+Expected response:
+{
+  "status": "healthy",
+  "database": "healthy",
+  "version": "v1"
+}
+
+================================================================================
+ALTERNATIVE: LET RENDER AUTO-DEPLOY
+================================================================================
+
+I've pushed the fix to GitHub. You can also just:
+
+1. Go to your service
+2. Click: "Manual Deploy" → "Deploy latest commit"
+3. Render will use the updated render.yaml automatically
+
+This is easier if you don't want to manually update the command.
+
+================================================================================
