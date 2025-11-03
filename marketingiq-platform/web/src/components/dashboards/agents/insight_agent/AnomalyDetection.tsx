@@ -58,6 +58,7 @@ import {
 } from '@mui/icons-material';
 import { useFilters } from '../../../../context/FilterContext';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { API_CONFIG } from '../../../../config/api';
 
 interface Anomaly {
   campaign_id: string;
@@ -138,7 +139,7 @@ const AnomalyDetection: React.FC = () => {
         date: selectedDate,
       });
 
-      const response = await fetch(`http://localhost:8000/api/v1/ai/anomalies?${params}`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/ai/anomalies?${params}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -168,7 +169,7 @@ const AnomalyDetection: React.FC = () => {
         date_range: filters.dateRange || 'LAST_30_DAYS',
       });
 
-      const response = await fetch(`http://localhost:8000/api/v1/warehouse/campaigns?${params}`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/warehouse/campaigns?${params}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch campaigns: ${response.statusText}`);
@@ -196,7 +197,7 @@ const AnomalyDetection: React.FC = () => {
       if (isMultiPlatform) {
         try {
           const metaResponse = await fetch(
-            `http://localhost:8000/api/v1/warehouse/meta/campaigns?${params}`
+            `${API_CONFIG.BASE_URL}/warehouse/meta/campaigns?${params}`
           );
 
           if (metaResponse.ok) {
