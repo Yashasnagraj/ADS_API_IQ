@@ -44,6 +44,7 @@ import {
   Lightbulb,
 } from '@mui/icons-material';
 import { useFilters } from '../../../../context/FilterContext';
+import { API_CONFIG } from '../../../../config/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 
 interface AdGroup {
@@ -101,7 +102,7 @@ const AdGroupsDashboard: React.FC = () => {
         limit: '1000',
       });
 
-      const response = await fetch(`http://localhost:8000/api/v1/warehouse/ad-groups?${params}`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/warehouse/ad-groups?${params}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch ad groups: ${response.statusText}`);
