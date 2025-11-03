@@ -27,6 +27,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useFilters } from '../../context/FilterContext';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
+import API_CONFIG from '../../config/api';
 
 // Chat message interface
 interface ChatMessage {
@@ -37,8 +38,8 @@ interface ChatMessage {
   metadata?: any;
 }
 
-// Chat API base URL
-const CHAT_API_URL = 'http://localhost:8003/api/chat';
+// Chat API base URL - uses environment variable or falls back to default
+const CHAT_API_URL = API_CONFIG.CHATBOT_API_URL + '/chat';
 
 export const FloatingChatButton: React.FC = () => {
   const { filters } = useFilters();

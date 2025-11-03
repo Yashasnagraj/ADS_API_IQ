@@ -47,11 +47,30 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add CORS middleware - allow all origins for development
+# Add CORS middleware - configure based on environment
+import os
+cors_origins_env = os.getenv("CORS_ORIGINS", "")
+if cors_origins_env:
+    # Parse CORS origins from environment variable (comma-separated or JSON array)
+    try:
+        import json
+        # Try parsing as JSON array first
+        if cors_origins_env.startswith("["):
+            cors_origins = json.loads(cors_origins_env)
+        else:
+            # Fallback to comma-separated
+            cors_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+    except:
+        # Fallback to comma-separated if JSON parsing fails
+        cors_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+else:
+    # Default to allow all origins for development
+    cors_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
-    allow_credentials=False,  # Must be False when allow_origins is ["*"]
+    allow_origins=cors_origins,
+    allow_credentials=False if "*" in cors_origins else True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )

@@ -22,15 +22,11 @@ class Settings(BaseSettings):
         env="DATABASE_URL"
     )
 
-    # CORS
-    CORS_ORIGINS: List[str] = Field(
-        default=[
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "http://localhost:8080",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:3001"
-        ],
+    # CORS - Can be set as comma-separated string or JSON array
+    # Example: "https://frontend.onrender.com,https://www.example.com"
+    # Or: ["https://frontend.onrender.com", "https://www.example.com"]
+    CORS_ORIGINS: Optional[str] = Field(
+        default=None,
         env="CORS_ORIGINS"
     )
 

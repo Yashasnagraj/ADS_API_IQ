@@ -1,0 +1,63 @@
+services:
+  # Backend FastAPI Service
+  - type: web
+    name: marketingiq-api
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: cd api && pip install -r requirements.txt
+    startCommand: cd api && chmod +x start.sh && ./start.sh
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./marketing_warehouse.db
+      - key: API_VERSION
+        value: v1
+      - key: DEBUG
+        value: false
+      - key: LOG_LEVEL
+        value: INFO
+      - key: PAGINATION_DEFAULT_LIMIT
+        value: 100
+      - key: PAGINATION_MAX_LIMIT
+        value: 1000
+      # CORS will be set dynamically - see deployment guide
+      - key: CORS_ORIGINS
+        sync: false
+      # Google Ads API credentials (add these in Render dashboard)
+      - key: GOOGLE_ADS_DEVELOPER_TOKEN
+        sync: false
+      - key: GOOGLE_ADS_CLIENT_ID
+        sync: false
+      - key: GOOGLE_ADS_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_ADS_REFRESH_TOKEN
+        sync: false
+      - key: GOOGLE_ADS_LOGIN_CUSTOMER_ID
+        sync: false
+      # Meta Ads API credentials (add these in Render dashboard)
+      - key: META_ACCESS_TOKEN
+        sync: false
+      - key: META_AD_ACCOUNT_ID
+        sync: false
+      - key: META_APP_ID
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
+
+  # Frontend React Service
+  - type: static
+    name: marketingiq-frontend
+    region: oregon
+    plan: free
+    buildCommand: cd marketingiq-platform/web && npm install && npm run build
+    staticPublishPath: marketingiq-platform/web/dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false  # Set this after backend is deployed
+      - key: VITE_DATA_API_URL
+        sync: false  # Set this after backend is deployed
+      - key: VITE_AGENT_API_URL
+        sync: false  # Set this after backend is deployed
+      - key: VITE_CHATBOT_API_URL
+        sync: false  # Optional: Set if chatbot service is deployed
+
