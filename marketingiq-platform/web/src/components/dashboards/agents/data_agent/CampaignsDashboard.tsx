@@ -52,6 +52,7 @@ import {
   Psychology,
 } from '@mui/icons-material';
 import { useFilters } from '../../../../context/FilterContext';
+import { API_CONFIG } from '../../../../config/api';
 import { Line, Bar } from 'recharts';
 import { LineChart, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -107,7 +108,7 @@ const CampaignsDashboard: React.FC = () => {
         date_range: filters.dateRange || 'LAST_30_DAYS',
       });
 
-      const response = await fetch(`http://localhost:8000/api/v1/warehouse/campaigns?${params}`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/warehouse/campaigns?${params}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch campaigns: ${response.statusText}`);
@@ -135,7 +136,7 @@ const CampaignsDashboard: React.FC = () => {
       if (isMultiPlatform) {
         try {
           const metaResponse = await fetch(
-            `http://localhost:8000/api/v1/warehouse/meta/campaigns?${params}`
+            `${API_CONFIG.BASE_URL}/warehouse/meta/campaigns?${params}`
           );
 
           if (metaResponse.ok) {
@@ -163,7 +164,7 @@ const CampaignsDashboard: React.FC = () => {
         // Try to fetch GA4 campaigns if available
         try {
           const ga4Response = await fetch(
-            `http://localhost:8000/api/v1/warehouse/ga4/campaigns?${params}`
+            `${API_CONFIG.BASE_URL}/warehouse/ga4/campaigns?${params}`
           );
 
           if (ga4Response.ok) {

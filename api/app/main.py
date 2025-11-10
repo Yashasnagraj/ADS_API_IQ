@@ -27,14 +27,16 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan events"""
-    # Startup
-    logger.info("Starting MarketingIQ Google Ads API")
-    # Create tables if they don't exist (for SQLAlchemy models)
-    Base.metadata.create_all(bind=engine)
-    yield
-    # Shutdown
-    logger.info("Shutting down MarketingIQ Google Ads API")
+      """Application lifespan events"""
+      # Startup
+      logger.info("Starting MarketingIQ Google Ads API")
+      # Note: Using existing warehouse database (marketing_warehouse.db)
+      # Tables are pre-created by warehouse_schema.sql, no need to create them
+      # Base.metadata.create_all(bind=engine)  # Commented out - using existing warehouse
+      yield
+      # Shutdown
+      logger.info("Shutting down MarketingIQ Google Ads API")
+
 
 # Create FastAPI application
 app = FastAPI(
@@ -117,3 +119,4 @@ if __name__ == "__main__":
         reload=settings.DEBUG,
         log_level=settings.LOG_LEVEL.lower()
     )
+

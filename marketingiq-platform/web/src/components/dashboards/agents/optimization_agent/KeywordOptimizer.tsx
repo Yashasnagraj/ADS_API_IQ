@@ -64,6 +64,7 @@ import {
   TrendingFlat,
 } from '@mui/icons-material';
 import { useFilters } from '../../../../context/FilterContext';
+import { API_CONFIG } from '../../../../config/api';
 import {
   ScatterChart,
   Scatter,
@@ -137,7 +138,7 @@ const KeywordOptimizer: React.FC = () => {
         ...(selectedCampaign && { campaign_id: selectedCampaign }),
       });
 
-      const response = await fetch(`http://localhost:8000/api/v1/keywords/performance?${params}`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/keywords/performance?${params}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch keywords: ${response.statusText}`);
