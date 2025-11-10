@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
+import { SnackbarProvider } from 'notistack';
 import { theme } from './theme';
 import { FilterProvider } from './context/FilterContext';
 import { Layout } from './components/common/Layout';
@@ -14,6 +15,13 @@ import { GoogleAdsDashboard } from './components/dashboards/platform/GoogleAdsDa
 import { MetaAdsDashboard } from './components/dashboards/platform/MetaAdsDashboard';
 import { GA4Dashboard } from './components/dashboards/platform/GA4Dashboard';
 import { EcommerceDashboard } from './components/dashboards/platform/EcommerceDashboard';
+
+// AI Intelligence Dashboards
+import AIReportsPage from './components/dashboards/ai/AIReportsPage';
+import CreativeStudioPage from './components/dashboards/ai/CreativeStudioPage';
+import AICopilotPage from './components/dashboards/ai/AICopilotPage';
+import PredictiveAlertsPage from './components/dashboards/ai/PredictiveAlertsPage';
+import CampaignBuilderPage from './components/dashboards/ai/CampaignBuilderPage';
 
 // Data Agent Dashboards
 import CampaignsDashboard from './components/dashboards/agents/data_agent/CampaignsDashboard';
@@ -43,61 +51,83 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <FilterProvider>
-        <Router>
-          <Routes>
-            {/* Landing Page */}
-            <Route path="/" element={<LandingPage />} />
+      <SnackbarProvider
+        maxSnack={3}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        autoHideDuration={5000}
+      >
+        <FilterProvider>
+          <Router>
+            <Routes>
+              {/* Landing Page */}
+              <Route path="/" element={<LandingPage />} />
 
-            {/* Dashboards with Layout */}
-            <Route
-              path="/dashboard/*"
-              element={
-                <Layout>
-                  <Routes>
-                    {/* Default redirect */}
-                    <Route index element={<Navigate to="/dashboard/unified" replace />} />
+              {/* AI Intelligence Dashboards */}
+              <Route
+                path="/ai/*"
+                element={
+                  <Layout>
+                    <Routes>
+                      <Route path="reports" element={<AIReportsPage />} />
+                      <Route path="copilot" element={<AICopilotPage />} />
+                      <Route path="creative-studio" element={<CreativeStudioPage />} />
+                      <Route path="predictive-alerts" element={<PredictiveAlertsPage />} />
+                      <Route path="campaign-builder" element={<CampaignBuilderPage />} />
+                    </Routes>
+                  </Layout>
+                }
+              />
 
-                    {/* Platform Dashboards */}
-                    <Route path="unified" element={<UnifiedDashboard />} />
-                    <Route path="google-ads" element={<GoogleAdsDashboard />} />
-                    <Route path="meta-ads" element={<MetaAdsDashboard />} />
-                    <Route path="ga4" element={<GA4Dashboard />} />
-                    <Route path="ecommerce" element={<EcommerceDashboard />} />
+              {/* Dashboards with Layout */}
+              <Route
+                path="/dashboard/*"
+                element={
+                  <Layout>
+                    <Routes>
+                      {/* Default redirect */}
+                      <Route index element={<Navigate to="/dashboard/unified" replace />} />
 
-                    {/* Data Agent Dashboards */}
-                    <Route path="data/campaigns" element={<CampaignsDashboard />} />
-                    <Route path="data/keywords" element={<KeywordsDashboard />} />
-                    <Route path="data/adgroups" element={<AdGroupsDashboard />} />
+                      {/* Platform Dashboards */}
+                      <Route path="unified" element={<UnifiedDashboard />} />
+                      <Route path="google-ads" element={<GoogleAdsDashboard />} />
+                      <Route path="meta-ads" element={<MetaAdsDashboard />} />
+                      <Route path="ga4" element={<GA4Dashboard />} />
+                      <Route path="ecommerce" element={<EcommerceDashboard />} />
 
-                    {/* Insight Agent Dashboards */}
-                    <Route path="insights/summary" element={<InsightsSummary />} />
-                    <Route path="insights/anomalies" element={<AnomalyDetection />} />
-                    <Route path="insights/campaigns" element={<CampaignInsights />} />
+                      {/* Data Agent Dashboards */}
+                      <Route path="data/campaigns" element={<CampaignsDashboard />} />
+                      <Route path="data/keywords" element={<KeywordsDashboard />} />
+                      <Route path="data/adgroups" element={<AdGroupsDashboard />} />
 
-                    {/* Optimization Agent Dashboards */}
-                    <Route path="optimization/budget" element={<BudgetOptimizer />} />
-                    <Route path="optimization/keywords" element={<KeywordOptimizer />} />
-                    <Route path="optimization/simulator" element={<CampaignSimulator />} />
+                      {/* Insight Agent Dashboards */}
+                      <Route path="insights/summary" element={<InsightsSummary />} />
+                      <Route path="insights/anomalies" element={<AnomalyDetection />} />
+                      <Route path="insights/campaigns" element={<CampaignInsights />} />
 
-                    {/* Forecasting Agent Dashboards */}
-                    <Route path="forecasting/ctr" element={<CTRForecast />} />
-                    <Route path="forecasting/spend" element={<SpendForecast />} />
-                    <Route path="forecasting/scenarios" element={<ScenarioSimulator />} />
+                      {/* Optimization Agent Dashboards */}
+                      <Route path="optimization/budget" element={<BudgetOptimizer />} />
+                      <Route path="optimization/keywords" element={<KeywordOptimizer />} />
+                      <Route path="optimization/simulator" element={<CampaignSimulator />} />
 
-                    {/* Alert Agent Dashboards */}
-                    <Route path="alerts/dashboard" element={<AlertsDashboard />} />
-                    <Route path="alerts/thresholds" element={<ThresholdsMonitor />} />
-                  </Routes>
-                </Layout>
-              }
-            />
+                      {/* Forecasting Agent Dashboards */}
+                      <Route path="forecasting/ctr" element={<CTRForecast />} />
+                      <Route path="forecasting/spend" element={<SpendForecast />} />
+                      <Route path="forecasting/scenarios" element={<ScenarioSimulator />} />
 
-            {/* Redirect unknown routes to landing */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
-      </FilterProvider>
+                      {/* Alert Agent Dashboards */}
+                      <Route path="alerts/dashboard" element={<AlertsDashboard />} />
+                      <Route path="alerts/thresholds" element={<ThresholdsMonitor />} />
+                    </Routes>
+                  </Layout>
+                }
+              />
+
+              {/* Redirect unknown routes to landing */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Router>
+        </FilterProvider>
+      </SnackbarProvider>
     </ThemeProvider>
   );
 }

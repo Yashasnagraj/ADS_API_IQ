@@ -1,50 +1,51 @@
-// MUI Theme Configuration
+// MUI Theme Configuration with AI-First Design System
 import { createTheme } from '@mui/material/styles';
+import { colors } from './theme/designTokens';
 
 export const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1E88E5', // Soft Blue
-      light: '#42A5F5',
-      dark: '#1565C0',
+      main: colors.primary.main, // AI Intelligence Purple/Indigo
+      light: colors.primary.light,
+      dark: colors.primary.dark,
       contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#26A69A', // Teal
-      light: '#4DB6AC',
-      dark: '#00897B',
+      main: colors.secondary.main, // Purple accent
+      light: colors.secondary.light,
+      dark: colors.secondary.dark,
       contrastText: '#FFFFFF',
     },
     success: {
-      main: '#66BB6A', // Green
-      light: '#81C784',
-      dark: '#388E3C',
+      main: colors.success.main, // Green
+      light: colors.success.light,
+      dark: colors.success.dark,
     },
     error: {
-      main: '#EF5350', // Red
-      light: '#E57373',
-      dark: '#C62828',
+      main: colors.error.main, // Red
+      light: colors.error.light,
+      dark: colors.error.dark,
     },
     warning: {
-      main: '#FFA726', // Orange
-      light: '#FFB74D',
-      dark: '#F57C00',
+      main: colors.warning.main, // Amber
+      light: colors.warning.light,
+      dark: colors.warning.dark,
     },
     info: {
-      main: '#29B6F6', // Light Blue
-      light: '#4FC3F7',
-      dark: '#0288D1',
+      main: colors.info.main, // Blue
+      light: colors.info.light,
+      dark: colors.info.dark,
     },
     background: {
-      default: '#F8F9FA',
-      paper: '#FFFFFF',
+      default: colors.background.default,
+      paper: colors.background.paper,
     },
     text: {
-      primary: '#2C3E50',
-      secondary: '#546E7A',
+      primary: colors.text.primary,
+      secondary: colors.text.secondary,
     },
-    divider: '#E0E0E0',
+    divider: colors.gray[200],
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',

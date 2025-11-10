@@ -35,6 +35,12 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import ViewQuiltIcon from '@mui/icons-material/ViewQuilt';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import SettingsIcon from '@mui/icons-material/Settings';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import DescriptionIcon from '@mui/icons-material/Description';
+import ChatIcon from '@mui/icons-material/Chat';
+import BrushIcon from '@mui/icons-material/Brush';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { GlobalFilterBar } from './GlobalFilterBar';
 import { useFilters } from '../../context/FilterContext';
@@ -72,6 +78,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         { text: 'Meta Ads', path: '/dashboard/meta-ads', icon: <SiFacebook /> },
         { text: 'Google Analytics', path: '/dashboard/ga4', icon: <SiGoogleanalytics /> },
         { text: 'E-Commerce', path: '/dashboard/ecommerce', icon: <ShoppingCartIcon /> },
+      ],
+    },
+    {
+      title: 'AI Intelligence ⭐',
+      items: [
+        { text: 'AI Reports', path: '/ai/reports', icon: <DescriptionIcon />, badge: 'NEW' },
+        { text: 'AI Copilot', path: '/ai/copilot', icon: <ChatIcon /> },
+        { text: 'Creative Studio', path: '/ai/creative-studio', icon: <BrushIcon />, badge: 'NEW' },
+        { text: 'Predictive Alerts', path: '/ai/predictive-alerts', icon: <NotificationsActiveIcon />, badge: 'NEW' },
+        { text: 'Campaign Builder', path: '/ai/campaign-builder', icon: <RocketLaunchIcon />, badge: 'NEW' },
       ],
     },
     {
