@@ -46,6 +46,7 @@ import {
   TrendingFlat,
 } from '@mui/icons-material';
 import { useFilters } from '../../../../context/FilterContext';
+import { API_CONFIG } from '../../../../config/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface Keyword {
@@ -104,7 +105,7 @@ const KeywordsDashboard: React.FC = () => {
         limit: '1000',
       });
 
-      const response = await fetch(`http://localhost:8000/api/v1/warehouse/keywords?${params}`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/warehouse/keywords?${params}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch keywords: ${response.statusText}`);

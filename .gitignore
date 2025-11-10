@@ -100,9 +100,9 @@ pip_cache/
 # ========================================
 # Database (comment out if you want to share sample data)
 # ========================================
-# *.db
-# *.sqlite
-# *.sqlite3
+*.db
+*.sqlite
+*.sqlite3
 
 # ========================================
 # Security Files - CRITICAL

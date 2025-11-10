@@ -1,1 +1,0 @@
-# MarketingIQ Google Ads API

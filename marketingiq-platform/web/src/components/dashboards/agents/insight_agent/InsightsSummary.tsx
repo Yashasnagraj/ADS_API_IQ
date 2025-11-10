@@ -51,6 +51,7 @@ import {
   TrendingFlat,
 } from '@mui/icons-material';
 import { useFilters } from '../../../../context/FilterContext';
+import { API_CONFIG } from '../../../../config/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface DailyInsights {
@@ -116,7 +117,7 @@ const InsightsSummary: React.FC = () => {
         user_name: 'Team', // Can be dynamic based on logged-in user
       });
 
-      const response = await fetch(`http://localhost:8000/api/v1/ai/insights/daily?${params}`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/ai/insights/daily?${params}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch insights: ${response.statusText}`);
