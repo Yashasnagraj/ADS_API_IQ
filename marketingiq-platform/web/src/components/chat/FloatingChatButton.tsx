@@ -11,14 +11,12 @@ import {
   Avatar,
   Chip,
   CircularProgress,
-  Fade,
   Tooltip,
 } from '@mui/material';
 import {
   Chat as ChatIcon,
   Close as CloseIcon,
   Send as SendIcon,
-  SmartToy as BotIcon,
   Person as PersonIcon,
   Analytics as AnalyticsIcon,
   AutoAwesome as SparklesIcon,
@@ -27,6 +25,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useFilters } from '../../context/FilterContext';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
+import { API_CONFIG } from '../../config/api';
 
 // Chat message interface
 interface ChatMessage {
@@ -34,11 +33,14 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  metadata?: any;
+  metadata?: {
+    agent_used?: string;
+    [key: string]: unknown;
+  };
 }
 
-// Chat API base URL
-const CHAT_API_URL = 'http://localhost:8003/api/chat';
+// Chat API base URL - use centralized config
+const CHAT_API_URL = `${API_CONFIG.CHATBOT_API_URL}/chat`;
 
 export const FloatingChatButton: React.FC = () => {
   const { filters } = useFilters();
@@ -63,7 +65,6 @@ What would you like to know?`,
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -107,14 +108,27 @@ What would you like to know?`,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Chat API error:', error);
+      
+      // Determine error message based on error type
+      let errorMsg = 'Network Error';
+      const axiosError = error as { code?: string; message?: string; response?: { status?: number; data?: { detail?: string } } };
+      
+      if (axiosError.code === 'ECONNREFUSED' || axiosError.message?.includes('Network Error') || !axiosError.response) {
+        errorMsg = `**Connection Error**: The chatbot server is not running or not accessible at ${CHAT_API_URL}. Please make sure the ADK chatbot server is started on port 8003.\n\nTo start it, run:\n\`\`\`bash\ncd google-ads-multiagent/adk\npython chatbot_api.py\n\`\`\``;
+      } else if (axiosError.response?.status === 404) {
+        errorMsg = `**Endpoint Not Found**: The chatbot API endpoint was not found. Please check that the server is running correctly.`;
+      } else if (axiosError.response?.status && axiosError.response.status >= 500) {
+        errorMsg = `**Server Error**: The chatbot server encountered an error: ${axiosError.response?.data?.detail || axiosError.message || 'Unknown error'}`;
+      } else {
+        errorMsg = `**Error**: ${axiosError.response?.data?.detail || axiosError.message || 'An unexpected error occurred'}`;
+      }
+      
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `⚠️ Sorry, I couldn't process that request. ${
-          error.response?.data?.detail || error.message || 'Please make sure the ADK chatbot server is running on port 8003.'
-        }`,
+        content: `⚠️ Sorry, I couldn't process that request.\n\n${errorMsg}`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -150,13 +164,15 @@ What would you like to know?`,
             <Paper
               elevation={8}
               sx={{
-                width: { xs: 'calc(100vw - 48px)', sm: 400 },
-                height: 600,
+                width: { xs: 'calc(100vw - 48px)', sm: 420 },
+                height: 650,
+                maxHeight: '90vh',
                 display: 'flex',
                 flexDirection: 'column',
                 borderRadius: 3,
                 overflow: 'hidden',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+                border: '1px solid rgba(102, 126, 234, 0.1)',
               }}
             >
               {/* Header */}
@@ -168,6 +184,7 @@ What would you like to know?`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                 }}
               >
                 <Stack direction="row" spacing={1.5} alignItems="center">
@@ -202,15 +219,27 @@ What would you like to know?`,
 
               {/* Messages Container */}
               <Box
-                ref={chatContainerRef}
                 sx={{
                   flex: 1,
                   overflowY: 'auto',
-                  p: 2,
-                  bgcolor: '#f5f5f5',
+                  p: 2.5,
+                  bgcolor: '#f8f9fa',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 2,
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    background: 'transparent',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: '#d0d0d0',
+                    borderRadius: '4px',
+                    '&:hover': {
+                      background: '#b0b0b0',
+                    },
+                  },
                 }}
               >
                 {messages.map((msg) => (
@@ -233,13 +262,22 @@ What would you like to know?`,
                       {msg.role === 'user' ? <PersonIcon sx={{ fontSize: 20 }} /> : <AnalyticsIcon sx={{ fontSize: 20 }} />}
                     </Avatar>
                     <Paper
-                      elevation={1}
+                      elevation={msg.role === 'user' ? 2 : 1}
                       sx={{
                         p: 1.5,
                         maxWidth: '75%',
                         bgcolor: msg.role === 'user' ? 'primary.main' : 'white',
                         color: msg.role === 'user' ? 'white' : 'text.primary',
-                        borderRadius: 2,
+                        borderRadius: 2.5,
+                        boxShadow: msg.role === 'user' 
+                          ? '0 2px 8px rgba(102, 126, 234, 0.2)' 
+                          : '0 1px 3px rgba(0,0,0,0.1)',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          boxShadow: msg.role === 'user'
+                            ? '0 4px 12px rgba(102, 126, 234, 0.3)'
+                            : '0 2px 6px rgba(0,0,0,0.15)',
+                        },
                         '& p': { m: 0 },
                         '& ul, & ol': { mt: 1, mb: 1, pl: 2 },
                         '& strong': { fontWeight: 600 },
@@ -258,11 +296,11 @@ What would you like to know?`,
                             '& p:last-child': { mb: 0 },
                             '& ul, & ol': { mt: 0.5, mb: 0.5, pl: 2.5 },
                             '& li': { mb: 0.5 },
-                            '& strong': { fontWeight: 700, color: msg.role === 'assistant' ? 'text.primary' : 'inherit' },
+                            '& strong': { fontWeight: 700, color: 'text.primary' },
                             '& em': { fontStyle: 'italic', opacity: 0.9 },
                             '& code': {
-                              bgcolor: msg.role === 'user' ? 'rgba(255,255,255,0.2)' : 'rgba(102, 126, 234, 0.1)',
-                              color: msg.role === 'user' ? 'white' : '#667eea',
+                              bgcolor: 'rgba(102, 126, 234, 0.1)',
+                              color: '#667eea',
                               p: 0.5,
                               px: 0.75,
                               borderRadius: 0.5,
@@ -310,13 +348,14 @@ What would you like to know?`,
                 ))}
 
                 {isLoading && (
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
                     <Avatar
                       sx={{
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         width: 32,
                         height: 32,
                         border: '2px solid rgba(102, 126, 234, 0.3)',
+                        boxShadow: '0 2px 8px rgba(102, 126, 234, 0.2)',
                       }}
                     >
                       <AnalyticsIcon sx={{ fontSize: 20 }} />
@@ -325,14 +364,16 @@ What would you like to know?`,
                       elevation={1}
                       sx={{
                         p: 1.5,
-                        borderRadius: 2,
+                        borderRadius: 2.5,
                         display: 'flex',
-                        gap: 1,
+                        gap: 1.5,
                         alignItems: 'center',
+                        bgcolor: 'white',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                       }}
                     >
-                      <CircularProgress size={16} />
-                      <Typography variant="body2" color="text.secondary">
+                      <CircularProgress size={18} thickness={4} sx={{ color: '#667eea' }} />
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
                         Thinking...
                       </Typography>
                     </Paper>
@@ -346,14 +387,20 @@ What would you like to know?`,
               <Box
                 sx={{
                   p: 2,
+                  pt: 1.5,
                   borderTop: '1px solid',
                   borderColor: 'divider',
                   bgcolor: 'white',
                 }}
               >
-                <Stack direction="row" spacing={1}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                  }}
+                >
                   <TextField
-                    fullWidth
                     size="small"
                     placeholder="Ask me anything about your campaigns..."
                     value={inputMessage}
@@ -363,8 +410,29 @@ What would you like to know?`,
                     multiline
                     maxRows={3}
                     sx={{
+                      flex: 1,
                       '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
+                        borderRadius: 2.5,
+                        bgcolor: '#f8f9fa',
+                        border: '1px solid transparent',
+                        transition: 'all 0.2s ease',
+                        minHeight: '48px',
+                        alignItems: 'center',
+                        '&:hover': {
+                          bgcolor: '#f1f3f5',
+                          borderColor: 'rgba(102, 126, 234, 0.2)',
+                        },
+                        '&.Mui-focused': {
+                          bgcolor: 'white',
+                          borderColor: 'primary.main',
+                          boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
+                        },
+                      },
+                      '& .MuiOutlinedInput-input': {
+                        py: 1.5,
+                        px: 1.5,
+                        fontSize: '0.9rem',
+                        lineHeight: 1.5,
                       },
                     }}
                   />
@@ -375,17 +443,27 @@ What would you like to know?`,
                     sx={{
                       bgcolor: 'primary.main',
                       color: 'white',
+                      width: 48,
+                      height: 48,
+                      flexShrink: 0,
+                      boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
                       '&:hover': {
                         bgcolor: 'primary.dark',
+                        transform: 'scale(1.05)',
+                        boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
                       },
                       '&:disabled': {
-                        bgcolor: 'action.disabledBackground',
+                        bgcolor: '#e0e0e0',
+                        color: '#9e9e9e',
+                        boxShadow: 'none',
+                        transform: 'none',
                       },
+                      transition: 'all 0.2s ease',
                     }}
                   >
-                    <SendIcon />
+                    <SendIcon sx={{ fontSize: 22 }} />
                   </IconButton>
-                </Stack>
+                </Box>
               </Box>
             </Paper>
           </motion.div>
