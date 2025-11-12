@@ -220,9 +220,12 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
                 <MenuItem value="LAST_7_DAYS">Last 7 Days</MenuItem>
                 <MenuItem value="LAST_30_DAYS">Last 30 Days</MenuItem>
                 <MenuItem value="LAST_90_DAYS">Last 90 Days</MenuItem>
+                <MenuItem value="LAST_6_MONTHS">Last 6 Months</MenuItem>
+                <MenuItem value="LAST_YEAR">Last Year</MenuItem>
                 <MenuItem value="THIS_MONTH">This Month</MenuItem>
                 <MenuItem value="LAST_MONTH">Last Month</MenuItem>
                 <MenuItem value="THIS_YEAR">This Year</MenuItem>
+                <MenuItem value="ALL_TIME">All Time</MenuItem>
               </Select>
             </FormControl>
 

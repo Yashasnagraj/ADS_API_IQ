@@ -38,38 +38,21 @@ export const googleAdsService = {
         params: { customer_id: customerId, date_range: convertDateRange(dateRange) },
       });
 
-      // If API returns all zeros, use mock data instead
-      if (data.spend === 0 && data.impressions === 0 && data.clicks === 0) {
-        console.warn('Google Ads metrics data is empty, using mock data');
-        return {
-          impressions: 25000,
-          clicks: 950,
-          spend: 5200,
-          conversions: 420,
-          conversion_value: 27040,
-          ctr: 3.8,
-          cpc: 5.47,
-          cpm: 208,
-          cpa: 12.38,
-          roas: 5.2,
-        };
-      }
-
       return data;
     } catch (error) {
-      console.warn('Google Ads metrics endpoint not available, using mock data');
-      // Return mock data for now
+      console.error('Error fetching Google Ads metrics:', error);
+      // Return empty metrics on error
       return {
-        impressions: 25000,
-        clicks: 950,
-        spend: 5200,
-        conversions: 420,
-        conversion_value: 27040,
-        ctr: 3.8,
-        cpc: 5.47,
-        cpm: 208,
-        cpa: 12.38,
-        roas: 5.2,
+        impressions: 0,
+        clicks: 0,
+        spend: 0,
+        conversions: 0,
+        conversion_value: 0,
+        ctr: 0,
+        cpc: 0,
+        cpm: 0,
+        cpa: 0,
+        roas: 0,
       };
     }
   },

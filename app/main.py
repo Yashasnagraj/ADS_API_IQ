@@ -16,7 +16,7 @@ from app.core.exceptions import (
     general_exception_handler
 )
 from app.db.database import engine, Base
-from app.routes import campaigns, ad_groups, keywords, search_terms, ml_features, metrics, customers, ecommerce, shopify, ga4, meta, ai_intelligence, warehouse
+from app.routes import campaigns, ad_groups, keywords, search_terms, ml_features, metrics, customers, ecommerce, shopify, ga4, meta, ai_intelligence, warehouse, comparisons, benchmarks
 
 # Configure logging
 logging.basicConfig(
@@ -75,6 +75,8 @@ app.include_router(ga4.router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(meta.router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(ai_intelligence.router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(warehouse.router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(comparisons.router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(benchmarks.router, prefix=f"/api/{settings.API_VERSION}")
 
 @app.get("/")
 async def root():

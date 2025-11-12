@@ -5,6 +5,9 @@
  * that sound genuinely intelligent, not templated.
  */
 
+import { insightBenchmarks } from './insightBenchmarks';
+import { ConfidenceCalculator } from './confidenceCalculator';
+
 interface CampaignMetrics {
   campaign_name?: string;
   name?: string;
@@ -72,20 +75,35 @@ export class SmartInsightGenerator {
     const overallROAS = totalSpend > 0 ? totalConversionValue / totalSpend : 0;
     const conversionRate = totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0;
 
-    // Industry benchmarks
-    const benchmarkCTR = 3.17;
-    const benchmarkCPC = 2.69;
-    const benchmarkROAS = 2.0;
-    const benchmarkConversionRate = 3.75;
+    // Industry benchmarks - dynamically fetched from database
+    const benchmarks = insightBenchmarks.getBenchmarksSync('google_ads', 'general');
+    const benchmarkCTR = benchmarks.ctr;
+    const benchmarkCPC = benchmarks.cpc;
+    const benchmarkROAS = benchmarks.roas;
+    const benchmarkConversionRate = benchmarks.conversion_rate;
+
+    // Calculate base confidence for all insights
+    const baseConfidence = ConfidenceCalculator.forCampaignInsight(
+      totalImpressions,
+      totalClicks,
+      totalConversions,
+      'database' // TODO: Track if benchmarks came from DB or fallback
+    );
 
     // 1. ROAS Analysis with Context
     if (overallROAS > benchmarkROAS * 1.5) {
+      const confidence = ConfidenceCalculator.adjustForDeviation(
+        baseConfidence,
+        overallROAS,
+        benchmarkROAS
+      );
+
       insights.push({
         type: 'success',
         title: 'Exceptional Return on Ad Spend',
         message: `Your campaigns are generating ${overallROAS.toFixed(2)}x ROAS—${((overallROAS / benchmarkROAS - 1) * 100).toFixed(0)}% above industry average. This means every ₹1 spent returns ₹${overallROAS.toFixed(2)}, significantly outperforming competitors at ${benchmarkROAS}x.`,
         impact: `+₹${(totalConversionValue - totalSpend).toFixed(0)} profit above average`,
-        confidence: 94,
+        confidence,
         actionable: true,
         actions: [
           'Scale budget by 20-30% on top-performing campaigns',
@@ -99,13 +117,18 @@ export class SmartInsightGenerator {
     } else if (overallROAS < benchmarkROAS * 0.7) {
       const roasGap = benchmarkROAS - overallROAS;
       const potentialGain = totalSpend * roasGap;
+      const confidence = ConfidenceCalculator.adjustForDeviation(
+        baseConfidence,
+        overallROAS,
+        benchmarkROAS
+      );
 
       insights.push({
         type: 'danger',
         title: 'ROAS Below Industry Standard',
         message: `Current ${overallROAS.toFixed(2)}x ROAS is ${((1 - overallROAS / benchmarkROAS) * 100).toFixed(0)}% below the ${benchmarkROAS}x industry benchmark. Analysis shows this is likely driven by high CPCs (₹${avgCPC.toFixed(2)}) or low conversion rates (${conversionRate.toFixed(2)}%).`,
         impact: `+₹${potentialGain.toFixed(0)}/month potential revenue`,
-        confidence: 88,
+        confidence,
         actionable: true,
         actions: [
           'Pause campaigns with ROAS < 1.0x immediately',
@@ -121,12 +144,18 @@ export class SmartInsightGenerator {
 
     // 2. CTR Analysis with Diagnosis
     if (avgCTR > benchmarkCTR * 1.2) {
+      const confidence = ConfidenceCalculator.adjustForDeviation(
+        baseConfidence,
+        avgCTR,
+        benchmarkCTR
+      );
+
       insights.push({
         type: 'success',
         title: 'High-Engagement Ads Detected',
         message: `${avgCTR.toFixed(2)}% CTR is ${((avgCTR / benchmarkCTR - 1) * 100).toFixed(0)}% above average. Your ad copy and targeting are resonating—users are clicking at ${totalClicks.toLocaleString()} total clicks.`,
         impact: 'Strong ad relevance = lower CPCs and higher Quality Scores',
-        confidence: 91,
+        confidence,
         actionable: true,
         actions: [
           'Clone winning ad copy to underperforming campaigns',
@@ -135,12 +164,18 @@ export class SmartInsightGenerator {
         ]
       });
     } else if (avgCTR < benchmarkCTR * 0.8) {
+      const confidence = ConfidenceCalculator.adjustForDeviation(
+        baseConfidence,
+        avgCTR,
+        benchmarkCTR
+      );
+
       insights.push({
         type: 'warning',
         title: 'Ad Relevance Needs Improvement',
         message: `${avgCTR.toFixed(2)}% CTR falls ${((1 - avgCTR / benchmarkCTR) * 100).toFixed(0)}% below the ${benchmarkCTR}% industry standard. This suggests a mismatch between ad creative and audience intent, resulting in ${totalImpressions.toLocaleString()} impressions but only ${totalClicks.toLocaleString()} clicks.`,
         impact: '-15-25% campaign efficiency',
-        confidence: 86,
+        confidence,
         actionable: true,
         actions: [
           'Rewrite ad headlines to match exact search query language',
@@ -156,12 +191,18 @@ export class SmartInsightGenerator {
 
     // 3. Conversion Rate Intelligence
     if (conversionRate > benchmarkConversionRate * 1.3) {
+      const confidence = ConfidenceCalculator.adjustForDeviation(
+        baseConfidence,
+        conversionRate,
+        benchmarkConversionRate
+      );
+
       insights.push({
         type: 'success',
         title: 'Landing Page Converting Exceptionally',
         message: `${conversionRate.toFixed(2)}% conversion rate crushes the ${benchmarkConversionRate}% benchmark. Your landing page, offer, and traffic quality are aligned—turning ${totalConversions} visitors into customers.`,
         impact: 'High conversion efficiency means more profit per click',
-        confidence: 93,
+        confidence,
         actionable: true,
         actions: [
           'Increase bids to capture more traffic at this conversion rate',
@@ -172,13 +213,18 @@ export class SmartInsightGenerator {
     } else if (conversionRate < benchmarkConversionRate * 0.6) {
       const conversionGap = benchmarkConversionRate - conversionRate;
       const missedConversions = Math.floor(totalClicks * (conversionGap / 100));
+      const confidence = ConfidenceCalculator.adjustForDeviation(
+        baseConfidence,
+        conversionRate,
+        benchmarkConversionRate
+      );
 
       insights.push({
         type: 'danger',
         title: 'Conversion Funnel Leaking Revenue',
         message: `Only ${conversionRate.toFixed(2)}% of clicks convert vs. ${benchmarkConversionRate}% industry average. This means you're losing ~${missedConversions} potential customers monthly. Root cause: likely landing page friction, unclear value prop, or targeting mismatch.`,
         impact: `+${missedConversions} conversions/month = ~₹${(missedConversions * (totalConversionValue / Math.max(totalConversions, 1))).toFixed(0)} potential revenue`,
-        confidence: 89,
+        confidence,
         actionable: true,
         actions: [
           'Urgent: Review landing page load speed (target <2s)',
@@ -222,7 +268,7 @@ export class SmartInsightGenerator {
         title: 'Budget Allocation Inefficiency Detected',
         message: `Your top 3 campaigns account for ${((topSpend / totalSpend) * 100).toFixed(0)}% of spend but drive disproportionate results. Meanwhile, bottom 3 campaigns are burning ₹${bottomSpend.toFixed(0)} with minimal return.`,
         impact: `Reallocating ₹${reallocationOpportunity.toFixed(0)} from low to high performers could boost overall ROAS by 20-35%`,
-        confidence: 87,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           `Reduce budget on "${bottomCampaigns[0]?.campaign_name || bottomCampaigns[0]?.name}" by 50%`,
@@ -241,7 +287,7 @@ export class SmartInsightGenerator {
         title: 'High Burn Rate with Suboptimal Returns',
         message: `Burning ₹${dailySpend.toFixed(0)}/day (₹${totalSpend.toFixed(0)}/month) at ${overallROAS.toFixed(2)}x ROAS means you're barely breaking even. At this spend level, you should be at 2.5-3x ROAS minimum.`,
         impact: 'Current trajectory = negative ROI. Immediate action required.',
-        confidence: 95,
+        confidence: Math.min(baseConfidence + 10, 100), // High confidence for dangerous situations
         actionable: true,
         actions: [
           'Emergency: Reduce daily budget by 40% until ROAS improves',
@@ -300,20 +346,34 @@ export class SmartInsightGenerator {
       pages_per_session = 0,
     } = metrics;
 
-    // Industry benchmarks for GA4
-    const benchmarkConversionRate = 2.35;
-    const benchmarkBounceRate = 45;
-    const benchmarkSessionDuration = 120; // 2 minutes
-    const benchmarkPagesPerSession = 2.5;
+    // Industry benchmarks for GA4 - dynamically fetched from database
+    const benchmarks = insightBenchmarks.getBenchmarksSync('ga4', 'general');
+    const benchmarkConversionRate = benchmarks.conversion_rate;
+    const benchmarkBounceRate = benchmarks.bounce_rate || 45;
+    const benchmarkSessionDuration = benchmarks.avg_session_duration || 120; // 2 minutes
+    const benchmarkPagesPerSession = benchmarks.pages_per_session || 2.5;
+
+    // Calculate base confidence for GA4 insights
+    const baseConfidence = ConfidenceCalculator.forGA4Insight(
+      sessions,
+      conversions,
+      'database'
+    );
 
     // 1. Conversion Rate Analysis
     if (conversion_rate > benchmarkConversionRate * 1.5) {
+      const confidence = ConfidenceCalculator.adjustForDeviation(
+        baseConfidence,
+        conversion_rate,
+        benchmarkConversionRate
+      );
+
       insights.push({
         type: 'success',
         title: 'Exceptional Website Conversion Rate',
         message: `Your ${conversion_rate.toFixed(2)}% conversion rate is ${((conversion_rate / benchmarkConversionRate - 1) * 100).toFixed(0)}% above the ${benchmarkConversionRate}% industry benchmark. From ${sessions.toLocaleString()} sessions, you're converting ${conversions.toLocaleString()} users—significantly outperforming typical websites.`,
         impact: `Superior conversion efficiency = ${conversions} conversions from quality traffic`,
-        confidence: 92,
+        confidence,
         actionable: true,
         actions: [
           'Document your winning conversion formula (UX, copy, CTAs)',
@@ -325,13 +385,18 @@ export class SmartInsightGenerator {
     } else if (conversion_rate < benchmarkConversionRate * 0.6) {
       const conversionGap = benchmarkConversionRate - conversion_rate;
       const missedConversions = Math.floor(sessions * (conversionGap / 100));
+      const confidence = ConfidenceCalculator.adjustForDeviation(
+        baseConfidence,
+        conversion_rate,
+        benchmarkConversionRate
+      );
 
       insights.push({
         type: 'danger',
         title: 'Website Conversion Rate Below Par',
         message: `Only ${conversion_rate.toFixed(2)}% of your ${sessions.toLocaleString()} sessions convert vs. ${benchmarkConversionRate}% industry standard. This means you're losing ~${missedConversions.toLocaleString()} potential conversions. Root cause analysis: likely poor user experience, slow load times, unclear value proposition, or traffic quality issues.`,
         impact: `Fixing conversion rate could add ${missedConversions.toLocaleString()} monthly conversions`,
-        confidence: 87,
+        confidence,
         actionable: true,
         actions: [
           'Run speed test: target <2s load time (use PageSpeed Insights)',
@@ -351,7 +416,7 @@ export class SmartInsightGenerator {
         title: 'Low Bounce Rate Indicates Strong Engagement',
         message: `${bounce_rate.toFixed(1)}% bounce rate is ${((1 - bounce_rate / benchmarkBounceRate) * 100).toFixed(0)}% better than the ${benchmarkBounceRate}% benchmark. Visitors are staying and exploring your content, which strongly correlates with higher conversion rates.`,
         impact: 'High engagement = better SEO rankings and more conversions',
-        confidence: 90,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Analyze which pages have lowest bounce—replicate their patterns',
@@ -365,7 +430,7 @@ export class SmartInsightGenerator {
         title: 'High Bounce Rate Losing Visitors',
         message: `${bounce_rate.toFixed(1)}% bounce rate means ${Math.floor(sessions * (bounce_rate / 100)).toLocaleString()} visitors left immediately without engaging. This is ${((bounce_rate / benchmarkBounceRate - 1) * 100).toFixed(0)}% higher than the ${benchmarkBounceRate}% industry standard. High bounce rates hurt SEO and indicate content/experience mismatch.`,
         impact: 'Each 10% bounce reduction = 5-10% more conversions',
-        confidence: 85,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Check page load speed (mobile + desktop)',
@@ -386,7 +451,7 @@ export class SmartInsightGenerator {
         title: 'Low Session Duration Shows Weak Engagement',
         message: `Average session of ${minutes}m ${seconds}s is ${((1 - avg_session_duration / benchmarkSessionDuration) * 100).toFixed(0)}% below the ${Math.floor(benchmarkSessionDuration / 60)}m standard. Combined with ${pages_per_session.toFixed(1)} pages/session (vs ${benchmarkPagesPerSession} benchmark), this suggests visitors aren't finding what they need quickly enough.`,
         impact: 'Low engagement = lower trust = fewer conversions',
-        confidence: 83,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Add engaging content: videos, interactive tools, calculators',
@@ -402,7 +467,7 @@ export class SmartInsightGenerator {
         title: 'Exceptional User Engagement',
         message: `Users spend ${Math.floor(avg_session_duration / 60)}m ${Math.floor(avg_session_duration % 60)}s and view ${pages_per_session.toFixed(1)} pages per session—both significantly above benchmarks. This high engagement indicates quality content and good UX.`,
         impact: 'Deep engagement = higher conversion intent and brand trust',
-        confidence: 91,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Identify most-engaged user segments for targeting',
@@ -419,7 +484,7 @@ export class SmartInsightGenerator {
         title: 'Low Traffic Volume Limits Insights',
         message: `With only ${sessions.toLocaleString()} sessions, statistical significance is limited. Small traffic volumes make it hard to identify reliable patterns and A/B test effectively.`,
         impact: 'Need 5,000+ monthly sessions for reliable optimization',
-        confidence: 95,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Invest in SEO: optimize for long-tail keywords',
@@ -435,7 +500,7 @@ export class SmartInsightGenerator {
         title: 'Scalable High-Performance Website',
         message: `${sessions.toLocaleString()} monthly sessions converting at ${conversion_rate.toFixed(2)}% = strong foundation for growth. You have the traffic volume and conversion efficiency to scale profitably.`,
         impact: `Ready to scale: each 1,000 additional sessions = ~${Math.floor(1000 * (conversion_rate / 100))} conversions`,
-        confidence: 93,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Invest aggressively in paid acquisition (proven ROI)',
@@ -480,9 +545,18 @@ export class SmartInsightGenerator {
       best_platform = null,
     } = metrics;
 
-    // Industry benchmarks for cross-platform
-    const benchmarkBlendedROAS = 2.5;
+    // Industry benchmarks for cross-platform - dynamically fetched from database
+    const benchmarks = insightBenchmarks.getBenchmarksSync('unified', 'general');
+    const benchmarkBlendedROAS = benchmarks.blended_roas || 2.5;
     const optimalPlatformDiversity = 0.4; // 40% budget concentration is healthy
+
+    // Calculate base confidence for unified insights
+    const baseConfidence = ConfidenceCalculator.forUnifiedInsight(
+      total_spend,
+      total_conversions,
+      platformComparison.length,
+      'database'
+    );
 
     // Calculate platform diversity (budget concentration)
     const platformBudgets = platformComparison.map(p => p.spend || 0);
@@ -497,7 +571,7 @@ export class SmartInsightGenerator {
         title: 'Outstanding Cross-Platform ROAS',
         message: `Your ${blended_roas.toFixed(2)}x blended ROAS across ${platformComparison.length} platforms is ${((blended_roas / benchmarkBlendedROAS - 1) * 100).toFixed(0)}% above the ${benchmarkBlendedROAS}x industry benchmark. Total spend of ₹${total_spend.toLocaleString()} is generating ${total_conversions} conversions—your multi-channel strategy is working exceptionally well.`,
         impact: `+₹${((blended_roas - benchmarkBlendedROAS) * total_spend).toFixed(0)} profit above average`,
-        confidence: 91,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Scale budget proportionally across all performing platforms',
@@ -518,7 +592,7 @@ export class SmartInsightGenerator {
         title: 'Cross-Platform Efficiency Below Benchmark',
         message: `Blended ${blended_roas.toFixed(2)}x ROAS is ${((1 - blended_roas / benchmarkBlendedROAS) * 100).toFixed(0)}% below the ${benchmarkBlendedROAS}x industry standard. Across ₹${total_spend.toLocaleString()} spend on ${platformComparison.length} platforms, you're underperforming—likely due to poor channel mix, weak attribution, or platform-specific inefficiencies.`,
         impact: `+₹${potentialGain.toFixed(0)} potential monthly revenue`,
-        confidence: 84,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           `Audit ${best_platform?.name || 'top platform'} first—replicate winning tactics`,
@@ -541,7 +615,7 @@ export class SmartInsightGenerator {
         title: 'Over-Reliance on Single Platform',
         message: `${(budgetConcentration * 100).toFixed(0)}% of your budget (₹${dominantPlatform.spend.toLocaleString()}) is concentrated on ${dominantPlatform.platform}. While consolidation can be efficient, it creates significant risk—algorithm changes, policy updates, or platform issues could devastate your acquisition.`,
         impact: '-30-50% revenue risk if platform disrupted',
-        confidence: 88,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Diversify: allocate 20-30% budget to secondary platforms',
@@ -559,7 +633,7 @@ export class SmartInsightGenerator {
         title: 'Budget Spread Too Thin',
         message: `Your budget is fragmented across ${platformComparison.length} platforms with only ${(budgetConcentration * 100).toFixed(0)}% on the top performer. Spreading too thin prevents platforms from reaching critical mass for algorithm optimization and makes it hard to achieve statistical significance in testing.`,
         impact: 'Sub-optimal learning and scaling',
-        confidence: 82,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Consolidate: move budget from lowest ROAS platforms to top 2-3',
@@ -590,7 +664,7 @@ export class SmartInsightGenerator {
           title: 'Significant Platform Performance Gap',
           message: `${bestPlatform?.platform} (${maxROAS.toFixed(2)}x ROAS) is outperforming ${worstPlatform?.platform} (${minROAS.toFixed(2)}x ROAS) by ${roasVariance.toFixed(2)}x. This ${((roasVariance / maxROAS) * 100).toFixed(0)}% gap suggests either different audience quality, creative effectiveness, or fundamentally misaligned platform-product fit.`,
           impact: `Reallocating ₹${(worstPlatform?.spend || 0).toFixed(0)} to ${bestPlatform?.platform} could add ${((worstPlatform?.spend || 0) * (maxROAS - minROAS)).toFixed(0)} revenue`,
-          confidence: 86,
+          confidence: baseConfidence,
           actionable: true,
           actions: [
             `Analyze ${bestPlatform?.platform} winning tactics: creative, targeting, offers`,
@@ -621,7 +695,7 @@ export class SmartInsightGenerator {
           title: 'Platform Strategy: Volume vs. Efficiency',
           message: `${bestROASPlatform.platform} delivers highest efficiency (${bestROASPlatform.roas.toFixed(2)}x ROAS) while ${bestConversionsPlatform.platform} drives highest volume (${bestConversionsPlatform.conversions} conversions). This is actually healthy—${bestConversionsPlatform.platform} builds top-of-funnel awareness while ${bestROASPlatform.platform} converts high-intent users.`,
           impact: 'Balanced funnel strategy',
-          confidence: 90,
+          confidence: baseConfidence,
           actionable: true,
           actions: [
             `Use ${bestConversionsPlatform.platform} for awareness and remarketing pool building`,
@@ -674,11 +748,19 @@ export class SmartInsightGenerator {
     const avgOrderValue = conversions > 0 ? conversion_value / conversions : 0;
     const conversionRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
 
-    // E-commerce benchmarks
-    const benchmarkAOV = 3500; // ₹3,500
-    const benchmarkROAS = 4.0; // E-commerce should have higher ROAS
-    const benchmarkConversionRate = 2.5; // E-commerce conversion rate
-    const benchmarkRepeatRate = 30; // 30% repeat purchase rate
+    // E-commerce benchmarks - dynamically fetched from database
+    const benchmarks = insightBenchmarks.getBenchmarksSync('ecommerce', 'general');
+    const benchmarkAOV = benchmarks.aov || 3500; // ₹3,500
+    const benchmarkROAS = benchmarks.roas || 4.0; // E-commerce should have higher ROAS
+    const benchmarkConversionRate = benchmarks.conversion_rate || 2.5; // E-commerce conversion rate
+    const benchmarkRepeatRate = benchmarks.repeat_purchase_rate || 30; // 30% repeat purchase rate
+
+    // Calculate base confidence for e-commerce insights
+    const baseConfidence = ConfidenceCalculator.forEcommerceInsight(
+      conversions,
+      clicks,
+      'database'
+    );
 
     // 1. ROAS Analysis (E-commerce specific)
     if (roas > benchmarkROAS * 1.5) {
@@ -687,7 +769,7 @@ export class SmartInsightGenerator {
         title: 'Exceptional E-commerce ROAS',
         message: `Your ${roas.toFixed(2)}x ROAS is ${((roas / benchmarkROAS - 1) * 100).toFixed(0)}% above the ${benchmarkROAS}x e-commerce benchmark. Total spend of ₹${spend.toLocaleString()} generated ₹${conversion_value.toLocaleString()} in revenue (${conversions} orders)—your product-market fit and ad targeting are excellent.`,
         impact: `+₹${((roas - benchmarkROAS) * spend).toFixed(0)} profit above average`,
-        confidence: 93,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Scale winning product campaigns by 30-50%',
@@ -708,7 +790,7 @@ export class SmartInsightGenerator {
         title: 'E-commerce ROAS Below Target',
         message: `Current ${roas.toFixed(2)}x ROAS is ${((1 - roas / benchmarkROAS) * 100).toFixed(0)}% below the ${benchmarkROAS}x e-commerce standard. With ₹${spend.toLocaleString()} ad spend generating only ₹${conversion_value.toLocaleString()} revenue, you're likely facing pricing issues, wrong product-market fit, or poor ad creative.`,
         impact: `+₹${potentialGain.toFixed(0)} potential monthly revenue`,
-        confidence: 87,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Audit product pricing vs. competitors (may be too high)',
@@ -730,7 +812,7 @@ export class SmartInsightGenerator {
         title: 'Premium Average Order Value',
         message: `₹${avgOrderValue.toFixed(2)} AOV is ${((avgOrderValue / benchmarkAOV - 1) * 100).toFixed(0)}% above the ₹${benchmarkAOV.toLocaleString()} benchmark. From ${conversions} orders, you're maximizing revenue per transaction—your product bundling, upsells, or premium positioning is working excellently.`,
         impact: `+₹${((avgOrderValue - benchmarkAOV) * conversions).toFixed(0)} extra revenue`,
-        confidence: 91,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Document your upsell/cross-sell strategy for replication',
@@ -751,7 +833,7 @@ export class SmartInsightGenerator {
         title: 'Low Average Order Value',
         message: `₹${avgOrderValue.toFixed(2)} AOV is ${((1 - avgOrderValue / benchmarkAOV) * 100).toFixed(0)}% below the ₹${benchmarkAOV.toLocaleString()} benchmark. With ${conversions} orders, you're leaving ₹${potentialRevenue.toFixed(0)} on the table. Customers are buying, but in smaller quantities or lower-priced items.`,
         impact: `+₹${potentialRevenue.toFixed(0)} potential revenue`,
-        confidence: 85,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Implement free shipping threshold (₹500+) to encourage larger orders',
@@ -773,7 +855,7 @@ export class SmartInsightGenerator {
         title: 'Excellent E-commerce Conversion Rate',
         message: `${conversionRate.toFixed(2)}% conversion rate (${conversions} orders from ${clicks.toLocaleString()} clicks) is ${((conversionRate / benchmarkConversionRate - 1) * 100).toFixed(0)}% above the ${benchmarkConversionRate}% benchmark. Your product pages, pricing, and checkout flow are optimized—traffic quality is high.`,
         impact: 'High conversion efficiency',
-        confidence: 89,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Increase traffic volume to capitalize on high conversion rate',
@@ -794,7 +876,7 @@ export class SmartInsightGenerator {
         title: 'E-commerce Conversion Funnel Broken',
         message: `Only ${conversionRate.toFixed(2)}% of your ${clicks.toLocaleString()} clicks convert vs. ${benchmarkConversionRate}% industry average. You're losing ~${missedOrders} potential orders monthly. Root causes: likely pricing concerns, shipping costs, checkout friction, or poor product presentation.`,
         impact: `+${missedOrders} orders/month = ₹${(missedOrders * avgOrderValue).toFixed(0)} revenue`,
-        confidence: 86,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Critical: Review mobile checkout (60% of traffic is mobile)',
@@ -823,7 +905,7 @@ export class SmartInsightGenerator {
           title: 'Over-Reliance on Single Revenue Channel',
           message: `${(channelConcentration * 100).toFixed(0)}% of revenue (₹${topChannelRevenue.toLocaleString()}) comes from ${topChannel?.channel}. While channel focus can be efficient, this creates major business risk—algorithm changes or policy updates could devastate sales.`,
           impact: '-40-60% revenue risk',
-          confidence: 84,
+          confidence: baseConfidence,
           actionable: true,
           actions: [
             'Diversify: allocate 15-20% budget to secondary channels',
@@ -847,7 +929,7 @@ export class SmartInsightGenerator {
         title: 'Product Portfolio Strategy',
         message: `With ${conversions} orders and ₹${avgOrderValue.toFixed(0)} AOV, you're likely selling multiple product types. Top performers typically drive 80% of revenue. Identify your hero products and double down—cut underperformers to free up budget for winners.`,
         impact: 'Portfolio optimization opportunity',
-        confidence: 80,
+        confidence: baseConfidence,
         actionable: true,
         actions: [
           'Run 80/20 analysis: which 20% of SKUs drive 80% of revenue?',

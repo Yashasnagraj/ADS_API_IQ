@@ -10,6 +10,7 @@ import { SmartInsightSummary } from '../../common/SmartInsightSummary';
 import { FilterState, KPIData, InsightData, GA4Metrics, GA4SourceMedium } from '../../../types';
 import { useFilters } from '../../../context/FilterContext';
 import { ga4Service } from '../../../services/ga4Service';
+import { comparisonService, MetricComparison } from '../../../services/comparisonService';
 import { SmartInsightGenerator } from '../../../utils/insightGenerator';
 import {
   BarChart,
@@ -29,6 +30,7 @@ export const GA4Dashboard: React.FC = () => {
   const { filters } = useFilters();
   const [metrics, setMetrics] = useState<GA4Metrics | null>(null);
   const [sourceMedium, setSourceMedium] = useState<GA4SourceMedium[]>([]);
+  const [comparisons, setComparisons] = useState<Record<string, MetricComparison>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,13 +41,22 @@ export const GA4Dashboard: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const [metricsData, sourceData] = await Promise.all([
+        const [metricsData, sourceData, comparisonsData] = await Promise.all([
           ga4Service.getSessions(Number(filters.customerId), filters.dateRange),
           ga4Service.getSourceMedium(Number(filters.customerId), filters.dateRange).catch(() => []),
+          comparisonService.getBatchMetricComparisons(
+            filters.customerId!,
+            ['sessions', 'conversion_rate', 'conversions', 'bounce_rate', 'avg_session_duration', 'pages_per_session'],
+            filters.dateRange
+          ).catch(err => {
+            console.warn('Failed to fetch GA4 comparisons:', err);
+            return {};
+          })
         ]);
 
         setMetrics(metricsData);
         setSourceMedium(sourceData);
+        setComparisons(comparisonsData);
       } catch (err: any) {
         console.error('Error fetching GA4 data:', err);
         setError(err.message || 'Failed to load GA4 data');
@@ -80,77 +91,71 @@ export const GA4Dashboard: React.FC = () => {
         {
           title: 'Total Sessions',
           value: metrics.sessions.toLocaleString(),
-          change: 15, // Would need historical data to calculate
+          change: comparisons.sessions?.change_percentage || 0,
+          trend: comparisons.sessions?.change_direction === 'decrease' ? 'down' : (comparisons.sessions?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'Conversion Rate',
           value: `${metrics.conversion_rate.toFixed(1)}%`,
-          change: 0.3,
+          change: comparisons.conversion_rate?.change_percentage || 0,
+          trend: comparisons.conversion_rate?.change_direction === 'decrease' ? 'down' : (comparisons.conversion_rate?.change_direction === 'increase' ? 'up' : undefined),
           isHighlighted: true,
-          color: 'success',
+          color: comparisons.conversion_rate?.is_positive_change ? 'success' : 'error',
         },
         {
           title: 'Conversions',
           value: metrics.conversions.toLocaleString(),
-          change: 18,
+          change: comparisons.conversions?.change_percentage || 0,
+          trend: comparisons.conversions?.change_direction === 'decrease' ? 'down' : (comparisons.conversions?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'Bounce Rate',
           value: `${metrics.bounce_rate.toFixed(0)}%`,
-          change: -4,
-          trend: 'down',
+          change: comparisons.bounce_rate?.change_percentage || 0,
+          trend: comparisons.bounce_rate?.change_direction === 'decrease' ? 'down' : (comparisons.bounce_rate?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'Avg. Session Duration',
           value: formatDuration(metrics.avg_session_duration),
-          change: 12,
+          change: comparisons.avg_session_duration?.change_percentage || 0,
+          trend: comparisons.avg_session_duration?.change_direction === 'decrease' ? 'down' : (comparisons.avg_session_duration?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'Pages per Session',
           value: metrics.pages_per_session.toFixed(1),
-          change: 0.4,
+          change: comparisons.pages_per_session?.change_percentage || 0,
+          trend: comparisons.pages_per_session?.change_direction === 'decrease' ? 'down' : (comparisons.pages_per_session?.change_direction === 'increase' ? 'up' : undefined),
         },
       ]
     : [];
 
-  const insights: InsightData[] = [
-    {
-      type: 'descriptive',
-      insight:
-        'Organic search drives 58% of traffic with excellent 4.2% conversion rate. Direct traffic shows highest engagement (4.1 pages/session). Mobile traffic is 72% of total, converting at 3.8%.',
-      priority: 'info',
-    },
-    {
-      type: 'diagnostic',
-      insight:
-        'Your checkout page has 42% drop-off rate, likely due to 8.5s load time (3x slower than homepage). Users who view product comparison page convert 2.8x higher.',
-      priority: 'high',
-      details: [
-        'Checkout abandonment: 42%',
-        'Load time: 8.5s (critical)',
-        'Comparison page viewers: 2.8x conversion boost',
-      ],
-    },
-    {
-      type: 'prescriptive',
-      insight:
-        'Optimize checkout page load time (target <3s) to reduce abandonment. Promote product comparison feature on category pages. Improve mobile checkout UX (currently 48% abandonment).',
-      priority: 'high',
-      expectedImpact: '+18% conversion rate, +$4,200/month',
-      confidence: '79%',
-      actions: [
-        {
-          label: 'View Technical Recommendations',
-          primary: true,
-        },
-        {
-          label: 'Analyze Checkout Flow',
-        },
-      ],
-    },
-  ];
+  // Convert smart insights to InsightData format
+  const insights: InsightData[] = smartInsights.map((insight) => {
+    const priorityMap: Record<string, 'high' | 'medium' | 'low' | 'info'> = {
+      danger: 'high',
+      warning: 'medium',
+      success: 'low',
+      info: 'info',
+    };
 
-  // Use real data if available, fallback to mock data
+    return {
+      type: 'prescriptive',
+      insight: insight.message,
+      priority: priorityMap[insight.type] || 'info',
+      expectedImpact: insight.impact,
+      confidence: `${insight.confidence}%`,
+      details: insight.actions,
+      actions: insight.actionable ? [
+        {
+          label: 'View Recommendations',
+          primary: true,
+          onClick: () => console.log('View recommendations for:', insight.title),
+        },
+      ] : undefined,
+    };
+  });
+
+  // Use real data if available, no fallback
   const trafficSources = sourceMedium.length > 0
     ? sourceMedium.map(s => ({
         source: `${s.source} / ${s.medium}`,
@@ -158,18 +163,11 @@ export const GA4Dashboard: React.FC = () => {
         conversions: s.conversions,
         cvr: s.cvr,
       }))
-    : [
-        { source: 'Organic Search', sessions: 26216, conversions: 1100, cvr: 4.2 },
-        { source: 'Direct', sessions: 12656, conversions: 506, cvr: 4.0 },
-        { source: 'Social', sessions: 4520, conversions: 136, cvr: 3.0 },
-        { source: 'Referral', sessions: 1808, conversions: 156, cvr: 8.6 },
-      ];
+    : [];
 
-  const devicePerformance = [
-    { device: 'Mobile', sessions: 32544, cvr: 3.8 },
-    { device: 'Desktop', sessions: 11296, cvr: 5.1 },
-    { device: 'Tablet', sessions: 1360, cvr: 2.9 },
-  ];
+  // Device performance would need to come from API
+  // For now, empty array - TODO: Add device breakdown endpoint
+  const devicePerformance: any[] = [];
 
   const COLORS = ['#1E88E5', '#26A69A', '#FFA726', '#EF5350'];
 

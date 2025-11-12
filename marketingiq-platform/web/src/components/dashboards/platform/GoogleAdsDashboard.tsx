@@ -9,6 +9,7 @@ import { DataQualityIndicator } from '../../common/DataQualityIndicator';
 import { SmartInsightSummary } from '../../common/SmartInsightSummary';
 import { FilterState, KPIData, InsightData } from '../../../types';
 import { googleAdsService } from '../../../services/googleAdsService';
+import { comparisonService, MetricComparison } from '../../../services/comparisonService';
 import { useFilters } from '../../../context/FilterContext';
 import { SmartInsightGenerator } from '../../../utils/insightGenerator';
 import {
@@ -28,6 +29,7 @@ export const GoogleAdsDashboard: React.FC = () => {
   const { filters } = useFilters();
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
+  const [comparisons, setComparisons] = useState<Record<string, MetricComparison>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,11 +44,26 @@ export const GoogleAdsDashboard: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const campaignsData = await googleAdsService.getCampaigns(Number(filters.customerId), filters.dateRange);
+
+      // Fetch campaigns and comparisons in parallel
+      const [campaignsData, comparisonsData] = await Promise.all([
+        googleAdsService.getCampaigns(Number(filters.customerId), filters.dateRange),
+        comparisonService.getBatchMetricComparisons(
+          filters.customerId!,
+          ['spend', 'roas', 'conversions', 'cpc', 'ctr', 'impressions'],
+          filters.dateRange,
+          { platform: 'google_ads' }
+        ).catch(err => {
+          console.warn('Failed to fetch comparisons:', err);
+          return {};
+        })
+      ]);
 
       console.log('Google Ads campaigns data:', campaignsData);
+      console.log('Comparisons data:', comparisonsData);
 
       setCampaigns(campaignsData);
+      setComparisons(comparisonsData);
 
       // Calculate aggregated metrics from campaigns data
       if (campaignsData && campaignsData.length > 0) {
@@ -88,37 +105,42 @@ export const GoogleAdsDashboard: React.FC = () => {
           title: 'Total Spend',
           value: (metrics.spend || 0).toFixed(0),
           prefix: '₹',
-          change: 8,
+          change: comparisons.spend?.change_percentage || 0,
+          trend: comparisons.spend?.change_direction === 'decrease' ? 'down' : (comparisons.spend?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'ROAS',
           value: (metrics.roas || 0).toFixed(1),
           suffix: 'x',
-          change: 12,
+          change: comparisons.roas?.change_percentage || 0,
+          trend: comparisons.roas?.change_direction === 'decrease' ? 'down' : (comparisons.roas?.change_direction === 'increase' ? 'up' : undefined),
           isHighlighted: true,
-          color: 'success',
+          color: comparisons.roas?.is_positive_change ? 'success' : 'error',
         },
         {
           title: 'Conversions',
           value: (metrics.conversions || 0).toFixed(0),
-          change: 24,
+          change: comparisons.conversions?.change_percentage || 0,
+          trend: comparisons.conversions?.change_direction === 'decrease' ? 'down' : (comparisons.conversions?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'Avg. CPC',
           value: (metrics.cpc || 0).toFixed(2),
           prefix: '₹',
-          change: -5,
-          trend: 'down',
+          change: comparisons.cpc?.change_percentage || 0,
+          trend: comparisons.cpc?.change_direction === 'decrease' ? 'down' : (comparisons.cpc?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'CTR',
           value: `${(metrics.ctr || 0).toFixed(1)}%`,
-          change: 0.4,
+          change: comparisons.ctr?.change_percentage || 0,
+          trend: comparisons.ctr?.change_direction === 'decrease' ? 'down' : (comparisons.ctr?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'Impressions',
           value: (metrics.impressions || 0).toLocaleString(),
-          change: 0.3,
+          change: comparisons.impressions?.change_percentage || 0,
+          trend: comparisons.impressions?.change_direction === 'decrease' ? 'down' : (comparisons.impressions?.change_direction === 'increase' ? 'up' : undefined),
           color: 'info',
         },
       ]
@@ -181,12 +203,7 @@ export const GoogleAdsDashboard: React.FC = () => {
             ROAS: roas,
           };
         })
-    : [
-        { name: 'Brand Keywords', spend: 1200, revenue: 14880, ROAS: 12.4 },
-        { name: 'Shopping Campaign', spend: 2100, revenue: 8610, ROAS: 4.1 },
-        { name: 'Search Generic', spend: 1400, revenue: 8120, ROAS: 5.8 },
-        { name: 'Competitor Terms', spend: 500, revenue: 1050, ROAS: 2.1 },
-      ];
+    : []; // No fallback data - show empty state
 
   if (loading) {
     return (

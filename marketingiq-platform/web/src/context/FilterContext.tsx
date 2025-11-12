@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
  */
 export interface FilterState {
   customerId: string | null; // Selected customer ID
-  dateRange: string; // Date range: LAST_7_DAYS, LAST_30_DAYS, LAST_90_DAYS, CUSTOM
+  dateRange: string; // Date range: LAST_7_DAYS, LAST_30_DAYS, LAST_90_DAYS, LAST_6_MONTHS, LAST_YEAR, THIS_MONTH, LAST_MONTH, THIS_YEAR, ALL_TIME, CUSTOM
   startDate: string | null; // Custom start date (YYYY-MM-DD)
   endDate: string | null; // Custom end date (YYYY-MM-DD)
   campaignType: string; // Campaign type filter: ALL, SEARCH, DISPLAY, SHOPPING, VIDEO
@@ -147,12 +147,29 @@ export const getDateRangeValues = (filters: FilterState): { startDate: string; e
       startDate = new Date(today);
       startDate.setDate(today.getDate() - 90);
       break;
+    case 'LAST_6_MONTHS':
+      startDate = new Date(today);
+      startDate.setMonth(today.getMonth() - 6);
+      break;
+    case 'LAST_YEAR':
+      startDate = new Date(today);
+      startDate.setFullYear(today.getFullYear() - 1);
+      break;
+    case 'ALL_TIME':
+      // Set to a very early date (e.g., 10 years ago)
+      // In production, this should query the earliest data point from DB
+      startDate = new Date(today);
+      startDate.setFullYear(today.getFullYear() - 10);
+      break;
     case 'THIS_MONTH':
       startDate = new Date(today.getFullYear(), today.getMonth(), 1);
       break;
     case 'LAST_MONTH':
       startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
       endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+      break;
+    case 'THIS_YEAR':
+      startDate = new Date(today.getFullYear(), 0, 1); // January 1st of current year
       break;
     default:
       startDate = new Date(today);

@@ -32,7 +32,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import ReactMarkdown from 'react-markdown';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { AIBadge, AILoadingState, GradientCard } from '../../ai/shared';
-import { useFilters } from '../../../context/FilterContext';
+import { useFilters, getDateRangeValues } from '../../../context/FilterContext';
 import { colors, shadows } from '../../../theme/designTokens';
 import axios from 'axios';
 
@@ -86,10 +86,13 @@ export const AIReportsPage: React.FC = () => {
   const [generatedReport, setGeneratedReport] = useState<any>(null);
   const { filters } = useFilters();
 
+  // Initialize dates from global filter context
+  const { startDate: globalStartDate, endDate: globalEndDate } = getDateRangeValues(filters);
+
   const [config, setConfig] = useState({
     reportName: '',
-    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    endDate: new Date(),
+    startDate: globalStartDate,
+    endDate: globalEndDate,
     campaigns: 'all',
     includeSections: {
       executiveSummary: true,
@@ -100,6 +103,16 @@ export const AIReportsPage: React.FC = () => {
       budgetAnalysis: true,
     },
   });
+
+  // Update config when global filters change
+  useEffect(() => {
+    const { startDate, endDate } = getDateRangeValues(filters);
+    setConfig((prev) => ({
+      ...prev,
+      startDate,
+      endDate,
+    }));
+  }, [filters.dateRange]);
 
   const handleNext = async () => {
     if (activeStep === steps.length - 2) {
