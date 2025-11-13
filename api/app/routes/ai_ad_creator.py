@@ -343,7 +343,7 @@ async def launch_ad_to_meta(
 ):
     """
     Launch selected ad variation to Meta Ads
-    Creates campaign ’ ad set ’ creative ’ ad (all in PAUSED state)
+    Creates campaign -> ad set -> creative -> ad (all in PAUSED state)
     This is Step 4 of the workflow
     """
     try:
