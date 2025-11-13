@@ -19,9 +19,12 @@ import { EcommerceDashboard } from './components/dashboards/platform/EcommerceDa
 // AI Intelligence Dashboards
 import AIReportsPage from './components/dashboards/ai/AIReportsPage';
 import CreativeStudioPage from './components/dashboards/ai/CreativeStudioPage';
-import AICopilotPage from './components/dashboards/ai/AICopilotPage';
 import PredictiveAlertsPage from './components/dashboards/ai/PredictiveAlertsPage';
 import CampaignBuilderPage from './components/dashboards/ai/CampaignBuilderPage';
+
+// AI Ad Creator
+import AIAdCreatorPage from './components/dashboards/ai-ad-creator/AIAdCreatorPage';
+import BrandSetupWizard from './components/dashboards/ai-ad-creator/BrandSetupWizard';
 
 // Data Agent Dashboards
 import CampaignsDashboard from './components/dashboards/agents/data_agent/CampaignsDashboard';
@@ -69,10 +72,11 @@ function App() {
                   <Layout>
                     <Routes>
                       <Route path="reports" element={<AIReportsPage />} />
-                      <Route path="copilot" element={<AICopilotPage />} />
                       <Route path="creative-studio" element={<CreativeStudioPage />} />
                       <Route path="predictive-alerts" element={<PredictiveAlertsPage />} />
                       <Route path="campaign-builder" element={<CampaignBuilderPage />} />
+                      <Route path="ad-creator" element={<AIAdCreatorPage />} />
+                      <Route path="brand-setup" element={<BrandSetupWizard />} />
                     </Routes>
                   </Layout>
                 }

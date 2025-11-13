@@ -17,7 +17,7 @@ from app.core.exceptions import (
 )
 from app.db.database import engine, Base
 from app.routes import campaigns, ad_groups, keywords, search_terms, ml_features, metrics, customers, ecommerce, shopify, ga4, meta, ai_intelligence, warehouse
-from app.routes import ai_reports, ai_creative, ai_copilot, ai_predictions, ai_campaign_builder
+from app.routes import ai_reports, ai_creative, ai_predictions, ai_campaign_builder, ai_ad_creator
 
 # Configure logging
 logging.basicConfig(
@@ -82,9 +82,9 @@ app.include_router(warehouse.router, prefix=f"/api/{settings.API_VERSION}")
 # AI Features routers
 app.include_router(ai_reports.router, prefix="/api/ai", tags=["AI Features"])
 app.include_router(ai_creative.router, prefix="/api/ai", tags=["AI Features"])
-app.include_router(ai_copilot.router, prefix="/api/ai", tags=["AI Features"])
 app.include_router(ai_predictions.router, prefix="/api/ai", tags=["AI Features"])
 app.include_router(ai_campaign_builder.router, prefix="/api/ai", tags=["AI Features"])
+app.include_router(ai_ad_creator.router, prefix="/api/ai/ad-creator", tags=["AI Ad Creator"])
 
 @app.get("/")
 async def root():

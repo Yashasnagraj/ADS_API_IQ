@@ -7,9 +7,20 @@ from typing import List, Optional
 from pydantic import BaseModel
 import re
 import sqlite3
+import json
+import os
 from pathlib import Path
+import google.generativeai as genai
 
 router = APIRouter()
+
+# Configure Gemini API
+gemini_api_key = os.getenv("GEMINI_API_KEY")
+if gemini_api_key:
+    genai.configure(api_key=gemini_api_key)
+    gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+else:
+    gemini_model = None
 
 # Path to marketing warehouse database
 WAREHOUSE_DB = Path(__file__).parent.parent.parent.parent / "marketing_warehouse.db"
@@ -65,66 +76,107 @@ async def generate_ad_copy(input_data: AdCopyInput):
 
         keyword_context = [kw['keyword_text'] for kw in top_keywords] if top_keywords else []
 
-        # Generate ad variations
+        # Generate ad variations using Gemini AI
         variations = []
 
-        # Variation 1: Feature-focused
-        variations.append({
-            "id": 1,
-            "headline": f"Premium {input_data.product[:20]}",
-            "description": f"{input_data.key_benefits[0] if input_data.key_benefits else 'Quality products'}. {input_data.special_offer or 'Shop now!'}",
-            "score": 8.7,
-            "predicted_ctr": "2.8-3.5%",
-            "strengths": ["Clear value proposition", "Includes benefit", "Strong CTA"],
-            "policy_status": "✅ Approved"
-        })
+        if gemini_model:
+            # Build prompt with real data context
+            keywords_str = ', '.join(keyword_context[:5]) if keyword_context else 'general keywords'
+            benefits_str = ', '.join(input_data.key_benefits) if input_data.key_benefits else 'quality and value'
 
-        # Variation 2: Benefit-focused
-        variations.append({
-            "id": 2,
-            "headline": f"Transform Your {input_data.target_audience.split()[0] if input_data.target_audience else 'Business'}",
-            "description": f"Get {input_data.key_benefits[0] if input_data.key_benefits else 'results'}. Trusted by thousands. {input_data.special_offer or 'Learn more'}",
-            "score": 9.1,
-            "predicted_ctr": "3.2-4.0%",
-            "strengths": ["Emotional appeal", "Social proof", "Urgency"],
-            "policy_status": "✅ Approved"
-        })
+            prompt = f"""You are an expert Google Ads copywriter. Generate 5 unique ad variations for Google Search Ads.
 
-        # Variation 3: Offer-focused
-        if input_data.special_offer:
-            variations.append({
-                "id": 3,
-                "headline": f"{input_data.special_offer[:30]}",
-                "description": f"{input_data.product}. {input_data.key_benefits[0] if input_data.key_benefits else 'Premium quality'}. Limited time!",
-                "score": 8.9,
-                "predicted_ctr": "3.0-3.8%",
-                "strengths": ["Clear offer", "Urgency", "Product mention"],
-                "policy_status": "✅ Approved"
-            })
+PRODUCT/SERVICE: {input_data.product}
+TARGET AUDIENCE: {input_data.target_audience}
+CAMPAIGN GOAL: {input_data.campaign_goal}
+TONE: {input_data.tone}
+KEY BENEFITS: {benefits_str}
+SPECIAL OFFER: {input_data.special_offer or 'None'}
+TOP PERFORMING KEYWORDS: {keywords_str}
 
-        # Variation 4: Question-based
-        variations.append({
-            "id": 4,
-            "headline": f"Need {input_data.product[:20]}?",
-            "description": f"Discover {input_data.key_benefits[0] if input_data.key_benefits else 'amazing results'}. {input_data.target_audience}. Start today!",
-            "score": 7.8,
-            "predicted_ctr": "2.5-3.2%",
-            "strengths": ["Engaging question", "Audience targeting"],
-            "policy_status": "✅ Approved"
-        })
+REQUIREMENTS:
+- Headline: Max 30 characters
+- Description: Max 90 characters
+- Use a {input_data.tone} tone
+- Focus on {input_data.campaign_goal}
+- Incorporate top keywords naturally
+- Each variation should have a unique angle (feature-focused, benefit-focused, question-based, urgency-driven, social proof)
 
-        # Variation 5: Using top keywords
-        if keyword_context:
-            top_keyword = keyword_context[0]
-            variations.append({
-                "id": 5,
-                "headline": f"Best {top_keyword[:25]}",
-                "description": f"{input_data.key_benefits[0] if input_data.key_benefits else 'Quality guaranteed'}. {input_data.special_offer or 'Shop now'}",
-                "score": 8.5,
-                "predicted_ctr": "2.9-3.6%",
-                "strengths": ["Keyword match", "Simple and clear"],
-                "policy_status": "✅ Approved"
-            })
+Return ONLY valid JSON array (no markdown):
+[
+  {{
+    "id": 1,
+    "headline": "headline under 30 chars",
+    "description": "description under 90 chars",
+    "score": 7.5-9.5,
+    "predicted_ctr": "2.5-4.0%",
+    "strengths": ["strength1", "strength2", "strength3"],
+    "policy_status": "✅ Approved"
+  }}
+]"""
+
+            try:
+                response = gemini_model.generate_content(
+                    prompt,
+                    generation_config=genai.GenerationConfig(
+                        temperature=0.9,
+                        top_p=0.95,
+                        max_output_tokens=2048,
+                    )
+                )
+
+                response_text = response.text.strip()
+
+                # Remove markdown code blocks if present
+                if response_text.startswith("```json"):
+                    response_text = response_text.replace("```json", "").replace("```", "").strip()
+                elif response_text.startswith("```"):
+                    response_text = response_text.replace("```", "").strip()
+
+                # Parse JSON
+                variations = json.loads(response_text)
+
+                # Enforce character limits
+                for var in variations:
+                    var["headline"] = var["headline"][:30]
+                    var["description"] = var["description"][:90]
+
+            except Exception as e:
+                print(f"Gemini AI error: {e}")
+                # Fallback to simple variations if AI fails
+                variations = [
+                    {
+                        "id": 1,
+                        "headline": f"Premium {input_data.product[:20]}",
+                        "description": f"{input_data.key_benefits[0] if input_data.key_benefits else 'Quality products'}. {input_data.special_offer or 'Shop now!'}",
+                        "score": 8.7,
+                        "predicted_ctr": "2.8-3.5%",
+                        "strengths": ["Clear value proposition", "Includes benefit", "Strong CTA"],
+                        "policy_status": "✅ Approved"
+                    },
+                    {
+                        "id": 2,
+                        "headline": f"{input_data.product[:25]} Today",
+                        "description": f"Get {input_data.key_benefits[0] if input_data.key_benefits else 'results'}. {input_data.special_offer or 'Learn more'}",
+                        "score": 8.2,
+                        "predicted_ctr": "2.6-3.3%",
+                        "strengths": ["Urgency", "Benefit-focused"],
+                        "policy_status": "✅ Approved"
+                    }
+                ]
+        else:
+            # Fallback if Gemini not configured
+            variations = [
+                {
+                    "id": 1,
+                    "headline": f"Premium {input_data.product[:20]}",
+                    "description": f"{input_data.key_benefits[0] if input_data.key_benefits else 'Quality products'}. {input_data.special_offer or 'Shop now!'}",
+                    "score": 8.7,
+                    "predicted_ctr": "2.8-3.5%",
+                    "strengths": ["Clear value proposition", "Includes benefit", "Strong CTA"],
+                    "policy_status": "✅ Approved (Fallback)"
+                }
+            ]
 
         return {
             "success": True,
@@ -144,7 +196,7 @@ async def generate_ad_copy(input_data: AdCopyInput):
 
 @router.post("/creative/optimize")
 async def optimize_ad_copy(ad: ExistingAd):
-    """Analyze and optimize existing ad copy"""
+    """Analyze and optimize existing ad copy using AI"""
 
     # Analyze the ad
     issues = []
@@ -163,52 +215,111 @@ async def optimize_ad_copy(ad: ExistingAd):
 
     # Check for numbers/stats
     if not re.search(r'\d+', ad.headline + ad.description):
-        suggestions.append("Add numbers or stats for credibility (e.g., '30% off', '1000+ customers')")
+        suggestions.append("Add numbers or stats for credibility")
         score -= 0.5
 
     # Check for emotional words
     emotional_words = ['amazing', 'best', 'premium', 'exclusive', 'transform', 'discover']
     if not any(word in ad.headline.lower() + ad.description.lower() for word in emotional_words):
-        suggestions.append("Add emotional trigger words for better engagement")
+        suggestions.append("Add emotional trigger words")
         score -= 0.5
 
     # Check for CTA
     cta_words = ['shop', 'buy', 'get', 'start', 'learn', 'discover', 'try']
     if not any(word in ad.description.lower() for word in cta_words):
-        issues.append("No clear call-to-action (CTA) found")
+        issues.append("No clear call-to-action (CTA)")
         score -= 2.0
 
-    # Generate optimized versions
+    # Generate optimized versions using AI
     optimized_versions = []
 
-    # Version 1: Shortened and CTA-focused
-    optimized_headline = ad.headline[:30] if len(ad.headline) > 30 else ad.headline
-    optimized_desc = ad.description[:80] + " Shop now!" if len(ad.description) > 80 else ad.description + " Act today!"
-    optimized_versions.append({
-        "version": 1,
-        "headline": optimized_headline,
-        "description": optimized_desc[:90],
-        "score": min(score + 1.5, 10.0),
-        "improvements": ["Added strong CTA", "Optimized length"]
-    })
+    if gemini_model:
+        issues_str = ', '.join(issues) if issues else 'None'
+        suggestions_str = ', '.join(suggestions) if suggestions else 'None'
 
-    # Version 2: Benefit-focused
-    optimized_versions.append({
-        "version": 2,
-        "headline": f"Premium {ad.headline.split()[0] if ad.headline else 'Product'}",
-        "description": f"Get amazing results. {ad.description[:60]} Start today!"[:90],
-        "score": min(score + 2.0, 10.0),
-        "improvements": ["Added emotional words", "Clear benefit", "Strong CTA"]
-    })
+        prompt = f"""You are an expert Google Ads optimizer. Analyze and improve this ad copy.
 
-    # Version 3: Social proof
-    optimized_versions.append({
-        "version": 3,
-        "headline": ad.headline[:25] + " 2024" if len(ad.headline) < 25 else ad.headline[:30],
-        "description": f"Trusted by 1000+ customers. {ad.description[:50]} Order now!"[:90],
-        "score": min(score + 1.8, 10.0),
-        "improvements": ["Added social proof", "Updated for relevance"]
-    })
+CURRENT AD:
+Headline: {ad.headline}
+Description: {ad.description}
+
+ISSUES FOUND: {issues_str}
+SUGGESTIONS: {suggestions_str}
+CURRENT SCORE: {score:.1f}/10
+
+Generate 3 optimized versions that fix the issues. Each should have a different approach:
+1. Version focused on fixing length/CTA
+2. Version focused on emotional appeal
+3. Version focused on credibility/social proof
+
+REQUIREMENTS:
+- Headline: Max 30 characters
+- Description: Max 90 characters
+- Fix all identified issues
+- Maintain the core message
+- Improve clarity and impact
+
+Return ONLY valid JSON array (no markdown):
+[
+  {{
+    "version": 1,
+    "headline": "optimized headline",
+    "description": "optimized description",
+    "score": 8.0-10.0,
+    "improvements": ["improvement1", "improvement2"]
+  }}
+]"""
+
+        try:
+            response = gemini_model.generate_content(
+                prompt,
+                generation_config=genai.GenerationConfig(
+                    temperature=0.8,
+                    top_p=0.9,
+                    max_output_tokens=1024,
+                )
+            )
+
+            response_text = response.text.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text.replace("```json", "").replace("```", "").strip()
+            elif response_text.startswith("```"):
+                response_text = response_text.replace("```", "").strip()
+
+            optimized_versions = json.loads(response_text)
+
+            # Enforce limits
+            for var in optimized_versions:
+                var["headline"] = var["headline"][:30]
+                var["description"] = var["description"][:90]
+
+        except Exception as e:
+            print(f"Gemini AI error in optimize: {e}")
+            # Fallback
+            optimized_headline = ad.headline[:30]
+            optimized_desc = ad.description[:80] + " Shop now!"
+            optimized_versions = [
+                {
+                    "version": 1,
+                    "headline": optimized_headline,
+                    "description": optimized_desc[:90],
+                    "score": min(score + 1.5, 10.0),
+                    "improvements": ["Added CTA", "Optimized length"]
+                }
+            ]
+    else:
+        # Fallback if no AI
+        optimized_headline = ad.headline[:30]
+        optimized_desc = ad.description[:80] + " Shop now!"
+        optimized_versions = [
+            {
+                "version": 1,
+                "headline": optimized_headline,
+                "description": optimized_desc[:90],
+                "score": min(score + 1.5, 10.0),
+                "improvements": ["Added CTA", "Optimized length (Fallback)"]
+            }
+        ]
 
     return {
         "success": True,
@@ -244,7 +355,7 @@ async def get_top_performing_ads(customer_id: int, limit: int = 10):
                 AVG(f.conversions) as avg_conversions,
                 SUM(f.impressions) as total_impressions
             FROM fact_keyword_performance_daily f
-            JOIN keywords k ON f.keyword_id = k.keyword_id
+            JOIN dim_keyword k ON f.keyword_id = k.keyword_id
             WHERE k.customer_id = ?
             AND f.impressions > 50
             GROUP BY k.keyword_text, k.match_type

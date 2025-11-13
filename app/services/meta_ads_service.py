@@ -1244,6 +1244,295 @@ class MetaAdsService:
         )
 
 
+    # =====================================
+    # CAMPAIGN CREATION METHODS (NEW)
+    # =====================================
+
+    def create_sales_campaign(
+        self,
+        account_id: Optional[str] = None,
+        campaign_name: str = "New Campaign",
+        daily_budget_cents: int = 1000,  # $10.00
+        status: str = "PAUSED"
+    ) -> Dict[str, Any]:
+        """
+        Create a new Sales campaign in Meta Ads
+
+        Args:
+            account_id: Meta ad account ID (uses default if not provided)
+            campaign_name: Name for the campaign
+            daily_budget_cents: Daily budget in cents (1000 = $10.00)
+            status: Campaign status (PAUSED or ACTIVE - recommend PAUSED for safety)
+
+        Returns:
+            Dict with campaign_id, name, and status
+        """
+        from facebook_business.adobjects.campaign import Campaign
+
+        account_id = account_id or self.account_id
+        if not account_id:
+            raise ValueError("account_id must be provided")
+
+        try:
+            campaign = Campaign(parent_id=account_id)
+            campaign.update({
+                Campaign.Field.name: campaign_name,
+                Campaign.Field.objective: 'OUTCOME_SALES',  # Sales objective
+                Campaign.Field.status: status.upper(),
+                Campaign.Field.daily_budget: daily_budget_cents,
+                Campaign.Field.special_ad_categories: [],  # Empty for most campaigns
+            })
+
+            campaign.remote_create()
+
+            logger.info(f"Created campaign {campaign_name} with ID {campaign[Campaign.Field.id]}")
+
+            return {
+                "campaign_id": campaign[Campaign.Field.id],
+                "name": campaign_name,
+                "status": status.upper(),
+                "daily_budget_cents": daily_budget_cents
+            }
+
+        except Exception as e:
+            logger.error(f"Error creating campaign: {e}")
+            raise
+
+    def create_ad_set(
+        self,
+        campaign_id: str,
+        ad_set_name: str,
+        daily_budget_cents: int,
+        targeting: Dict[str, Any],
+        optimization_goal: str = "OFFSITE_CONVERSIONS",
+        billing_event: str = "IMPRESSIONS",
+        bid_amount_cents: Optional[int] = None,
+        status: str = "PAUSED"
+    ) -> Dict[str, Any]:
+        """
+        Create an ad set within a campaign
+
+        Args:
+            campaign_id: Parent campaign ID
+            ad_set_name: Name for the ad set
+            daily_budget_cents: Daily budget in cents
+            targeting: Targeting spec (geo, age, gender, interests)
+            optimization_goal: What to optimize for (OFFSITE_CONVERSIONS, LINK_CLICKS, etc.)
+            billing_event: What to bill for (IMPRESSIONS, LINK_CLICKS)
+            bid_amount_cents: Optional bid cap in cents
+            status: Ad set status (PAUSED or ACTIVE)
+
+        Returns:
+            Dict with ad_set_id, name, and status
+        """
+        from facebook_business.adobjects.adset import AdSet
+
+        try:
+            ad_set = AdSet(parent_id=self.account_id)
+
+            ad_set_params = {
+                AdSet.Field.name: ad_set_name,
+                AdSet.Field.campaign_id: campaign_id,
+                AdSet.Field.daily_budget: daily_budget_cents,
+                AdSet.Field.billing_event: billing_event,
+                AdSet.Field.optimization_goal: optimization_goal,
+                AdSet.Field.targeting: targeting,
+                AdSet.Field.status: status.upper(),
+            }
+
+            if bid_amount_cents:
+                ad_set_params[AdSet.Field.bid_amount] = bid_amount_cents
+
+            ad_set.update(ad_set_params)
+            ad_set.remote_create()
+
+            logger.info(f"Created ad set {ad_set_name} with ID {ad_set[AdSet.Field.id]}")
+
+            return {
+                "ad_set_id": ad_set[AdSet.Field.id],
+                "name": ad_set_name,
+                "status": status.upper(),
+                "daily_budget_cents": daily_budget_cents
+            }
+
+        except Exception as e:
+            logger.error(f"Error creating ad set: {e}")
+            raise
+
+    def upload_image(
+        self,
+        account_id: Optional[str] = None,
+        image_bytes: bytes = None,
+        image_url: Optional[str] = None,
+        filename: str = "ad_image.jpg"
+    ) -> str:
+        """
+        Upload an image to Meta and get the image hash
+
+        Args:
+            account_id: Meta ad account ID
+            image_bytes: Image file bytes (OR image_url)
+            image_url: URL of image to upload (OR image_bytes)
+            filename: Filename for the image
+
+        Returns:
+            Image hash string (needed for ad creative)
+        """
+        from facebook_business.adobjects.adimage import AdImage
+
+        account_id = account_id or self.account_id
+        if not account_id:
+            raise ValueError("account_id must be provided")
+
+        try:
+            image = AdImage(parent_id=account_id)
+
+            if image_bytes:
+                image[AdImage.Field.bytes] = image_bytes
+                image[AdImage.Field.filename] = filename
+            elif image_url:
+                image[AdImage.Field.url] = image_url
+            else:
+                raise ValueError("Either image_bytes or image_url must be provided")
+
+            image.remote_create()
+
+            image_hash = image[AdImage.Field.hash]
+            logger.info(f"Uploaded image with hash {image_hash}")
+
+            return image_hash
+
+        except Exception as e:
+            logger.error(f"Error uploading image: {e}")
+            raise
+
+    def create_ad_creative(
+        self,
+        account_id: Optional[str] = None,
+        page_id: str = None,
+        creative_name: str = "Ad Creative",
+        primary_text: str = "",
+        headline: str = "",
+        description: str = "",
+        landing_url: str = "",
+        image_hash: str = None,
+        call_to_action_type: str = "SHOP_NOW"
+    ) -> str:
+        """
+        Create an ad creative (the actual ad content)
+
+        Args:
+            account_id: Meta ad account ID
+            page_id: Facebook Page ID
+            creative_name: Name for the creative
+            primary_text: Main ad copy (max 125 chars)
+            headline: Ad headline (max 27 chars)
+            description: Ad description (max 27 chars)
+            landing_url: Destination URL
+            image_hash: Image hash from upload_image()
+            call_to_action_type: CTA button type (SHOP_NOW, LEARN_MORE, etc.)
+
+        Returns:
+            Creative ID string
+        """
+        from facebook_business.adobjects.adcreative import AdCreative
+
+        account_id = account_id or self.account_id
+        if not account_id:
+            raise ValueError("account_id must be provided")
+
+        if not page_id:
+            raise ValueError("page_id must be provided")
+
+        try:
+            creative = AdCreative(parent_id=account_id)
+
+            creative.update({
+                AdCreative.Field.name: creative_name,
+                AdCreative.Field.object_story_spec: {
+                    'page_id': page_id,
+                    'link_data': {
+                        'message': primary_text[:125],  # Enforce limit
+                        'link': landing_url,
+                        'name': headline[:27],  # Enforce limit
+                        'description': description[:27],  # Enforce limit
+                        'image_hash': image_hash,
+                        'call_to_action': {
+                            'type': call_to_action_type
+                        }
+                    }
+                }
+            })
+
+            creative.remote_create()
+
+            creative_id = creative[AdCreative.Field.id]
+            logger.info(f"Created ad creative {creative_name} with ID {creative_id}")
+
+            return creative_id
+
+        except Exception as e:
+            logger.error(f"Error creating ad creative: {e}")
+            raise
+
+    def create_ad(
+        self,
+        account_id: Optional[str] = None,
+        ad_set_id: str = None,
+        creative_id: str = None,
+        ad_name: str = "New Ad",
+        status: str = "PAUSED"
+    ) -> Dict[str, Any]:
+        """
+        Create an ad (links creative to ad set)
+
+        Args:
+            account_id: Meta ad account ID
+            ad_set_id: Parent ad set ID
+            creative_id: Creative ID to use
+            ad_name: Name for the ad
+            status: Ad status (PAUSED or ACTIVE)
+
+        Returns:
+            Dict with ad_id, name, and status
+        """
+        from facebook_business.adobjects.ad import Ad
+
+        account_id = account_id or self.account_id
+        if not account_id:
+            raise ValueError("account_id must be provided")
+
+        if not ad_set_id or not creative_id:
+            raise ValueError("ad_set_id and creative_id must be provided")
+
+        try:
+            ad = Ad(parent_id=account_id)
+
+            ad.update({
+                Ad.Field.name: ad_name,
+                Ad.Field.adset_id: ad_set_id,
+                Ad.Field.creative: {'creative_id': creative_id},
+                Ad.Field.status: status.upper(),
+            })
+
+            ad.remote_create()
+
+            ad_id = ad[Ad.Field.id]
+            logger.info(f"Created ad {ad_name} with ID {ad_id}")
+
+            return {
+                "ad_id": ad_id,
+                "name": ad_name,
+                "status": status.upper(),
+                "ad_set_id": ad_set_id,
+                "creative_id": creative_id
+            }
+
+        except Exception as e:
+            logger.error(f"Error creating ad: {e}")
+            raise
+
+
 def get_meta_ads_service(account_id: Optional[str] = None) -> MetaAdsService:
     """
     Create a new MetaAdsService instance

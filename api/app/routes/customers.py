@@ -29,7 +29,7 @@ class CustomerListResponse(BaseModel):
 def get_customers():
     """
     Get list of all client customers (not manager accounts)
-    Real-time query from Google Ads API
+    Real-time query from Google Ads API - optimized for speed
     """
     try:
         ads_service = get_google_ads_service()
@@ -45,28 +45,13 @@ def get_customers():
         for client_data in client_accounts:
             customer_id = int(client_data["customer_id"])
 
-            try:
-                # Count campaigns for this client
-                campaigns = ads_service.get_campaigns(
-                    str(customer_id),
-                    date_range="LAST_30_DAYS"
-                )
-
-                customer = CustomerInfo(
-                    customer_id=customer_id,
-                    customer_name=client_data.get("descriptive_name", f"Customer {customer_id}"),
-                    campaigns_count=len(campaigns)
-                )
-                customers.append(customer)
-
-            except Exception as e:
-                logger.warning(f"Could not fetch campaigns for customer {customer_id}: {e}")
-                # Add basic info even if campaigns fetch fails
-                customers.append(CustomerInfo(
-                    customer_id=customer_id,
-                    customer_name=client_data.get("descriptive_name", f"Customer {customer_id}"),
-                    campaigns_count=0
-                ))
+            # Skip campaign count for faster loading - just return customer list
+            # The campaign count can be fetched separately if needed
+            customers.append(CustomerInfo(
+                customer_id=customer_id,
+                customer_name=client_data.get("descriptive_name", f"Customer {customer_id}"),
+                campaigns_count=0  # Set to 0 for fast loading
+            ))
 
         return CustomerListResponse(
             customers=customers,

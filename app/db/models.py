@@ -18,6 +18,55 @@ class Customer(Base):
     updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
 
+class CustomerProfile(Base):
+    """Brand profile and persona for AI ad generation"""
+    __tablename__ = "customer_profiles"
+
+    profile_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    customer_id = Column(Integer, ForeignKey("customers.customer_id"), nullable=False, unique=True, index=True)
+
+    # Company/Brand Information
+    company_name = Column(String, nullable=False)
+    industry = Column(String)  # E-commerce, B2B SaaS, Local Business, etc.
+    website_url = Column(String)
+
+    # Brand Voice & Messaging
+    brand_voice = Column(String, default='professional')  # professional, casual, friendly, urgent, luxurious
+    tone_attributes = Column(Text)  # JSON: ["helpful", "innovative", "trustworthy"]
+    key_values = Column(Text)  # JSON: ["quality", "affordability", "sustainability"]
+    unique_selling_points = Column(Text)  # JSON: ["free shipping", "24/7 support", "money-back guarantee"]
+
+    # Target Audience
+    target_audience_description = Column(Text)  # "Millennial women interested in sustainable fashion"
+    audience_demographics = Column(Text)  # JSON: {"age": "25-45", "gender": "female", "interests": [...]}
+    audience_pain_points = Column(Text)  # JSON: ["expensive shipping", "sizing issues"]
+
+    # Product/Service Info
+    product_category = Column(String)  # Fashion, Electronics, Services, etc.
+    price_range = Column(String)  # budget, mid-range, premium, luxury
+    primary_benefits = Column(Text)  # JSON: ["saves time", "eco-friendly", "durable"]
+
+    # Ad Preferences
+    preferred_ctas = Column(Text)  # JSON: ["Shop Now", "Learn More", "Get Started"]
+    prohibited_words = Column(Text)  # JSON: ["cheap", "discount", "sale"] - words to avoid
+    sample_headlines = Column(Text)  # JSON: User-provided examples of good headlines
+    sample_descriptions = Column(Text)  # JSON: User-provided examples
+
+    # Meta Ads Specific
+    meta_page_id = Column(String)  # Facebook Page ID for ad posting
+    meta_pixel_id = Column(String)  # Meta Pixel ID for tracking
+
+    # Brand Assets
+    logo_url = Column(String)
+    brand_colors = Column(Text)  # JSON: ["#FF5733", "#33FF57"]
+    image_style_preference = Column(String)  # minimalist, bold, colorful, professional
+
+    # System
+    is_complete = Column(Boolean, default=False)  # Whether setup wizard is completed
+    created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
+    updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+
 class Campaign(Base):
     __tablename__ = "campaigns"
 
