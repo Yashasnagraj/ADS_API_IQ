@@ -11,6 +11,7 @@ import { FilterState, KPIData, InsightData, UnifiedMetrics } from '../../../type
 import { useFilters } from '../../../context/FilterContext';
 import { unifiedService } from '../../../services/unifiedService';
 import { googleAdsService } from '../../../services/googleAdsService';
+import { comparisonService, MetricComparison } from '../../../services/comparisonService';
 import { SmartInsightGenerator } from '../../../utils/insightGenerator';
 import {
   BarChart,
@@ -32,6 +33,7 @@ export const EcommerceDashboard: React.FC = () => {
   const { filters } = useFilters();
   const [metrics, setMetrics] = useState<UnifiedMetrics | null>(null);
   const [googleMetrics, setGoogleMetrics] = useState<any>(null);
+  const [comparisons, setComparisons] = useState<Record<string, MetricComparison>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,13 +44,22 @@ export const EcommerceDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const [unifiedData, googleData] = await Promise.all([
+        const [unifiedData, googleData, comparisonsData] = await Promise.all([
           unifiedService.getUnifiedMetrics(Number(filters.customerId), filters.dateRange),
           googleAdsService.getMetricsSummary(Number(filters.customerId), filters.dateRange),
+          comparisonService.getBatchMetricComparisons(
+            filters.customerId!,
+            ['spend', 'conversions', 'roas', 'conversion_rate'],
+            filters.dateRange
+          ).catch(err => {
+            console.warn('Failed to fetch ecommerce comparisons:', err);
+            return {};
+          })
         ]);
 
         setMetrics(unifiedData);
         setGoogleMetrics(googleData);
+        setComparisons(comparisonsData);
       } catch (err: any) {
         console.error('Error fetching ecommerce data:', err);
         setError(err.message || 'Failed to load ecommerce data');
@@ -66,14 +77,16 @@ export const EcommerceDashboard: React.FC = () => {
           title: 'Total Revenue',
           value: (googleMetrics.conversion_value || 0).toFixed(0),
           prefix: '₹',
-          change: 18,
+          change: comparisons.conversions?.change_percentage || 0, // Using conversions as proxy for revenue
+          trend: comparisons.conversions?.change_direction === 'decrease' ? 'down' : (comparisons.conversions?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'Total Orders',
           value: (googleMetrics.conversions || 0).toFixed(0),
-          change: 15,
+          change: comparisons.conversions?.change_percentage || 0,
+          trend: comparisons.conversions?.change_direction === 'decrease' ? 'down' : (comparisons.conversions?.change_direction === 'increase' ? 'up' : undefined),
           isHighlighted: true,
-          color: 'success',
+          color: comparisons.conversions?.is_positive_change ? 'success' : 'error',
         },
         {
           title: 'Avg. Order Value',
@@ -81,24 +94,27 @@ export const EcommerceDashboard: React.FC = () => {
             ? (googleMetrics.conversion_value / googleMetrics.conversions).toFixed(2)
             : '0',
           prefix: '₹',
-          change: 3,
+          change: 0, // AOV comparison not in API yet
         },
         {
           title: 'Total Spend',
           value: (googleMetrics.spend || 0).toFixed(0),
           prefix: '₹',
-          change: -5,
+          change: comparisons.spend?.change_percentage || 0,
+          trend: comparisons.spend?.change_direction === 'decrease' ? 'down' : (comparisons.spend?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'ROAS',
           value: (googleMetrics.roas || 0).toFixed(1),
           suffix: 'x',
-          change: 8,
+          change: comparisons.roas?.change_percentage || 0,
+          trend: comparisons.roas?.change_direction === 'decrease' ? 'down' : (comparisons.roas?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'Conversion Rate',
           value: `${((googleMetrics.conversions / googleMetrics.clicks) * 100 || 0).toFixed(1)}%`,
-          change: 4,
+          change: comparisons.conversion_rate?.change_percentage || 0,
+          trend: comparisons.conversion_rate?.change_direction === 'decrease' ? 'down' : (comparisons.conversion_rate?.change_direction === 'increase' ? 'up' : undefined),
         },
       ]
     : [];

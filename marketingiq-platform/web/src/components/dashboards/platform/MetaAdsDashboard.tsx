@@ -9,6 +9,7 @@ import { DataQualityIndicator } from '../../common/DataQualityIndicator';
 import { SmartInsightSummary } from '../../common/SmartInsightSummary';
 import { FilterState, KPIData } from '../../../types';
 import { metaAdsService } from '../../../services/metaAdsService';
+import { comparisonService, MetricComparison } from '../../../services/comparisonService';
 import { useFilters } from '../../../context/FilterContext';
 import { SmartInsightGenerator } from '../../../utils/insightGenerator';
 import {
@@ -49,6 +50,7 @@ export const MetaAdsDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<MetaCampaign[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
+  const [comparisons, setComparisons] = useState<Record<string, MetricComparison>>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,15 +60,25 @@ export const MetaAdsDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch campaigns and metrics in parallel
-        const [campaignsData, metricsData] = await Promise.all([
+        // Fetch campaigns, metrics, and comparisons in parallel
+        const [campaignsData, metricsData, comparisonsData] = await Promise.all([
           metaAdsService.getCampaigns(Number(filters.customerId), filters.dateRange),
           metaAdsService.getInsightsSummary(Number(filters.customerId), filters.dateRange),
+          comparisonService.getBatchMetricComparisons(
+            filters.customerId!,
+            ['spend', 'roas', 'conversions', 'cpc', 'ctr'],
+            filters.dateRange,
+            { platform: 'meta_ads' }
+          ).catch(err => {
+            console.warn('Failed to fetch Meta Ads comparisons:', err);
+            return {};
+          })
         ]);
 
         // Ensure campaigns is always an array
         setCampaigns(Array.isArray(campaignsData) ? campaignsData : []);
         setMetrics(metricsData);
+        setComparisons(comparisonsData);
       } catch (err: any) {
         console.error('Error fetching Meta Ads data:', err);
         setError(err.message || 'Failed to load Meta Ads data');
@@ -99,36 +111,41 @@ export const MetaAdsDashboard: React.FC = () => {
           title: 'Total Spend',
           value: metrics.spend || metrics.total_spend || 0,
           prefix: '₹',
-          change: 0,
+          change: comparisons.spend?.change_percentage || 0,
+          trend: comparisons.spend?.change_direction === 'decrease' ? 'down' : (comparisons.spend?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'ROAS',
           value: (metrics.roas || metrics.overall_roas || 0).toFixed(2),
           suffix: 'x',
-          change: 0,
+          change: comparisons.roas?.change_percentage || 0,
+          trend: comparisons.roas?.change_direction === 'decrease' ? 'down' : (comparisons.roas?.change_direction === 'increase' ? 'up' : undefined),
           isHighlighted: true,
-          color: 'success',
+          color: comparisons.roas?.is_positive_change ? 'success' : 'error',
         },
         {
           title: 'Conversions',
           value: metrics.conversions || metrics.total_conversions || 0,
-          change: 0,
+          change: comparisons.conversions?.change_percentage || 0,
+          trend: comparisons.conversions?.change_direction === 'decrease' ? 'down' : (comparisons.conversions?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'Avg. CPC',
           value: (metrics.cpc || metrics.avg_cpc || 0).toFixed(2),
           prefix: '₹',
-          change: 0,
+          change: comparisons.cpc?.change_percentage || 0,
+          trend: comparisons.cpc?.change_direction === 'decrease' ? 'down' : (comparisons.cpc?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'CTR',
           value: `${(metrics.ctr || metrics.avg_ctr || 0).toFixed(2)}%`,
-          change: 0,
+          change: comparisons.ctr?.change_percentage || 0,
+          trend: comparisons.ctr?.change_direction === 'decrease' ? 'down' : (comparisons.ctr?.change_direction === 'increase' ? 'up' : undefined),
         },
         {
           title: 'Frequency',
           value: (metrics.avg_frequency || 0).toFixed(1),
-          change: 0,
+          change: 0, // Frequency comparison not in API yet
         },
       ]
     : [];

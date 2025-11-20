@@ -10,6 +10,7 @@ import { DataQualityIndicator } from '../../common/DataQualityIndicator';
 import { KPIData, InsightData, UnifiedMetrics } from '../../../types';
 import { useFilters, getDateRangeValues } from '../../../context/FilterContext';
 import { unifiedService } from '../../../services/unifiedService';
+import { comparisonService, MetricComparison } from '../../../services/comparisonService';
 import { SmartInsightGenerator } from '../../../utils/insightGenerator';
 import {
   BarChart,
@@ -31,6 +32,7 @@ export const UnifiedDashboard: React.FC = () => {
   const { filters } = useFilters();
   const [metrics, setMetrics] = useState<UnifiedMetrics | null>(null);
   const [platformComparison, setPlatformComparison] = useState<any[]>([]);
+  const [comparisons, setComparisons] = useState<Record<string, MetricComparison>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -59,13 +61,22 @@ export const UnifiedDashboard: React.FC = () => {
       const customerId = filters.customerId ? Number(filters.customerId) : null;
       if (!customerId) return;
 
-      const [metricsData, comparisonData] = await Promise.all([
+      const [metricsData, comparisonData, comparisonsData] = await Promise.all([
         unifiedService.getUnifiedMetrics(customerId, filters.dateRange),
         unifiedService.getPlatformComparison(customerId, filters.dateRange),
+        comparisonService.getBatchMetricComparisons(
+          filters.customerId!,
+          ['spend', 'roas', 'conversions'],
+          filters.dateRange
+        ).catch(err => {
+          console.warn('Failed to fetch unified comparisons:', err);
+          return {};
+        })
       ]);
 
       setMetrics(metricsData);
       setPlatformComparison(comparisonData);
+      setComparisons(comparisonsData);
     } catch (error) {
       console.error('Error fetching unified metrics:', error);
     } finally {
@@ -79,37 +90,40 @@ export const UnifiedDashboard: React.FC = () => {
           title: 'Total Marketing Spend',
           value: metrics.total_spend,
           prefix: '₹',
-          change: 0,
+          change: comparisons.spend?.change_percentage || 0,
+          trend: comparisons.spend?.change_direction === 'decrease' ? 'down' : (comparisons.spend?.change_direction === 'increase' ? 'up' : undefined),
           changeLabel: 'vs last period',
         },
         {
           title: 'Blended ROAS',
           value: metrics.blended_roas.toFixed(2),
           suffix: 'x',
-          change: 0,
+          change: comparisons.roas?.change_percentage || 0,
+          trend: comparisons.roas?.change_direction === 'decrease' ? 'down' : (comparisons.roas?.change_direction === 'increase' ? 'up' : undefined),
           isHighlighted: true,
-          color: 'success',
+          color: comparisons.roas?.is_positive_change ? 'success' : 'error',
         },
         {
           title: 'Total Conversions',
           value: metrics.total_conversions,
-          change: 0,
+          change: comparisons.conversions?.change_percentage || 0,
+          trend: comparisons.conversions?.change_direction === 'decrease' ? 'down' : (comparisons.conversions?.change_direction === 'increase' ? 'up' : undefined),
           changeLabel: 'vs last period',
         },
         {
           title: 'Best Platform (ROAS)',
           value: `${metrics.best_platform.name} - ${metrics.best_platform.roas.toFixed(1)}x`,
-          change: 0,
+          change: 0, // Platform-specific comparison not available yet
         },
         {
           title: 'Best Platform (Conv)',
           value: `${metrics.best_platform_by_conversions.name} - ${metrics.best_platform_by_conversions.conversions}`,
-          change: 0,
+          change: 0, // Platform-specific comparison not available yet
         },
         {
           title: 'Active Platforms',
           value: platformComparison.length,
-          change: 0,
+          change: 0, // Platform count comparison not applicable
           color: 'info',
         },
       ]

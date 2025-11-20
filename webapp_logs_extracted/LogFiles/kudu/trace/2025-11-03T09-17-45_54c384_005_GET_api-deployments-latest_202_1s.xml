@@ -1,0 +1,9 @@
+<step title="Incoming Request" date="2025-11-03T09:17:45.584" instance="54c384" url="/api/deployments/latest" method="GET" type="request" pid="768,1,19" Accept="*/*" Host="marketingiq-api-1762160248.scm.azurewebsites.net" User-Agent="AZURECLI/2.77.0 (MSI)" Accept-Encoding="gzip, deflate" Authorization="Bea..." x-ms-client-request-id="dec85dfe-b895-11f0-a737-bc328ea36308" X-ARR-LOG-ID="dec85dfe-b895-11f0-a737-bc328ea36308" CLIENT-IP="49.37.249.177:50565" X-SITE-DEPLOYMENT-ID="marketingiq-api-1762160248" WAS-DEFAULT-HOSTNAME="marketingiq-api-1762160248.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/latest" X-Client-IP="49.37.249.177" X-Client-Port="50565" >
+  <step title="Cleanup Xml Logs" date="2025-11-03T09:17:45.619" /><!-- duration: 36ms -->
+  <step title="DeploymentService.GetResult" date="2025-11-03T09:17:45.777" >
+    <step title="DeploymentService.GetLatestDeployment" date="2025-11-03T09:17:45.802" >
+      <step title="DeploymentManager.GetResults" date="2025-11-03T09:17:45.818" /><!-- duration: 692ms -->
+    </step><!-- duration: 719ms -->
+  </step><!-- duration: 750ms -->
+  <step title="Outgoing response" date="2025-11-03T09:17:46.538" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 17ms -->
+</step><!-- duration: 983ms -->
